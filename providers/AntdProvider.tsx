@@ -8,27 +8,19 @@ interface AntdProviderProps {
   children: ReactNode;
 }
 
-// CRM Theme Configuration
 const crmTheme = {
   token: {
-    // Primary brand color
     colorPrimary: '#1890ff',
     colorSuccess: '#52c41a',
     colorWarning: '#faad14',
     colorError: '#ff4d4f',
     colorInfo: '#1890ff',
-
-    // Typography
     fontFamily:
       'var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     fontSize: 14,
-
-    // Border radius
     borderRadius: 6,
     borderRadiusLG: 8,
     borderRadiusSM: 4,
-
-    // Layout
     colorBgContainer: '#ffffff',
     colorBgLayout: '#f5f5f5',
   },
@@ -65,5 +57,4 @@ export function AntdProvider({ children }: AntdProviderProps) {
   );
 }
 
-// Export theme for use in other components
 export { crmTheme };

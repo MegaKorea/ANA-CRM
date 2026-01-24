@@ -44,13 +44,10 @@ export function Header({ collapsed, onToggle }: HeaderProps) {
   const handleUserMenuClick: MenuProps['onClick'] = ({ key }) => {
     switch (key) {
       case 'profile':
-        // Handle profile navigation
         break;
       case 'settings':
-        // Handle settings navigation
         break;
       case 'logout':
-        // Handle logout
         break;
     }
   };
@@ -69,7 +66,6 @@ export function Header({ collapsed, onToggle }: HeaderProps) {
         zIndex: 100,
       }}
     >
-      {/* Left section */}
       <Space size="middle">
         <span
           onClick={onToggle}
@@ -85,7 +81,6 @@ export function Header({ collapsed, onToggle }: HeaderProps) {
         />
       </Space>
 
-      {/* Right section */}
       <Space size="middle">
         <Badge count={5} size="small">
           <BellOutlined style={{ fontSize: 18, cursor: 'pointer' }} />

@@ -1,7 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
-// Create axios instance with default config
 const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || '/api',
   timeout: 30000,
@@ -10,10 +9,8 @@ const axiosInstance = axios.create({
   },
 });
 
-// Request interceptor
 axiosInstance.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    // Add auth token from Supabase if available
     if (typeof window !== 'undefined') {
       const supabase = getSupabaseClient();
       const { data: { session } } = await supabase.auth.getSession();
@@ -30,7 +27,6 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => {
     return response;
@@ -38,7 +34,6 @@ axiosInstance.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    // Handle 401 Unauthorized - token expired
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
@@ -53,7 +48,6 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    // Handle other errors
     const errorMessage = getErrorMessage(error);
 
     return Promise.reject({
@@ -65,7 +59,6 @@ axiosInstance.interceptors.response.use(
   }
 );
 
-// Helper function to extract error message
 function getErrorMessage(error: AxiosError): string {
   if (error.response?.data) {
     const data = error.response.data as { message?: string; error?: string };
@@ -81,7 +74,6 @@ function getErrorMessage(error: AxiosError): string {
 
 export default axiosInstance;
 
-// Export typed request methods
 export const api = {
   get: <T>(url: string, config?: Parameters<typeof axiosInstance.get>[1]) =>
     axiosInstance.get<T>(url, config).then((res) => res.data),

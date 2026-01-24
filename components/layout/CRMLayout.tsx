@@ -19,20 +19,16 @@ export function CRMLayout({ children }: CRMLayoutProps) {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      {/* Sidebar */}
       <Sidebar collapsed={collapsed} />
 
-      {/* Main Layout */}
       <Layout
         style={{
           marginLeft: siderWidth,
           transition: 'margin-left 0.2s',
         }}
       >
-        {/* Header */}
         <Header collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
 
-        {/* Content */}
         <Content
           style={{
             margin: '24px',
@@ -46,7 +42,6 @@ export function CRMLayout({ children }: CRMLayoutProps) {
           {children}
         </Content>
 
-        {/* Footer */}
         <Footer />
       </Layout>
     </Layout>

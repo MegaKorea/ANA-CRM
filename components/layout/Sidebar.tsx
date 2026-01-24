@@ -107,7 +107,6 @@ export function Sidebar({ collapsed }: SidebarProps) {
         zIndex: 101,
       }}
     >
-      {/* Logo */}
       <div
         style={{
           height: 64,
@@ -130,7 +129,6 @@ export function Sidebar({ collapsed }: SidebarProps) {
         </h1>
       </div>
 
-      {/* Menu */}
       <Menu
         theme="dark"
         mode="inline"

@@ -10,7 +10,6 @@ export const createClient = () => {
   );
 };
 
-// Singleton instance for client-side usage
 let supabaseClient: ReturnType<typeof createClient> | null = null;
 
 export const getSupabaseClient = () => {
