@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react';
 import { Layout } from 'antd';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
-import { Footer } from './Footer';
+import styles from './Layout.module.scss';
 
 const { Content } = Layout;
 
@@ -18,31 +18,20 @@ export function CRMLayout({ children }: CRMLayoutProps) {
   const siderWidth = collapsed ? 80 : 260;
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout className={styles.layout}>
       <Sidebar collapsed={collapsed} />
 
       <Layout
+        className={styles.contentWrapper}
         style={{
           marginLeft: siderWidth,
-          transition: 'margin-left 0.2s',
         }}
       >
         <Header collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
 
-        <Content
-          style={{
-            margin: '24px',
-            padding: '24px',
-            background: '#fff',
-            borderRadius: 8,
-            minHeight: 'calc(100vh - 64px - 48px - 53px)',
-            overflow: 'auto',
-          }}
-        >
+        <Content className={styles.content}>
           {children}
         </Content>
-
-        <Footer />
       </Layout>
     </Layout>
   );

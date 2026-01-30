@@ -3,6 +3,7 @@
 import { type ReactNode } from 'react';
 import { AntdProvider } from './AntdProvider';
 import { QueryProvider } from './QueryProvider';
+import { ThemeProvider } from '@/lib/hooks/use-theme';
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -10,9 +11,11 @@ interface AppProvidersProps {
 
 export function AppProviders({ children }: AppProvidersProps) {
   return (
-    <QueryProvider>
-      <AntdProvider>{children}</AntdProvider>
-    </QueryProvider>
+    <ThemeProvider>
+      <QueryProvider>
+        <AntdProvider>{children}</AntdProvider>
+      </QueryProvider>
+    </ThemeProvider>
   );
 }
 

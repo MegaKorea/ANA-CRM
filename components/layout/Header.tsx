@@ -1,15 +1,19 @@
 'use client';
 
-import { Layout, Avatar, Dropdown, Space, Badge, Input, type MenuProps } from 'antd';
+import { Layout, Avatar, Dropdown, Space, Input, Button, type MenuProps } from 'antd';
 import {
-  BellOutlined,
   SearchOutlined,
   UserOutlined,
   SettingOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  SunOutlined,
+  MoonOutlined,
 } from '@ant-design/icons';
+import styles from './Header.module.scss';
+import { useTheme } from '@/lib/hooks/use-theme';
+import { ThemeMode } from '@/constants/enums/theme.enum';
 
 const { Header: AntHeader } = Layout;
 
@@ -19,6 +23,8 @@ interface HeaderProps {
 }
 
 export function Header({ collapsed, onToggle }: HeaderProps) {
+  const { themeMode, toggleTheme } = useTheme();
+
   const userMenuItems: MenuProps['items'] = [
     {
       key: 'profile',
@@ -53,46 +59,28 @@ export function Header({ collapsed, onToggle }: HeaderProps) {
   };
 
   return (
-    <AntHeader
-      style={{
-        padding: '0 24px',
-        background: '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        boxShadow: '0 1px 4px rgba(0,21,41,0.08)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-      }}
-    >
+    <AntHeader className={styles.header}>
       <Space size="middle">
-        <span
-          onClick={onToggle}
-          style={{ fontSize: 18, cursor: 'pointer', color: '#001529' }}
-        >
+        <span onClick={onToggle} className={styles.toggleButton}>
           {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
         </span>
-        <Input
-          placeholder="Tìm kiếm..."
-          prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
-          style={{ width: 250, borderRadius: 20 }}
-          allowClear
-        />
       </Space>
 
       <Space size="middle">
-        <Badge count={5} size="small">
-          <BellOutlined style={{ fontSize: 18, cursor: 'pointer' }} />
-        </Badge>
+        <Button
+          type="text"
+          icon={themeMode === ThemeMode.DARK ? <SunOutlined /> : <MoonOutlined />}
+          onClick={toggleTheme}
+          className={styles.themeToggleButton}
+        />
         <Dropdown
           menu={{ items: userMenuItems, onClick: handleUserMenuClick }}
           trigger={['click']}
           placement="bottomRight"
         >
-          <Space style={{ cursor: 'pointer' }}>
+          <Space className={styles.userDropdown}>
             <Avatar size="small" icon={<UserOutlined />} />
-            <span style={{ color: '#001529' }}>Admin</span>
+            <span className={styles.userName}>Admin</span>
           </Space>
         </Dropdown>
       </Space>

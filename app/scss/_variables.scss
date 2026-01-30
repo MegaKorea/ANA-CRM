@@ -1,0 +1,65 @@
+$color-primary: #ec008c;
+$color-white: #FFFFFF;
+$color-black: #000000;
+$color-success: #52c41a;
+$color-warning: #faad14;
+$color-error: #ff4d4f;
+$color-info: #1890ff;
+$color-bg-layout-light: #f5f5f5;
+$color-header-bg-light: #001529;
+$color-body-bg-light: #f0f2f5;
+$color-table-header-bg-light: #fafafa;
+$color-transparent: transparent;
+$color-hover-bg: rgba(255, 255, 255, 0.08);
+$color-text-primary-light: #000000;
+$color-text-secondary-light: #666666;
+$color-border-light: #d9d9d9;
+$color-surface-light: #FFFFFF;
+$color-divider-light: rgba(0, 0, 0, 0.06);
+$shadow-header-light: 0 1px 4px rgba(0, 21, 41, 0.08);
+
+$color-bg-layout-dark: #000000;
+$color-header-bg-dark: #1f1f1f;
+$color-body-bg-dark: #000000;
+$color-table-header-bg-dark: #1d1d1d;
+$color-text-primary-dark: #FFFFFF;
+$color-text-secondary-dark: #BFBFBF;
+$color-border-dark: #434343;
+$color-surface-dark: #141414;
+$color-divider-dark: rgba(255, 255, 255, 0.12);
+$shadow-header-dark: 0 1px 4px rgba(0, 0, 0, 0.35);
+
+:root {
+  --color-primary: #{$color-primary};
+  --color-white: #{$color-white};
+  --color-black: #{$color-black};
+  --color-success: #{$color-success};
+  --color-warning: #{$color-warning};
+  --color-error: #{$color-error};
+  --color-info: #{$color-info};
+  --color-bg-layout: #{$color-bg-layout-light};
+  --color-header-bg: #{$color-header-bg-light};
+  --color-body-bg: #{$color-body-bg-light};
+  --color-table-header-bg: #{$color-table-header-bg-light};
+  --color-transparent: #{$color-transparent};
+  --color-hover-bg: #{$color-hover-bg};
+  --color-text-primary: #{$color-text-primary-light};
+  --color-text-secondary: #{$color-text-secondary-light};
+  --color-border: #{$color-border-light};
+  --color-surface: #{$color-surface-light};
+  --color-divider: #{$color-divider-light};
+  --shadow-header: #{$shadow-header-light};
+}
+
+:root.dark {
+  --color-bg-layout: #{$color-bg-layout-dark};
+  --color-header-bg: #{$color-header-bg-dark};
+  --color-body-bg: #{$color-body-bg-dark};
+  --color-table-header-bg: #{$color-table-header-bg-dark};
+  --color-text-primary: #{$color-text-primary-dark};
+  --color-text-secondary: #{$color-text-secondary-dark};
+  --color-border: #{$color-border-dark};
+  --color-surface: #{$color-surface-dark};
+  --color-divider: #{$color-divider-dark};
+  --shadow-header: #{$shadow-header-dark};
+}
