@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { RoleErrorCode, HttpStatusCode } from '@/constants/enums';
+import { RoleErrorCode, HttpStatusCode, RoleId } from '@/constants/enums';
 import type { InsertTables, Tables } from '@/types/supabase';
 import { handleServiceError, validateDataExists, handleSupabaseError } from '@/lib/utils/error-handler';
 
@@ -24,7 +24,8 @@ export async function fetchAllRoles(): Promise<Role[]> {
     const { data, error } = await supabase
       .from('roles')
       .select('*')
-    if (error) {
+      .neq('id', RoleId.EXCLUDED);
+    if (error) {      
       handleSupabaseError(error, {
         defaultErrorCode: RoleErrorCode.FETCH_FAILED,
       });

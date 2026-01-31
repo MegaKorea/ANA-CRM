@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, type ReactNode } from 'react';
 import { ThemeMode, ThemeStorageKey } from '@/constants/enums/theme.enum';
 import { ThemeErrorCode } from '@/constants/enums/error.enum';
 import { AppError } from '@/errors';
@@ -17,15 +17,21 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
-    if (typeof window === 'undefined') {
-      return ThemeMode.LIGHT;
-    }
+  // 初始状态始终使用 LIGHT，避免服务器和客户端不匹配
+  const [themeMode, setThemeMode] = useState<ThemeMode>(ThemeMode.LIGHT);
+  const [mounted, setMounted] = useState(false);
+
+  // 在客户端挂载后，从 localStorage 读取主题设置
+  useEffect(() => {
+    setMounted(true);
     const stored = localStorage.getItem(ThemeStorageKey.MODE);
-    return (stored as ThemeMode) || ThemeMode.LIGHT;
-  });
+    if (stored && (stored === ThemeMode.LIGHT || stored === ThemeMode.DARK)) {
+      setThemeMode(stored as ThemeMode);
+    }
+  }, []);
 
   useEffect(() => {
+    if (!mounted) return;
     localStorage.setItem(ThemeStorageKey.MODE, themeMode);
     const root = document.documentElement;
     if (themeMode === ThemeMode.DARK) {
@@ -33,16 +39,21 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     } else {
       root.classList.remove(ThemeMode.DARK);
     }
-  }, [themeMode]);
+  }, [themeMode, mounted]);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setThemeMode((prev) =>
       prev === ThemeMode.LIGHT ? ThemeMode.DARK : ThemeMode.LIGHT
     );
-  };
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({ themeMode, toggleTheme }),
+    [themeMode, toggleTheme]
+  );
 
   return (
-    <ThemeContext.Provider value={{ themeMode, toggleTheme }}>
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );

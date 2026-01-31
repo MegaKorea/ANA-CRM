@@ -1,8 +1,8 @@
 'use client';
 
-import { Layout, Avatar, Dropdown, Space, Input, Button, type MenuProps } from 'antd';
+import { memo, useMemo, useCallback } from 'react';
+import { Layout, Avatar, Dropdown, Space, Button, type MenuProps } from 'antd';
 import {
-  SearchOutlined,
   UserOutlined,
   SettingOutlined,
   LogoutOutlined,
@@ -13,7 +13,10 @@ import {
 } from '@ant-design/icons';
 import styles from './Header.module.scss';
 import { useTheme } from '@/lib/hooks/use-theme';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
+import { useLogout } from '@/lib/hooks/use-auth';
 import { ThemeMode } from '@/constants/enums/theme.enum';
+import { HeaderMenuText } from '@/constants/header';
 
 const { Header: AntHeader } = Layout;
 
@@ -22,41 +25,59 @@ interface HeaderProps {
   onToggle: () => void;
 }
 
-export function Header({ collapsed, onToggle }: HeaderProps) {
+export const Header = memo(function Header({ collapsed, onToggle }: HeaderProps) {
   const { themeMode, toggleTheme } = useTheme();
+  const { user, isLoading } = useCurrentUser();
+  const { mutate: logout } = useLogout();
 
-  const userMenuItems: MenuProps['items'] = [
-    {
-      key: 'profile',
-      icon: <UserOutlined />,
-      label: 'Tài khoản',
-    },
-    {
-      key: 'settings',
-      icon: <SettingOutlined />,
-      label: 'Cài đặt',
-    },
-    {
-      type: 'divider',
-    },
-    {
-      key: 'logout',
-      icon: <LogoutOutlined />,
-      label: 'Đăng xuất',
-      danger: true,
-    },
-  ];
+  const userMenuItems: MenuProps['items'] = useMemo(
+    () => [
+      {
+        key: 'profile',
+        icon: <UserOutlined />,
+        label: HeaderMenuText.PROFILE,
+      },
+      {
+        key: 'settings',
+        icon: <SettingOutlined />,
+        label: HeaderMenuText.SETTINGS,
+      },
+      {
+        type: 'divider',
+      },
+      {
+        key: 'logout',
+        icon: <LogoutOutlined />,
+        label: HeaderMenuText.LOGOUT,
+        danger: true,
+      },
+    ],
+    []
+  );
 
-  const handleUserMenuClick: MenuProps['onClick'] = ({ key }) => {
-    switch (key) {
-      case 'profile':
-        break;
-      case 'settings':
-        break;
-      case 'logout':
-        break;
-    }
-  };
+  const handleUserMenuClick: MenuProps['onClick'] = useCallback(
+    ({ key }: { key: string }) => {
+      switch (key) {
+        case 'profile':
+          break;
+        case 'settings':
+          break;
+        case 'logout':
+          logout();
+          break;
+      }
+    },
+    [logout]
+  );
+
+  const displayName = useMemo(
+    () => user?.fullName || HeaderMenuText.DEFAULT_USER_NAME,
+    [user]
+  );
+  const userAvatar = useMemo(
+    () => (user?.email ? user.email.charAt(0).toUpperCase() : undefined),
+    [user]
+  );
 
   return (
     <AntHeader className={styles.header}>
@@ -79,11 +100,15 @@ export function Header({ collapsed, onToggle }: HeaderProps) {
           placement="bottomRight"
         >
           <Space className={styles.userDropdown}>
-            <Avatar size="small" icon={<UserOutlined />} />
-            <span className={styles.userName}>Admin</span>
+            <Avatar size="small" icon={!userAvatar && <UserOutlined />}>
+              {userAvatar}
+            </Avatar>
+            <span className={styles.userName}>
+              {isLoading ? HeaderMenuText.LOADING : displayName}
+            </span>
           </Space>
         </Dropdown>
       </Space>
     </AntHeader>
   );
-}
+});

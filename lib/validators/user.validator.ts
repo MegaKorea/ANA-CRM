@@ -1,9 +1,12 @@
 import { AppError } from '@/errors';
-import { HttpStatusCode, UserErrorCode, UserStatusDb } from '@/constants/enums';
+import { HttpStatusCode, UserErrorCode, UserStatusDb, ValidationPattern } from '@/constants/enums';
 import { generateStrongPassword } from '@/lib/utils/password';
 import { PasswordPolicyNumber } from '@/constants/password';
+import { formatPhoneToE164, validateE164Format } from '@/lib/utils/phone';
+import { validateEmailField, validatePasswordField } from '@/lib/utils/validation';
 
 export interface CreateUserInput {
+  email: string;
   full_name: string;
   password: string;
   phone?: string;
@@ -17,6 +20,7 @@ export interface CreateUserInput {
 }
 
 export interface UpdateUserInput {
+  email?: string;
   full_name?: string;
   password?: string;
   phone?: string;
@@ -29,18 +33,19 @@ export interface UpdateUserInput {
   status?: UserStatusDb;
 }
 
-export function validateUserId(id: unknown): number {
+export function validateUserId(id: unknown): string {
   if (typeof id !== 'string') {
     throw new AppError(UserErrorCode.INVALID_ID, HttpStatusCode.BAD_REQUEST);
   }
 
-  const parsedId = parseInt(id, 10);
+  const trimmedId = id.trim();
 
-  if (Number.isNaN(parsedId) || parsedId <= 0) {
+  const uuidRegex = new RegExp(ValidationPattern.UUID, 'i');
+  if (!uuidRegex.test(trimmedId)) {
     throw new AppError(UserErrorCode.INVALID_ID, HttpStatusCode.BAD_REQUEST);
   }
 
-  return parsedId;
+  return trimmedId;
 }
 
 function validateOptionalStringField(value: unknown): string | undefined {
@@ -160,32 +165,35 @@ function validateFullNameField(value: unknown, isRequired: boolean): string | un
   return trimmedValue;
 }
 
-function validatePasswordField(value: unknown, isRequired: boolean): string | undefined {
+
+function validatePhoneField(value: unknown, isRequired: boolean): string | undefined {
   if (value === undefined || value === null) {
     if (isRequired) {
-      throw new AppError(UserErrorCode.PASSWORD_REQUIRED, HttpStatusCode.BAD_REQUEST);
+      throw new AppError(UserErrorCode.PHONE_REQUIRED, HttpStatusCode.BAD_REQUEST);
     }
     return undefined;
   }
 
   if (typeof value !== 'string') {
-    throw new AppError(UserErrorCode.PASSWORD_REQUIRED, HttpStatusCode.BAD_REQUEST);
+    throw new AppError(UserErrorCode.PHONE_REQUIRED, HttpStatusCode.BAD_REQUEST);
   }
 
   const trimmedValue = value.trim();
 
   if (!trimmedValue) {
     if (isRequired) {
-      throw new AppError(UserErrorCode.PASSWORD_REQUIRED, HttpStatusCode.BAD_REQUEST);
+      throw new AppError(UserErrorCode.PHONE_REQUIRED, HttpStatusCode.BAD_REQUEST);
     }
     return undefined;
   }
 
-  if (trimmedValue.length < PasswordPolicyNumber.MIN_LENGTH) {
-    throw new AppError(UserErrorCode.PASSWORD_WEAK, HttpStatusCode.BAD_REQUEST);
+  const formattedPhone = formatPhoneToE164(trimmedValue);
+
+  if (!validateE164Format(formattedPhone)) {
+    throw new AppError(UserErrorCode.PHONE_INVALID, HttpStatusCode.BAD_REQUEST);
   }
 
-  return trimmedValue;
+  return formattedPhone;
 }
 
 export function validateCreateUserInput(input: unknown): CreateUserInput {
@@ -195,13 +203,30 @@ export function validateCreateUserInput(input: unknown): CreateUserInput {
 
   const data = input as Record<string, unknown>;
 
+  const email = validateEmailField(
+    data.email,
+    true,
+    UserErrorCode.EMAIL_REQUIRED,
+    UserErrorCode.EMAIL_INVALID
+  );
   const fullName = validateFullNameField(data.full_name, true);
   const roleId = validateRoleIdField(data.role_id, true);
+  const phone = validatePhoneField(data.phone, false);
 
-  let password = validatePasswordField(data.password, false);
+  let password = validatePasswordField(
+    data.password,
+    false,
+    UserErrorCode.PASSWORD_REQUIRED,
+    UserErrorCode.PASSWORD_WEAK,
+    PasswordPolicyNumber.MIN_LENGTH
+  );
 
   if (!password) {
     password = generateStrongPassword();
+  }
+
+  if (!email) {
+    throw new AppError(UserErrorCode.EMAIL_REQUIRED, HttpStatusCode.BAD_REQUEST);
   }
 
   if (!fullName) {
@@ -213,9 +238,10 @@ export function validateCreateUserInput(input: unknown): CreateUserInput {
   }
 
   return {
+    email,
     full_name: fullName,
     password,
-    phone: validateOptionalStringField(data.phone),
+    phone,
     avatar: validateOptionalStringField(data.avatar),
     sex: validateOptionalStringField(data.sex),
     age: validateOptionalNumberField(data.age),
@@ -233,11 +259,27 @@ export function validateUpdateUserInput(input: unknown): UpdateUserInput {
 
   const data = input as Record<string, unknown>;
 
+  const email = validateEmailField(
+    data.email,
+    false,
+    UserErrorCode.EMAIL_REQUIRED,
+    UserErrorCode.EMAIL_INVALID
+  );
   const fullName = validateFullNameField(data.full_name, false);
   const roleId = validateRoleIdField(data.role_id, false);
-  const password = validatePasswordField(data.password, false);
+  const password = validatePasswordField(
+    data.password,
+    false,
+    UserErrorCode.PASSWORD_REQUIRED,
+    UserErrorCode.PASSWORD_WEAK,
+    PasswordPolicyNumber.MIN_LENGTH
+  );
 
   const result: UpdateUserInput = {};
+
+  if (email !== undefined) {
+    result.email = email;
+  }
 
   if (fullName !== undefined) {
     result.full_name = fullName;
@@ -251,7 +293,7 @@ export function validateUpdateUserInput(input: unknown): UpdateUserInput {
     result.password = password;
   }
 
-  const phone = validateOptionalStringField(data.phone);
+  const phone = validatePhoneField(data.phone, false);
   const avatar = validateOptionalStringField(data.avatar);
   const sex = validateOptionalStringField(data.sex);
   const age = validateOptionalNumberField(data.age);

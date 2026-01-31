@@ -1,9 +1,10 @@
-import { Button, Popconfirm, Space } from 'antd';
+import { Button, Popconfirm, Space, Avatar } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { HiOutlinePencilAlt, HiOutlineTrash } from 'react-icons/hi';
 import { UserStatusDb } from '@/constants/enums';
 import type { User } from '@/lib/services/user.service';
 import type { RolesTable } from '@/types/tables/roles';
+import defaultAvatar from '@/app/assets/avatar/avt.webp';
 
 type RoleRow = RolesTable['Row'];
 
@@ -40,6 +41,7 @@ export const UserPageText = {
   BUTTON_CREATE: 'Thêm người dùng',
   COLUMN_ID: 'ID',
   COLUMN_FULL_NAME: 'Họ và tên',
+  COLUMN_EMAIL: 'Email',
   COLUMN_PHONE: 'Số điện thoại',
   COLUMN_ROLE: 'Vai trò',
   COLUMN_STATUS: 'Trạng thái',
@@ -52,6 +54,8 @@ export const UserPageText = {
   MODAL_EDIT_TITLE: 'Chỉnh sửa người dùng',
   FIELD_FULL_NAME_LABEL: 'Họ và tên',
   FIELD_FULL_NAME_PLACEHOLDER: 'Nhập họ và tên',
+  FIELD_EMAIL_LABEL: 'Email',
+  FIELD_EMAIL_PLACEHOLDER: 'Nhập email',
   FIELD_PHONE_LABEL: 'Số điện thoại',
   FIELD_PHONE_PLACEHOLDER: 'Nhập số điện thoại',
   FIELD_ROLE_LABEL: 'Vai trò',
@@ -95,7 +99,7 @@ export const SexLabel = {
 
 export type HandleOpenUserModal = (user?: User) => void;
 
-export type HandleDeleteUser = (id: number) => void;
+export type HandleDeleteUser = (id: string) => void;
 
 export const getUserTableColumns = ({
   roles,
@@ -111,11 +115,26 @@ export const getUserTableColumns = ({
     dataIndex: 'id',
     key: 'id',
     width: UserTableColumnWidth.ID,
+    render: (_, record) => record.id.slice(0, 4),
   },
   {
     title: UserPageText.COLUMN_FULL_NAME,
     dataIndex: 'full_name',
     key: 'full_name',
+    render: (fullName: string, record: User) => {
+      const avatarSrc: string = record.avatar || (typeof defaultAvatar === 'string' ? defaultAvatar : defaultAvatar.src);
+      return (
+        <Space>
+          <Avatar src={avatarSrc} alt={fullName} />
+          <span>{fullName}</span>
+        </Space>
+      );
+    },
+  },
+  {
+    title: UserPageText.COLUMN_EMAIL,
+    dataIndex: 'email',
+    key: 'email',
   },
   {
     title: UserPageText.COLUMN_PHONE,
@@ -149,6 +168,12 @@ export const getUserTableColumns = ({
     title: UserPageText.COLUMN_SEX,
     dataIndex: 'sex',
     key: 'sex',
+    render: (sex: string | null) => {
+      if (!sex) {
+        return null;
+      }
+      return SexLabel[sex as keyof typeof SexLabel] ?? sex;
+    },
   },
   {
     title: UserPageText.COLUMN_AGE,
@@ -168,6 +193,7 @@ export const getUserTableColumns = ({
   {
     title: UserPageText.COLUMN_ACTION,
     key: 'action',
+    align: 'center',
     width: UserTableColumnWidth.ACTION,
     render: (_: unknown, record: User) => (
       <Space>

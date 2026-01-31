@@ -1,8 +1,8 @@
 export interface UsersTable {
   Row: {
-    id: number;
+    id: string; 
     full_name: string;
-    password: string;
+    email: string | null;
     phone: string | null;
     avatar: string | null;
     status: string;
@@ -16,9 +16,9 @@ export interface UsersTable {
     created_at: string | null;
   };
   Insert: {
-    id?: number;
+    id?: string;
     full_name: string;
-    password: string;
+    email?: string | null;
     phone?: string | null;
     avatar?: string | null;
     status?: string;
@@ -32,9 +32,9 @@ export interface UsersTable {
     created_at?: string | null;
   };
   Update: {
-    id?: number;
+    id?: string;
     full_name?: string;
-    password?: string;
+    email?: string | null;
     phone?: string | null;
     avatar?: string | null;
     status?: string;

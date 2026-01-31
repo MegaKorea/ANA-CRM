@@ -33,6 +33,8 @@ export function handleSupabaseError(
   errorHandlers: {
     uniqueViolationNameErrorCode?: string;
     uniqueViolationCodeErrorCode?: string;
+    uniqueViolationPhoneErrorCode?: string;
+    uniqueViolationEmailErrorCode?: string;
     foreignKeyViolationErrorCode?: string;
     notFoundErrorCode?: string;
     defaultErrorCode: string;
@@ -49,6 +51,12 @@ export function handleSupabaseError(
     }
     if (error.message?.includes('code') && errorHandlers.uniqueViolationCodeErrorCode) {
       throw new AppError(errorHandlers.uniqueViolationCodeErrorCode, HttpStatusCode.CONFLICT);
+    }
+    if (error.message?.includes('phone') && errorHandlers.uniqueViolationPhoneErrorCode) {
+      throw new AppError(errorHandlers.uniqueViolationPhoneErrorCode, HttpStatusCode.CONFLICT);
+    }
+    if (error.message?.includes('email') && errorHandlers.uniqueViolationEmailErrorCode) {
+      throw new AppError(errorHandlers.uniqueViolationEmailErrorCode, HttpStatusCode.CONFLICT);
     }
   }
 

@@ -1,6 +1,5 @@
-import { RoleErrorCode } from '@/constants/enums';
+import { RoleErrorCode, HttpStatusCode, ParseIntBase } from '@/constants/enums';
 import { AppError } from '@/errors';
-import { HttpStatusCode } from '@/constants/enums';
 
 interface CreateRoleInput {
   name: string;
@@ -71,7 +70,7 @@ export function validateRoleId(id: unknown): number {
     throw new AppError(RoleErrorCode.INVALID_ID, HttpStatusCode.BAD_REQUEST);
   }
 
-  const parsedId = parseInt(id, 10);
+  const parsedId = parseInt(id, ParseIntBase.DECIMAL);
 
   if (isNaN(parsedId) || parsedId <= 0) {
     throw new AppError(RoleErrorCode.INVALID_ID, HttpStatusCode.BAD_REQUEST);

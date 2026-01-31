@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
-import type { User } from '@/lib/services/user.service';
+import type { User, UserQueryParams } from '@/lib/services/user.service';
 import type { CreateUserInput, UpdateUserInput } from '@/lib/validators/user.validator';
 
 const UserQueryKey = {
@@ -11,10 +11,13 @@ const UserApiPath = {
   BASE: '/users',
 } as const;
 
-export function useUsers() {
+export function useUsers(params?: UserQueryParams) {
   return useQuery<User[]>({
-    queryKey: [UserQueryKey.LIST],
-    queryFn: () => api.get<User[]>(UserApiPath.BASE),
+    queryKey: [UserQueryKey.LIST, params],
+    queryFn: () =>
+      api.get<User[]>(UserApiPath.BASE, {
+        params,
+      }),
   });
 }
 
@@ -32,7 +35,7 @@ export function useCreateUser() {
 export function useUpdateUser() {
   const queryClient = useQueryClient();
 
-  return useMutation<User, unknown, { id: number; input: UpdateUserInput }>({
+  return useMutation<User, unknown, { id: string; input: UpdateUserInput }>({
     mutationFn: ({ id, input }) => api.put<User>(`${UserApiPath.BASE}/${id}`, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [UserQueryKey.LIST] });
@@ -43,7 +46,7 @@ export function useUpdateUser() {
 export function useDeleteUser() {
   const queryClient = useQueryClient();
 
-  return useMutation<void, unknown, number>({
+  return useMutation<void, unknown, string>({
     mutationFn: (id) => api.delete<void>(`${UserApiPath.BASE}/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [UserQueryKey.LIST] });

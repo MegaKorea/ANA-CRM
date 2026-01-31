@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState, useCallback, type ReactNode } from 'react';
 import { Layout } from 'antd';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
@@ -17,6 +17,10 @@ export function CRMLayout({ children }: CRMLayoutProps) {
 
   const siderWidth = collapsed ? 80 : 260;
 
+  const handleToggle = useCallback(() => {
+    setCollapsed((prev) => !prev);
+  }, []);
+
   return (
     <Layout className={styles.layout}>
       <Sidebar collapsed={collapsed} />
@@ -27,7 +31,7 @@ export function CRMLayout({ children }: CRMLayoutProps) {
           marginLeft: siderWidth,
         }}
       >
-        <Header collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
+        <Header collapsed={collapsed} onToggle={handleToggle} />
 
         <Content className={styles.content}>
           {children}

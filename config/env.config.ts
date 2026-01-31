@@ -1,5 +1,5 @@
 import { AppError } from '@/errors';
-import { ConfigErrorCode } from '@/constants/enums';
+import { ConfigErrorCode, HttpStatusCode } from '@/constants/enums';
 
 export enum EnvKey {
   SUPABASE_URL = 'NEXT_PUBLIC_SUPABASE_URL',
@@ -12,11 +12,7 @@ export enum EnvKey {
 export function getRequiredEnv(key: EnvKey): string {
   const value = process.env[key];
   if (!value) {
-    throw new AppError(
-      ConfigErrorCode.MISSING_ENV,
-      500,
-      `Missing required environment variable: ${key}`
-    );
+    throw new AppError(ConfigErrorCode.MISSING_ENV, HttpStatusCode.INTERNAL_SERVER_ERROR);
   }
   return value;
 }

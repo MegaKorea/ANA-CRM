@@ -9,6 +9,7 @@ import type { Dayjs } from 'dayjs';
 
 export interface UserFormValues {
   full_name: string;
+  email: string;
   password?: string;
   phone?: string;
   role_id: number;
@@ -78,7 +79,26 @@ export function UserModal({
           </Col>
 
           <Col xs={24} md={12}>
-            <Form.Item<UserFormValues> name="phone" label={UserPageText.FIELD_PHONE_LABEL} required>
+            <Form.Item<UserFormValues>
+              name="email"
+              label={UserPageText.FIELD_EMAIL_LABEL}
+              rules={[
+                {
+                  required: true,
+                  message: UserPageText.FIELD_EMAIL_PLACEHOLDER,
+                },
+                {
+                  type: 'email',
+                  message: 'Email không hợp lệ',
+                },
+              ]}
+            >
+              <Input placeholder={UserPageText.FIELD_EMAIL_PLACEHOLDER} type="email" />
+            </Form.Item>
+          </Col>
+
+          <Col xs={24} md={12}>
+            <Form.Item<UserFormValues> name="phone" label={UserPageText.FIELD_PHONE_LABEL}>
               <Input placeholder={UserPageText.FIELD_PHONE_PLACEHOLDER} />
             </Form.Item>
           </Col>

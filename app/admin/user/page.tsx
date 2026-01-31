@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { Table, Button, Space, message, Row, Col, Form, Input, Select, DatePicker } from 'antd';
+import { Table, Button, Space, message, Row, Col, Form, Select, DatePicker, Typography } from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { User } from '@/lib/services/user.service';
@@ -13,18 +13,24 @@ import { UserPageGap, UserPageMargin, UserPagePadding, UserPageText, UserStatusL
 import { UserModal, type UserFormValues } from '@/app/admin/user/components/UserModal';
 import { DebouncedInput } from '@/components/common/DebouncedInput';
 
+const { Text, Title } = Typography;
 export default function UserPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [form] = Form.useForm<UserFormValues>();
 
-  const [searchName, setSearchName] = useState('');
-  const [searchPhone, setSearchPhone] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [roleFilter, setRoleFilter] = useState<number | undefined>(undefined);
   const [createdAtRange, setCreatedAtRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
 
-  const { data: users, isLoading, isFetching, refetch } = useUsers();
+  const { data: users, isLoading, isFetching, refetch } = useUsers(
+    searchKeyword
+      ? {
+          search: searchKeyword,
+        }
+      : undefined
+  );
   const { data: roles } = useRoles();
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
@@ -36,6 +42,7 @@ export default function UserPage() {
         setEditingUser(user);
         form.setFieldsValue({
           full_name: user.full_name,
+          email: user.email || undefined,
           phone: user.phone || undefined,
           role_id: user.role_id,
           sex: user.sex || undefined,
@@ -62,6 +69,7 @@ export default function UserPage() {
     (values: UserFormValues) => {
       const payloadBase = {
         full_name: values.full_name,
+        email: values.email,
         password: values.password,
         phone: values.phone,
         role_id: values.role_id,
@@ -70,7 +78,6 @@ export default function UserPage() {
         address: values.address,
         birth_day: values.birth_day ? values.birth_day.format('YYYY-MM-DD') : undefined,
       };
-
       const onError = (error: unknown) => {
         const errorMessage = error instanceof Error ? error.message : UserPageText.ERROR_GENERIC;
         message.error(errorMessage);
@@ -80,7 +87,7 @@ export default function UserPage() {
         const payload: UpdateUserInput = payloadBase;
         updateUserMutation.mutate(
           {
-            id: editingUser.id,
+            id: (editingUser.id),
             input: payload,
           },
           {
@@ -106,7 +113,7 @@ export default function UserPage() {
   );
 
   const handleDelete = useCallback(
-    (id: number) => {
+    (id: string) => {
       deleteUserMutation.mutate(id, {
         onSuccess: () => {
           message.success(UserPageText.SUCCESS_DELETE);
@@ -148,12 +155,15 @@ export default function UserPage() {
     }
 
     return users.filter((user) => {
-      if (searchName && !user.full_name.toLowerCase().includes(searchName.toLowerCase())) {
-        return false;
-      }
+      if (searchKeyword) {
+        const keyword = searchKeyword.toLowerCase();
+        const fullNameMatch = user.full_name.toLowerCase().includes(keyword);
+        const emailMatch = (user.email || '').toLowerCase().includes(keyword);
+        const phoneMatch = (user.phone || '').toLowerCase().includes(keyword);
 
-      if (searchPhone && !(user.phone || '').toLowerCase().includes(searchPhone.toLowerCase())) {
-        return false;
+        if (!fullNameMatch && !emailMatch && !phoneMatch) {
+          return false;
+        }
       }
 
       if (statusFilter && user.status !== statusFilter) {
@@ -174,7 +184,7 @@ export default function UserPage() {
 
       return true;
     });
-  }, [users, searchName, searchPhone, statusFilter, roleFilter, createdAtRange]);
+  }, [users, searchKeyword, statusFilter, roleFilter, createdAtRange]);
 
 
   const handleSubmitAsync = useCallback(
@@ -192,7 +202,7 @@ export default function UserPage() {
     >
       <Row justify="space-between" align="middle" style={{ marginBottom: UserPageMargin.HEADER_BOTTOM }}>
         <Col>
-          <h1>{UserPageText.TITLE}</h1>
+          <Typography.Title level={1}>{UserPageText.TITLE}</Typography.Title>
         </Col>
         <Col>
           <Space size={UserPageGap.ACTIONS}>
@@ -207,18 +217,10 @@ export default function UserPage() {
       </Row>
 
       <Row gutter={16} style={{ marginBottom: UserPageMargin.HEADER_BOTTOM }}>
-        <Col xs={24} md={8}>
+        <Col xs={24} md={10}>
           <DebouncedInput
-            placeholder={UserPageText.FIELD_FULL_NAME_PLACEHOLDER}
-            onChange={(value) => setSearchName(value)}
-            allowClear
-          />
-        </Col>
-        <Col xs={24} md={4}>
-          <Input
-            placeholder={UserPageText.FIELD_PHONE_PLACEHOLDER}
-            value={searchPhone}
-            onChange={(e) => setSearchPhone(e.target.value)}
+            placeholder={`${UserPageText.FIELD_FULL_NAME_PLACEHOLDER} / ${UserPageText.FIELD_EMAIL_PLACEHOLDER}`}
+            onChange={(value) => setSearchKeyword(value)}
             allowClear
           />
         </Col>
@@ -250,7 +252,7 @@ export default function UserPage() {
             style={{ width: '100%' }}
           />
         </Col>
-        <Col xs={24} md={4}>
+        <Col xs={24} md={6}>
           <DatePicker.RangePicker
             style={{ width: '100%' }}
             value={createdAtRange || undefined}

@@ -1,5 +1,4 @@
 import { Button, Space, Popconfirm } from 'antd';
-import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { Role } from '@/lib/services/role.service';
 import { HiOutlinePencilAlt, HiOutlineTrash } from 'react-icons/hi';
@@ -14,6 +13,7 @@ export function createRoleColumns(
       dataIndex: 'id',
       key: 'id',
       width: 80,
+      render: (_, record) => record.id,
     },
     {
       title: 'Tên vai trò',
@@ -33,6 +33,7 @@ export function createRoleColumns(
     {
       title: 'Thao tác',
       key: 'action',
+      align: 'center',
       width: 150,
       render: (_, record) => (
         <Space>

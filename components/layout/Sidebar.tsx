@@ -2,7 +2,7 @@
 
 import { Layout, Menu, type MenuProps } from 'antd';
 import { usePathname, useRouter } from 'next/navigation';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import styles from './Sidebar.module.scss';
 import logo from '../../app/assets/logo/logo-ana.png';
 import Image from 'next/image';
@@ -20,16 +20,26 @@ export function Sidebar({ collapsed }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { themeMode } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
-  const selectedKeys = useMemo(() => [pathname], [pathname]);
+  // 确保在客户端挂载后才设置这些值，避免 hydration 不匹配
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const selectedKeys = useMemo(() => {
+    if (!mounted) return [];
+    return [pathname];
+  }, [pathname, mounted]);
 
   const defaultOpenKeys = useMemo(() => {
+    if (!mounted || collapsed) return [];
     const paths = pathname.split('/').filter(Boolean);
     if (paths.length > 1) {
       return [`/${paths[0]}`];
     }
     return [];
-  }, [pathname]);
+  }, [pathname, collapsed, mounted]);
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
     router.push(key);
@@ -56,7 +66,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
         theme={themeMode}
         mode="inline"
         selectedKeys={selectedKeys}
-        defaultOpenKeys={collapsed ? [] : defaultOpenKeys}
+        defaultOpenKeys={defaultOpenKeys}
         items={menuItems}
         onClick={handleMenuClick}
         className={styles.menu}
