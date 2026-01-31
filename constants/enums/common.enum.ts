@@ -30,3 +30,7 @@ export enum AuthMessage {
 export enum RoleId {
   EXCLUDED = 4,
 }
+
+export enum PageTransitionDelay {
+  DEFAULT = 500,
+}

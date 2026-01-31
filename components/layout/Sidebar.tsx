@@ -1,7 +1,7 @@
 'use client';
 
-import { Layout, Menu, type MenuProps } from 'antd';
-import { usePathname, useRouter } from 'next/navigation';
+import { Layout, Menu, type MenuProps, Typography } from 'antd';
+import { usePathname } from 'next/navigation';
 import { useMemo, useState, useEffect } from 'react';
 import styles from './Sidebar.module.scss';
 import logo from '../../app/assets/logo/logo-ana.png';
@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { useTheme } from '@/lib/hooks/use-theme';
 import { HiViewGridAdd } from 'react-icons/hi';
 import { menuItems } from '@/constants/menu';
+import { useNavigation } from '@/lib/contexts/navigation.context';
 
 const { Sider } = Layout;
 
@@ -18,13 +19,15 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed }: SidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const { themeMode } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const { navigateWithDelay } = useNavigation();
 
-  // 确保在客户端挂载后才设置这些值，避免 hydration 不匹配
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const selectedKeys = useMemo(() => {
@@ -42,7 +45,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
   }, [pathname, collapsed, mounted]);
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
-    router.push(key);
+    navigateWithDelay(key);
   };
 
   return (
@@ -55,11 +58,11 @@ export function Sidebar({ collapsed }: SidebarProps) {
       className={styles.sider}
     >
       <div className={styles.logoContainer}>
-        <h1>
-         {!collapsed ? <Image src={logo} alt="logo" width={70} height={50} className={styles.logoImage} /> : <HiViewGridAdd 
+        <Typography.Title level={1}>
+         {!collapsed ? <Image src={logo} alt="logo" width={70} height={40} className={styles.logoImage} /> : <HiViewGridAdd 
          size={40}
          />}
-        </h1>
+        </Typography.Title>
       </div>
 
       <Menu
