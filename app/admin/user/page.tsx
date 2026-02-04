@@ -13,7 +13,6 @@ import { UserPageGap, UserPageMargin, UserPagePadding, UserPageText, UserStatusL
 import { UserModal, type UserFormValues } from '@/app/admin/user/components/UserModal';
 import { DebouncedInput } from '@/components/common/DebouncedInput';
 
-const { Text, Title } = Typography;
 export default function UserPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);

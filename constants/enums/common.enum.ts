@@ -34,3 +34,11 @@ export enum RoleId {
 export enum PageTransitionDelay {
   DEFAULT = 500,
 }
+
+export enum HttpClientTimeout {
+  DEFAULT = 30000,
+}
+
+export enum DateLocale {
+  VIET_NAM = 'vi-VN',
+}

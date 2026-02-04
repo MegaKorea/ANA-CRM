@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
-import { Poppins } from 'next/font/google';
+import { Mona_Sans } from 'next/font/google';
 import { AppProviders } from '@/providers';
 import { ConditionalLayout } from '@/components/layout/ConditionalLayout';
 import './scss/index.scss';
 
-const poppins = Poppins({
-  weight: ['300', '400', '500', '600', '700'],
+const monaSans = Mona_Sans({
+  weight: ['200', '300', '400', '500', '600', '700', '800', '900'],
   subsets: ['latin'],
-  variable: '--font-poppins',
+  variable: '--font-mona-sans',
   display: 'swap',
 });
 
@@ -23,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" suppressHydrationWarning>
-      <body className={`${poppins.variable} antialiased`}>
+      <body className={`${monaSans.variable} antialiased`}>
         <AppProviders>
           <ConditionalLayout>{children}</ConditionalLayout>
         </AppProviders>

@@ -1,9 +1,13 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { getOptionalEnv, EnvKey } from '@/config/env.config';
+import { HttpClientTimeout } from '@/constants/enums';
+import { ApiBasePath } from '@/constants/routes';
+import { HttpClientErrorMessage } from '@/constants/enums';
 
 const axiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || '/api',
-  timeout: 30000,
+  baseURL: getOptionalEnv(EnvKey.API_BASE_URL) ?? ApiBasePath.DEFAULT,
+  timeout: HttpClientTimeout.DEFAULT,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -62,14 +66,14 @@ axiosInstance.interceptors.response.use(
 function getErrorMessage(error: AxiosError): string {
   if (error.response?.data) {
     const data = error.response.data as { message?: string; error?: string };
-    return data.message || data.error || 'An error occurred';
+    return data.message || data.error || HttpClientErrorMessage.DEFAULT;
   }
 
   if (error.message) {
     return error.message;
   }
 
-  return 'An unexpected error occurred';
+  return HttpClientErrorMessage.UNEXPECTED;
 }
 
 export default axiosInstance;

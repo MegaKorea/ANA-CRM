@@ -24,7 +24,7 @@ function AntdProviderContent({ children }: AntdProviderProps): JSX.Element {
       colorError: colors.error,
       colorInfo: colors.info,
       fontFamily:
-        'var(--font-poppins), "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        'var(--font-mona-sans), "Mona Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
       fontSize: THEME.fontSize.base,
       borderRadius: THEME.borderRadius.base,
       borderRadiusLG: THEME.borderRadius.lg,

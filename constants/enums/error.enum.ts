@@ -1,3 +1,8 @@
 export enum ThemeErrorCode {
   HOOK_OUT_OF_CONTEXT = 'THEME_HOOK_OUT_OF_CONTEXT',
 }
+
+export enum HttpClientErrorMessage {
+  DEFAULT = 'HTTP_CLIENT_ERROR_DEFAULT',
+  UNEXPECTED = 'HTTP_CLIENT_ERROR_UNEXPECTED',
+}
