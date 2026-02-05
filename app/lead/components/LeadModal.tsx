@@ -14,7 +14,7 @@ export interface LeadFormValues {
   date_of_birth?: Dayjs;
   place_of_birth?: LocationValue;
   place_of_origin?: LocationValue;
-  current_address?: string;
+  current_address?: LocationValue;
   citizen_id?: string;
   nationality?: string;
   ethnicity?: string;
@@ -149,6 +149,15 @@ export function LeadModal({
             </Form.Item>
           </Col>
 
+          <Col span={24}>
+            <Form.Item
+              name="current_address"
+              label={LeadPageText.FIELD_CURRENT_ADDRESS_LABEL}
+            >
+              <LocationSelect disabled={Boolean(isSubmitting)} />
+            </Form.Item>
+          </Col>
+
 
           <Col span={8}>
             <Form.Item
@@ -177,20 +186,15 @@ export function LeadModal({
               />
             </Form.Item>
           </Col>
+
+         
+
           <Col span={24}>
             <Form.Item
               name="note"
               label={LeadPageText.FIELD_NOTE_LABEL}
             >
               <Input.TextArea rows={4} />
-            </Form.Item>
-          </Col>
-          <Col span={24}>
-            <Form.Item
-              name="current_address"
-              label={LeadPageText.FIELD_CURRENT_ADDRESS_LABEL}
-            >
-              <Input.TextArea rows={3} />
             </Form.Item>
           </Col>
         </Row>

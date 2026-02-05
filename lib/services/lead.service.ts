@@ -3,6 +3,7 @@ import type { Tables, UpdateTables, InsertTables } from '@/types/supabase';
 import { handleServiceError, handleSupabaseError, validateDataExists } from '@/lib/utils/error-handler';
 import { LeadErrorCode, LeadStatus } from '@/constants/enums';
 import type { CreateLeadInput, UpdateLeadInput } from '@/lib/validators/lead.validator';
+import { buildUpdateByRules } from '@/app/utils/buildUpdateByRules';
 
 
 export type Lead = Tables<'leads'>;
@@ -96,6 +97,9 @@ export async function createLead(input: CreateLeadInput): Promise<Lead> {
       .select()
       .single();
 
+
+
+
     if (error) {
       handleSupabaseError(error, {
         foreignKeyViolationErrorCode: LeadErrorCode.CREATE_FAILED,
@@ -113,67 +117,23 @@ export async function updateLeadById(id: number, input: UpdateLeadInput): Promis
   try {
     const supabase = createAdminClient();
 
-    const updateData: UpdateTables<'leads'> = {};
-
-    if (input.email !== undefined) {
-      updateData.email = input.email ?? null;
-    }
-
-    if (input.phone_number !== undefined) {
-      updateData.phone_number = input.phone_number ?? null;
-    }
-
-    if (input.full_name !== undefined) {
-      updateData.full_name = input.full_name;
-    }
-
-    if (input.date_of_birth !== undefined) {
-      updateData.date_of_birth = input.date_of_birth ?? null;
-    }
-
-    if (input.place_of_birth !== undefined) {
-      updateData.place_of_birth = input.place_of_birth ?? null;
-    }
-
-    if (input.place_of_origin !== undefined) {
-      updateData.place_of_origin = input.place_of_origin ?? null;
-    }
-
-    if (input.current_address !== undefined) {
-      updateData.current_address = input.current_address ?? null;
-    }
-
-    if (input.citizen_id !== undefined) {
-      updateData.citizen_id = input.citizen_id ?? null;
-    }
-
-    if (input.nationality !== undefined) {
-      updateData.nationality = input.nationality ?? null;
-    }
-
-    if (input.ethnicity !== undefined) {
-      updateData.ethnicity = input.ethnicity ?? null;
-    }
-
-    if (input.meta_data !== undefined) {
-      updateData.meta_data = input.meta_data ? (input.meta_data as never) : ({} as never);
-    }
-
-    if (input.source !== undefined) {
-      updateData.source = input.source ?? null;
-    }
-
-    if (input.telesales_id !== undefined) {
-      updateData.telesales_id = input.telesales_id ?? null;
-    }
-
-    if (input.status !== undefined) {
-      updateData.status = input.status;
-    }
-
-    if (input.note !== undefined) {
-      updateData.note = input.note ?? null;
-    }
+    const updateData: UpdateTables<'leads'> = buildUpdateByRules(input, {
+      email: 'nullable',
+      phone_number: 'nullable',
+      full_name: 'direct',
+      date_of_birth: 'nullable',
+      place_of_birth: 'nullable',
+      place_of_origin: 'nullable',
+      current_address: 'nullable',
+      citizen_id: 'nullable',
+      nationality: 'nullable',
+      ethnicity: 'nullable',
+      meta_data: 'object',
+      source: 'nullable',
+      telesales_id: 'nullable',
+      status: 'direct',
+      note: 'nullable',
+    });
 
     if (Object.keys(updateData).length > 0) {
       const { data, error } = await supabase

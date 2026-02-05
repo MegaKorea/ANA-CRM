@@ -26,4 +26,10 @@ export enum UserStatusDb {
   DELETED = 'deleted',
 }
 
+export enum Sex {
+  MALE = 'male',
+  FEMALE = 'female',
+  OTHER = 'other',
+}
+
 

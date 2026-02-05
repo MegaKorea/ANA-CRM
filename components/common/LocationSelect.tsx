@@ -10,12 +10,9 @@ import { useDistricts, useProvinces, useWards } from '@/lib/hooks/use-location';
 import type { OpenOapiDistrict, OpenOapiProvince, OpenOapiWard } from '@/lib/services/location.service';
 
 export interface LocationValue {
-  // GIÁ TRỊ ID (dùng cho lưu trữ, filter, v.v.)
   provinceId?: string;
   districtId?: string;
   wardId?: string;
-
-  // OBJECT ĐẦY ĐỦ (dùng để hiển thị cho người dùng)
   province?: OpenOapiProvince;
   district?: OpenOapiDistrict;
   ward?: OpenOapiWard;

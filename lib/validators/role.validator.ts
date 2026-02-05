@@ -1,17 +1,6 @@
 import { RoleErrorCode, HttpStatusCode, ParseIntBase } from '@/constants/enums';
 import { AppError } from '@/errors';
-
-interface CreateRoleInput {
-  name: string;
-  code: string;
-  description?: string;
-}
-
-interface UpdateRoleInput {
-  name?: string;
-  code?: string;
-  description?: string;
-}
+import type { CreateRoleInput, UpdateRoleInput } from '@/lib/services/role.service';
 
 export function validateCreateRoleInput(input: unknown): CreateRoleInput {
   if (!input || typeof input !== 'object') {

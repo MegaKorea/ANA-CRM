@@ -5,6 +5,7 @@ import { handleServiceError, handleSupabaseError, validateDataExists } from '@/l
 import { HttpStatusCode, UserErrorCode, UserStatusDb } from '@/constants/enums';
 import type { CreateUserInput, UpdateUserInput } from '@/lib/validators/user.validator';
 import { AppError } from '@/errors';
+import { buildUpdateByRules } from '@/app/utils/buildUpdateByRules';
 
 export type User = Tables<'users'>;
 
@@ -157,47 +158,18 @@ export async function updateUserById(id: string, input: UpdateUserInput): Promis
       }
     }
 
-    const updateData: UpdateTables<'users'> = {};
-
-    if (input.email !== undefined) {
-      updateData.email = input.email;
-    }
-
-    if (input.full_name !== undefined) {
-      updateData.full_name = input.full_name;
-    }
-
-    if (input.phone !== undefined) {
-      updateData.phone = input.phone;
-    }
-
-    if (input.avatar !== undefined) {
-      updateData.avatar = input.avatar ?? null;
-    }
-
-    if (input.sex !== undefined) {
-      updateData.sex = input.sex ?? null;
-    }
-
-    if (input.age !== undefined) {
-      updateData.age = input.age ?? null;
-    }
-
-    if (input.address !== undefined) {
-      updateData.address = input.address ?? null;
-    }
-
-    if (input.birth_day !== undefined) {
-      updateData.birth_day = input.birth_day ?? null;
-    }
-
-    if (input.role_id !== undefined) {
-      updateData.role_id = input.role_id;
-    }
-
-    if (input.status !== undefined) {
-      updateData.status = input.status;
-    }
+    const updateData: UpdateTables<'users'> = buildUpdateByRules(input, {
+      email: 'direct',
+      full_name: 'direct',
+      phone: 'nullable',
+      avatar: 'nullable',
+      sex: 'nullable',
+      age: 'nullable',
+      address: 'nullable',
+      birth_day: 'nullable',
+      role_id: 'direct',
+      status: 'direct',
+    });
 
     if (Object.keys(updateData).length > 0) {
       const { data, error } = await supabase

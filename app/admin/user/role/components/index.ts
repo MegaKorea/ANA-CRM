@@ -1,1 +1,1 @@
-export * from './RoleModal';
+export { RoleModal, type RoleFormValues } from './RoleModal';

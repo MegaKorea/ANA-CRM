@@ -1,22 +1,23 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { RoleErrorCode, HttpStatusCode, RoleId } from '@/constants/enums';
-import type { InsertTables, Tables } from '@/types/supabase';
+import type { InsertTables, Tables, UpdateTables } from '@/types/supabase';
 import { handleServiceError, validateDataExists, handleSupabaseError } from '@/lib/utils/error-handler';
+import { buildUpdateByRules } from '@/app/utils/buildUpdateByRules';
 
 export type Role = Tables<'roles'>;
 
-export interface CreateRoleInput {
+export type CreateRoleInput = {
   name: string;
   code: string;
   description?: string;
-}
+};
 
-export interface UpdateRoleInput {
+export type UpdateRoleInput = {
   name?: string;
   code?: string;
   description?: string;
-}
+};
 
 export async function fetchAllRoles(): Promise<Role[]> {
   try {
@@ -94,18 +95,11 @@ export async function createRole(input: CreateRoleInput): Promise<Role> {
 export async function updateRoleById(id: number, input: UpdateRoleInput): Promise<Role> {
   try {
     const supabase = createAdminClient();
-    const updateData: Partial<Role> = {
-    };
-
-    if (input.name !== undefined) {
-      updateData.name = input.name;
-    }
-    if (input.code !== undefined) {
-      updateData.code = input.code;
-    }
-    if (input.description !== undefined) {
-      updateData.description = input.description || null;
-    }
+    const updateData: UpdateTables<'roles'> = buildUpdateByRules(input, {
+      name: 'direct',
+      code: 'direct',
+      description: 'nullable',
+    });
 
     const { data, error } = await supabase
       .from('roles')

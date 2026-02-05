@@ -1,8 +1,10 @@
 import { Button, Popconfirm, Space } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { HiOutlinePencilAlt, HiOutlineTrash } from 'react-icons/hi';
+import { HiOutlinePencilAlt, HiOutlineTrash, HiOutlineInformationCircle } from 'react-icons/hi';
 import { DateLocale, LeadSource, LeadStatus } from '@/constants/enums';
 import type { Lead } from '@/lib/services/lead.service';
+import type { LocationValue } from '@/components/common/LocationSelect';
+import { FiGlobe, FiMail, FiPhone, FiFacebook, FiMoreHorizontal } from 'react-icons/fi';
 
 export enum LeadPagePadding {
   CONTAINER = 24,
@@ -16,13 +18,22 @@ export enum LeadPageGap {
   ACTIONS = 8,
 }
 
+export enum LeadDateUnit {
+  DAY = 'day',
+}
+
 export enum LeadTableColumnWidth {
   ID = 80,
   ACTION = 180,
+  DETAIL = 150,
 }
 
 export enum LeadActionIconSize {
   DEFAULT = 20,
+}
+
+export enum LeadSourceIconSize {
+  DEFAULT = 16,
 }
 
 export const LeadPageText = {
@@ -45,7 +56,11 @@ export const LeadPageText = {
   COLUMN_NOTE: 'Ghi chú',
   COLUMN_CREATED_AT: 'Ngày tạo',
   COLUMN_ACTION: 'Thao tác',
+  COLUMN_DETAIL: 'Thông tin thêm',
+  FILTER_CREATED_AT_START: 'Ngày tạo từ',
+  FILTER_CREATED_AT_END: 'Ngày tạo đến',
   MODAL_CREATE_TITLE: 'Thêm Data',
+  MODAL_DETAIL_TITLE: 'Thông tin chi tiết',
   MODAL_EDIT_TITLE: 'Chỉnh sửa Data',
   FIELD_FULL_NAME_LABEL: 'Họ và tên',
   FIELD_FULL_NAME_PLACEHOLDER: 'Nhập họ và tên',
@@ -102,16 +117,50 @@ export const LeadSourceLabel = {
   [LeadSource.OTHER]: 'Khác',
 } as const;
 
+export const LeadSourceIcon = {
+  [LeadSource.WEBSITE]: <FiGlobe size={LeadSourceIconSize.DEFAULT} />,
+  [LeadSource.EMAIL]: <FiMail size={LeadSourceIconSize.DEFAULT} />,
+  [LeadSource.PHONE]: <FiPhone size={LeadSourceIconSize.DEFAULT} />,
+  [LeadSource.FACEBOOK]: <FiFacebook size={LeadSourceIconSize.DEFAULT} />,
+  [LeadSource.OTHER]: <FiMoreHorizontal size={LeadSourceIconSize.DEFAULT} />,
+} as const;
+
+export const LeadDateRangePlaceholder = [
+  LeadPageText.FILTER_CREATED_AT_START,
+  LeadPageText.FILTER_CREATED_AT_END,
+] as const;
+
 export type HandleOpenLeadModal = (lead?: Lead) => void;
 
 export type HandleDeleteLead = (id: number) => void;
 
+export type HandleOpenLeadDetailModal = (lead: Lead) => void;
+
+export function formatLocationValue(location: LocationValue | null | undefined): string {
+  if (!location) {
+    return '';
+  }
+  const parts: string[] = [];
+  if (location.ward?.name) {
+    parts.push(location.ward.name);
+  }
+  if (location.district?.name) {
+    parts.push(location.district.name);
+  }
+  if (location.province?.name) {
+    parts.push(location.province.name);
+  }
+  return parts.join(', ') || '';
+}
+
 export const getLeadTableColumns = ({
   handleOpenModal,
   handleDelete,
+  handleOpenDetailModal,
 }: {
   handleOpenModal: HandleOpenLeadModal;
   handleDelete: HandleDeleteLead;
+  handleOpenDetailModal: HandleOpenLeadDetailModal;
 }): ColumnsType<Lead> => [
   {
     title: LeadPageText.COLUMN_ID,
@@ -142,6 +191,15 @@ export const getLeadTableColumns = ({
       date ? new Date(date).toLocaleDateString(DateLocale.VIET_NAM) : null,
   },
   {
+    title: LeadPageText.COLUMN_CURRENT_ADDRESS,
+    dataIndex: 'current_address',
+    key: 'current_address',
+    render: (address: LocationValue | null | undefined) => {
+      const formatted = formatLocationValue(address);
+      return formatted || null;
+    },
+  },
+  {
     title: LeadPageText.COLUMN_STATUS,
     dataIndex: 'status',
     key: 'status',
@@ -156,6 +214,19 @@ export const getLeadTableColumns = ({
     title: LeadPageText.COLUMN_SOURCE,
     dataIndex: 'source',
     key: 'source',
+    render: (source: string | null) => {
+      if (!source) {
+        return null;
+      }
+      const icon = LeadSourceIcon[source as keyof typeof LeadSourceIcon];
+      const label = LeadSourceLabel[source as keyof typeof LeadSourceLabel] ?? source;
+      return (
+        <Space size={LeadPageGap.ACTIONS}>
+          {icon}
+          {label}
+        </Space>
+      );
+    },
   },
   {
     title: LeadPageText.COLUMN_CREATED_AT,
@@ -165,9 +236,21 @@ export const getLeadTableColumns = ({
       date ? new Date(date).toLocaleDateString(DateLocale.VIET_NAM) : null,
   },
   {
+    title: LeadPageText.COLUMN_DETAIL,
+    key: 'detail',
+    align: 'center',
+    width: LeadTableColumnWidth.DETAIL,
+    render: (_: unknown, record: Lead) => (
+      <Button onClick={() => handleOpenDetailModal(record)}>
+        <HiOutlineInformationCircle size={LeadActionIconSize.DEFAULT} />
+      </Button>
+    ),
+  },
+  {
     title: LeadPageText.COLUMN_ACTION,
     key: 'action',
     align: 'center',
+    fixed: 'right',
     width: LeadTableColumnWidth.ACTION,
     render: (_: unknown, record: Lead) => (
       <Space>

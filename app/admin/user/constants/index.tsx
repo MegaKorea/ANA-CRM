@@ -29,11 +29,7 @@ export enum UserActionIconSize {
   DEFAULT = 20,
 }
 
-export enum Sex {
-  MALE = 'male',
-  FEMALE = 'female',
-  OTHER = 'other',
-}
+import { Sex } from '@/constants/enums';
 
 export const UserPageText = {
   TITLE: 'Quản lý người dùng',
@@ -80,6 +76,7 @@ export const UserPageText = {
   SUCCESS_UPDATE: 'Cập nhật người dùng thành công',
   SUCCESS_DELETE: 'Xóa người dùng thành công',
   SUCCESS_REFRESH: 'Đã làm mới danh sách người dùng',
+  SUCCESS_GENERATE_PASSWORD: 'Đã sinh mật khẩu mạnh',
   ERROR_GENERIC: 'Có lỗi xảy ra',
   BUTTON_GENERATE_PASSWORD: 'Sinh mật khẩu',
 } as const;
@@ -96,6 +93,8 @@ export const SexLabel = {
   [Sex.FEMALE]: 'Nữ',
   [Sex.OTHER]: 'Khác',
 } as const;
+
+export { Sex };
 
 export type HandleOpenUserModal = (user?: User) => void;
 

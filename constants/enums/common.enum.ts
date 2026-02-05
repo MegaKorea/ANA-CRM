@@ -35,6 +35,10 @@ export enum PageTransitionDelay {
   DEFAULT = 500,
 }
 
+export enum DateFormat {
+  ISO_DATE = 'YYYY-MM-DD',
+}
+
 export enum HttpClientTimeout {
   DEFAULT = 30000,
 }

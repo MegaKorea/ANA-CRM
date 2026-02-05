@@ -1,18 +1,13 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { Table, Button, Form, message } from 'antd';
+import { Table, Button, Space, message, Row, Col, Typography, Form } from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useRoles, useCreateRole, useUpdateRole, useDeleteRole } from '@/lib/hooks/use-roles';
 import type { Role } from '@/lib/services/role.service';
-import { createRoleColumns } from './constants';
-import { RoleModal } from './components';
-
-interface RoleFormValues {
-  name: string;
-  code: string;
-  description?: string;
-}
+import type { CreateRoleInput, UpdateRoleInput } from '@/lib/services/role.service';
+import { RolePageGap, RolePageMargin, RolePagePadding, RolePageText, createRoleColumns } from './constants';
+import { RoleModal, type RoleFormValues } from './components';
 
 export default function RolePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,87 +40,123 @@ export default function RolePage() {
     form.resetFields();
   }, [form]);
 
-  const handleSubmit = useCallback(async (values: RoleFormValues) => {
-    try {
-      if (editingRole) {
-        await updateRoleMutation.mutateAsync({
-          id: editingRole.id,
-          input: values,
-        });
-        message.success('Cập nhật vai trò thành công');
-      } else {
-        await createRoleMutation.mutateAsync(values);
-        message.success('Tạo vai trò thành công');
-      }
-      handleCloseModal();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra';
-      message.error(errorMessage);
-    }
-  }, [editingRole, updateRoleMutation, createRoleMutation, handleCloseModal]);
+  const handleSubmit = useCallback(
+    (values: RoleFormValues) => {
+      const onError = (error: unknown) => {
+        const errorMessage = error instanceof Error ? error.message : RolePageText.ERROR_GENERIC;
+        message.error(errorMessage);
+      };
 
-  const handleDelete = useCallback(async (id: number) => {
-    try {
-      await deleteRoleMutation.mutateAsync(id);
-      message.success('Xóa vai trò thành công');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra';
-      message.error(errorMessage);
-    }
-  }, [deleteRoleMutation]);
+      if (editingRole) {
+        const payload: UpdateRoleInput = values;
+        updateRoleMutation.mutate(
+          {
+            id: editingRole.id,
+            input: payload,
+          },
+          {
+            onSuccess: () => {
+              message.success(RolePageText.SUCCESS_UPDATE);
+              handleCloseModal();
+            },
+            onError,
+          }
+        );
+      } else {
+        const payload: CreateRoleInput = values;
+        createRoleMutation.mutate(payload, {
+          onSuccess: () => {
+            message.success(RolePageText.SUCCESS_CREATE);
+            handleCloseModal();
+          },
+          onError,
+        });
+      }
+    },
+    [editingRole, updateRoleMutation, createRoleMutation, handleCloseModal]
+  );
+
+  const handleDelete = useCallback(
+    (id: number) => {
+      deleteRoleMutation.mutate(id, {
+        onSuccess: () => {
+          message.success(RolePageText.SUCCESS_DELETE);
+        },
+        onError: (error) => {
+          const errorMessage = error instanceof Error ? error.message : RolePageText.ERROR_GENERIC;
+          message.error(errorMessage);
+        },
+      });
+    },
+    [deleteRoleMutation]
+  );
 
   const columns = useMemo(
     () => createRoleColumns(handleOpenModal, handleDelete),
     [handleOpenModal, handleDelete]
   );
 
-  const handleRefresh = useCallback(async () => {
-    try {
-      await refetch();
-      message.success('Đã làm mới danh sách vai trò');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra';
-      message.error(errorMessage);
-    }
+  const handleRefresh = useCallback(() => {
+    refetch()
+      .then(() => {
+        message.success(RolePageText.SUCCESS_REFRESH);
+      })
+      .catch((error: unknown) => {
+        const errorMessage = error instanceof Error ? error.message : RolePageText.ERROR_GENERIC;
+        message.error(errorMessage);
+      });
   }, [refetch]);
 
+  const isSubmitting = createRoleMutation.isPending || updateRoleMutation.isPending;
+
+  const handleSubmitAsync = useCallback(
+    async (values: RoleFormValues) => {
+      handleSubmit(values);
+    },
+    [handleSubmit]
+  );
+
   return (
-    <div style={{ padding: '24px' }}>
-      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>QUẢN LÝ VAI TRÒ</h1>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Button
-            icon={<ReloadOutlined />}
-            loading={isFetching}
-            onClick={handleRefresh}
-          >
-            Làm mới
-          </Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => handleOpenModal()}
-          >
-            Thêm vai trò
-          </Button>
-        </div>
-      </div>
-      <Table
-        columns={columns}
-        dataSource={roles}
-        loading={isLoading}
-        rowKey="id"
-        pagination={false}
-        bordered
-      />
+    <div
+      style={{
+        padding: RolePagePadding.CONTAINER,
+      }}
+    >
+      <Row justify="space-between" align="middle" style={{ marginBottom: RolePageMargin.HEADER_BOTTOM }}>
+        <Col>
+          <Typography.Title level={1}>{RolePageText.TITLE}</Typography.Title>
+        </Col>
+        <Col>
+          <Space size={RolePageGap.ACTIONS}>
+            <Button icon={<ReloadOutlined />} loading={isFetching} onClick={handleRefresh}>
+              {RolePageText.BUTTON_REFRESH}
+            </Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenModal()}>
+              {RolePageText.BUTTON_CREATE}
+            </Button>
+          </Space>
+        </Col>
+      </Row>
+      <Row>
+        <Col span={24}>
+          <Table<Role>
+            columns={columns}
+            dataSource={roles}
+            loading={isLoading}
+            rowKey="id"
+            pagination={false}
+            bordered
+          />
+        </Col>
+      </Row>
 
       <RoleModal
         open={isModalOpen}
         editingRole={editingRole}
         form={form}
-        isLoading={createRoleMutation.isPending || updateRoleMutation.isPending}
+        isSubmitting={isSubmitting}
         onClose={handleCloseModal}
-        onSubmit={handleSubmit}
+        onSubmit={handleSubmitAsync}
       />
     </div>
   );

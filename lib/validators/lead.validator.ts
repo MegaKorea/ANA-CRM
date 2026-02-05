@@ -11,7 +11,7 @@ export interface CreateLeadInput {
   date_of_birth?: string;
   place_of_birth?: LocationValue;
   place_of_origin?: LocationValue;
-  current_address?: string;
+  current_address?: LocationValue;
   citizen_id?: string;
   nationality?: string;
   ethnicity?: string;
@@ -29,7 +29,7 @@ export interface UpdateLeadInput {
   date_of_birth?: string;
   place_of_birth?: LocationValue;
   place_of_origin?: LocationValue;
-  current_address?: string;
+  current_address?: LocationValue;
   citizen_id?: string;
   nationality?: string;
   ethnicity?: string;
@@ -250,7 +250,7 @@ export function validateCreateLeadInput(input: unknown): CreateLeadInput {
     date_of_birth: validateOptionalDateField(data.date_of_birth),
     place_of_birth: validateOptionalLocationField(data.place_of_birth),
     place_of_origin: validateOptionalLocationField(data.place_of_origin),
-    current_address: validateOptionalStringField(data.current_address),
+    current_address: validateOptionalLocationField(data.current_address),
     citizen_id: validateOptionalStringField(data.citizen_id),
     nationality: validateOptionalStringField(data.nationality),
     ethnicity: validateOptionalStringField(data.ethnicity),
@@ -295,7 +295,7 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
   const dateOfBirth = validateOptionalDateField(data.date_of_birth);
   const placeOfBirth = validateOptionalLocationField(data.place_of_birth);
   const placeOfOrigin = validateOptionalLocationField(data.place_of_origin);
-  const currentAddress = validateOptionalStringField(data.current_address);
+  const currentAddress = validateOptionalLocationField(data.current_address);
   const citizenId = validateOptionalStringField(data.citizen_id);
   const nationality = validateOptionalStringField(data.nationality);
   const ethnicity = validateOptionalStringField(data.ethnicity);

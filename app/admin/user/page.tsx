@@ -12,6 +12,7 @@ import { useRoles } from '@/lib/hooks/use-roles';
 import { UserPageGap, UserPageMargin, UserPagePadding, UserPageText, UserStatusLabel, getUserTableColumns } from '@/app/admin/user/constants';
 import { UserModal, type UserFormValues } from '@/app/admin/user/components/UserModal';
 import { DebouncedInput } from '@/components/common/DebouncedInput';
+import { DateFormat } from '@/constants/enums';
 
 export default function UserPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -75,7 +76,7 @@ export default function UserPage() {
         sex: values.sex,
         age: values.age,
         address: values.address,
-        birth_day: values.birth_day ? values.birth_day.format('YYYY-MM-DD') : undefined,
+        birth_day: values.birth_day ? values.birth_day.format(DateFormat.ISO_DATE) : undefined,
       };
       const onError = (error: unknown) => {
         const errorMessage = error instanceof Error ? error.message : UserPageText.ERROR_GENERIC;

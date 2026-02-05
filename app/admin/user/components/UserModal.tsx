@@ -5,6 +5,7 @@ import type { User } from '@/lib/services/user.service';
 import type { Role } from '@/lib/services/role.service';
 import { generateStrongPassword } from '@/lib/utils/password';
 import { Sex, SexLabel, UserPageText } from '@/app/admin/user/constants';
+import { LoginFormMessage } from '@/constants/auth';
 import type { Dayjs } from 'dayjs';
 
 export interface UserFormValues {
@@ -43,7 +44,7 @@ export function UserModal({
   const handleGeneratePassword = () => {
     const password = generateStrongPassword();
     form.setFieldsValue({ password });
-    message.success('Đã sinh mật khẩu mạnh');
+    message.success(UserPageText.SUCCESS_GENERATE_PASSWORD);
   };
 
   return (
@@ -89,7 +90,7 @@ export function UserModal({
                 },
                 {
                   type: 'email',
-                  message: 'Email không hợp lệ',
+                  message: LoginFormMessage.EMAIL_INVALID,
                 },
               ]}
             >

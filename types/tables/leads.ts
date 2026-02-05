@@ -10,7 +10,7 @@ export interface LeadsTable {
     date_of_birth: string | null;
     place_of_birth: LocationValue | null;
     place_of_origin: LocationValue | null;
-    current_address: string | null;
+    current_address: LocationValue | null;
     citizen_id: string | null;
     nationality: string | null;
     ethnicity: string | null;
@@ -30,7 +30,7 @@ export interface LeadsTable {
     date_of_birth?: string | null;
     place_of_birth?: LocationValue | null;
     place_of_origin?: LocationValue | null;
-    current_address?: string | null;
+    current_address?: LocationValue | null;
     citizen_id?: string | null;
     nationality?: string | null;
     ethnicity?: string | null;
@@ -50,7 +50,7 @@ export interface LeadsTable {
     date_of_birth?: string | null;
     place_of_birth?: LocationValue | null;
     place_of_origin?: LocationValue | null;
-    current_address?: string | null;
+    current_address?: LocationValue | null;
     citizen_id?: string | null;
     nationality?: string | null;
     ethnicity?: string | null;

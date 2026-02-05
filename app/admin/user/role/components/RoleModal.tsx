@@ -2,8 +2,9 @@
 
 import { Modal, Form, Input, Button, Space } from 'antd';
 import type { Role } from '@/lib/services/role.service';
+import { RolePageText } from '../constants';
 
-interface RoleFormValues {
+export interface RoleFormValues {
   name: string;
   code: string;
   description?: string;
@@ -13,7 +14,7 @@ interface RoleModalProps {
   open: boolean;
   editingRole: Role | null;
   form: ReturnType<typeof Form.useForm<RoleFormValues>>[0];
-  isLoading: boolean;
+  isSubmitting: boolean;
   onClose: () => void;
   onSubmit: (values: RoleFormValues) => Promise<void>;
 }
@@ -22,57 +23,64 @@ export function RoleModal({
   open,
   editingRole,
   form,
-  isLoading,
+  isSubmitting,
   onClose,
   onSubmit,
 }: RoleModalProps) {
   return (
     <Modal
-      title={editingRole ? 'Sửa vai trò' : 'Thêm vai trò'}
       open={open}
+      title={editingRole ? RolePageText.MODAL_EDIT_TITLE : RolePageText.MODAL_CREATE_TITLE}
       onCancel={onClose}
-      footer={null}
       width={600}
+      onOk={() => {
+        form.submit();
+      }}
+      okButtonProps={{
+        loading: isSubmitting,
+      }}
+      destroyOnHidden
       centered
     >
-      <Form
+      <Form<RoleFormValues>
         form={form}
         layout="vertical"
         onFinish={onSubmit}
       >
-        <Form.Item
-          label="Tên vai trò"
+        <Form.Item<RoleFormValues>
           name="name"
-          rules={[{ required: true, message: 'Vui lòng nhập tên vai trò' }]}
+          label={RolePageText.FIELD_NAME_LABEL}
+          rules={[
+            {
+              required: true,
+              message: RolePageText.FIELD_NAME_PLACEHOLDER,
+            },
+          ]}
         >
-          <Input placeholder="Nhập tên vai trò" />
+          <Input placeholder={RolePageText.FIELD_NAME_PLACEHOLDER} />
         </Form.Item>
 
-        <Form.Item
-          label="Mã vai trò"
+        <Form.Item<RoleFormValues>
           name="code"
-          rules={[{ required: true, message: 'Vui lòng nhập mã vai trò' }]}
+          label={RolePageText.FIELD_CODE_LABEL}
+          rules={[
+            {
+              required: true,
+              message: RolePageText.FIELD_CODE_PLACEHOLDER,
+            },
+          ]}
         >
-          <Input placeholder="Nhập mã vai trò" />
+          <Input placeholder={RolePageText.FIELD_CODE_PLACEHOLDER} />
         </Form.Item>
 
-        <Form.Item
-          label="Mô tả"
+        <Form.Item<RoleFormValues>
           name="description"
+          label={RolePageText.FIELD_DESCRIPTION_LABEL}
         >
           <Input.TextArea
             rows={4}
-            placeholder="Nhập mô tả (tùy chọn)"
+            placeholder={RolePageText.FIELD_DESCRIPTION_PLACEHOLDER}
           />
-        </Form.Item>
-
-        <Form.Item>
-          <Space>
-            <Button type="primary" htmlType="submit" loading={isLoading}>
-              {editingRole ? 'Cập nhật' : 'Tạo mới'}
-            </Button>
-            <Button onClick={onClose}>Hủy</Button>
-          </Space>
         </Form.Item>
       </Form>
     </Modal>
