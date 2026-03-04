@@ -1,8 +1,9 @@
-import { Button, Popconfirm, Space } from 'antd';
+import { Button, Popconfirm, Space, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { HiOutlinePencilAlt, HiOutlineTrash, HiOutlineInformationCircle } from 'react-icons/hi';
 import { DateLocale, LeadSource, LeadStatus } from '@/constants/enums';
 import type { Lead } from '@/lib/services/lead.service';
+import type { Course } from '@/lib/services/course.service';
 import type { LocationValue } from '@/components/common/LocationSelect';
 import { FiGlobe, FiMail, FiPhone, FiFacebook, FiMoreHorizontal } from 'react-icons/fi';
 
@@ -44,7 +45,7 @@ export const LeadPageText = {
   COLUMN_FULL_NAME: 'Họ và tên',
   COLUMN_EMAIL: 'Email',
   COLUMN_PHONE_NUMBER: 'Số điện thoại',
-  COLUMN_DATE_OF_BIRTH: 'Ngày sinh',
+  COLUMN_DATE_OF_BIRTH: 'Năm sinh',
   COLUMN_PLACE_OF_BIRTH: 'Nơi sinh',
   COLUMN_PLACE_OF_ORIGIN: 'Quê quán',
   COLUMN_CURRENT_ADDRESS: 'Địa chỉ hiện tại',
@@ -68,8 +69,8 @@ export const LeadPageText = {
   FIELD_EMAIL_PLACEHOLDER: 'Nhập email',
   FIELD_PHONE_NUMBER_LABEL: 'Số điện thoại',
   FIELD_PHONE_NUMBER_PLACEHOLDER: 'Nhập số điện thoại',
-  FIELD_DATE_OF_BIRTH_LABEL: 'Ngày sinh',
-  FIELD_DATE_OF_BIRTH_PLACEHOLDER: 'Chọn ngày sinh',
+  FIELD_DATE_OF_BIRTH_LABEL: 'Năm sinh',
+  FIELD_DATE_OF_BIRTH_PLACEHOLDER: 'Chọn năm sinh',
   FIELD_PLACE_OF_BIRTH_LABEL: 'Nơi sinh',
   FIELD_PLACE_OF_BIRTH_PLACEHOLDER: 'Nhập nơi sinh',
   FIELD_PLACE_OF_ORIGIN_LABEL: 'Quê quán',
@@ -88,6 +89,8 @@ export const LeadPageText = {
   FIELD_STATUS_PLACEHOLDER: 'Chọn trạng thái',
   FIELD_NOTE_LABEL: 'Ghi chú',
   FIELD_NOTE_PLACEHOLDER: 'Nhập ghi chú',
+  FIELD_COURSE_IDS_LABEL: 'Khóa học quan tâm',
+  FIELD_COURSE_IDS_PLACEHOLDER: 'Chọn khóa học',
   ACTION_EDIT: 'Sửa',
   ACTION_DELETE: 'Xóa',
   DELETE_TITLE: 'Xóa Data',
@@ -99,14 +102,16 @@ export const LeadPageText = {
   SUCCESS_DELETE: 'Xóa Data thành công',
   SUCCESS_REFRESH: 'Đã làm mới danh sách Data',
   ERROR_GENERIC: 'Có lỗi xảy ra',
+  COURSE_IDS_LABEL: 'Khóa học quan tâm',
 } as const;
 
 export const LeadStatusLabel = {
-  [LeadStatus.NEW]: 'Mới',
-  [LeadStatus.CONTACTED]: 'Đã liên hệ',
-  [LeadStatus.QUALIFIED]: 'Đã đủ điều kiện',
-  [LeadStatus.CONVERTED]: 'Đã chuyển đổi',
-  [LeadStatus.LOST]: 'Rớt',
+  [LeadStatus.NEW]: 'MỚI',
+  [LeadStatus.CONTACTED]: 'ĐÃ LIÊN HỆ',
+  [LeadStatus.QUALIFIED]: 'ĐÃ ĐỦ ĐIỀU KIỆN',
+  [LeadStatus.NURTURING]: 'ĐANG CHĂM SÓC',
+  [LeadStatus.CONVERTED]: 'ĐÃ CHUYỂN ĐỔI',
+  [LeadStatus.LOST]: 'RỚT',
 } as const;
 
 export const LeadSourceLabel = {
@@ -157,121 +162,151 @@ export const getLeadTableColumns = ({
   handleOpenModal,
   handleDelete,
   handleOpenDetailModal,
+  courses,
 }: {
   handleOpenModal: HandleOpenLeadModal;
   handleDelete: HandleDeleteLead;
   handleOpenDetailModal: HandleOpenLeadDetailModal;
+  courses?: Course[] | null;
 }): ColumnsType<Lead> => [
-  {
-    title: LeadPageText.COLUMN_ID,
-    dataIndex: 'id',
-    key: 'id',
-    width: LeadTableColumnWidth.ID,
-  },
-  {
-    title: LeadPageText.COLUMN_FULL_NAME,
-    dataIndex: 'full_name',
-    key: 'full_name',
-  },
-  {
-    title: LeadPageText.COLUMN_EMAIL,
-    dataIndex: 'email',
-    key: 'email',
-  },
-  {
-    title: LeadPageText.COLUMN_PHONE_NUMBER,
-    dataIndex: 'phone_number',
-    key: 'phone_number',
-  },
-  {
-    title: LeadPageText.COLUMN_DATE_OF_BIRTH,
-    dataIndex: 'date_of_birth',
-    key: 'date_of_birth',
-    render: (date: string | null) =>
-      date ? new Date(date).toLocaleDateString(DateLocale.VIET_NAM) : null,
-  },
-  {
-    title: LeadPageText.COLUMN_CURRENT_ADDRESS,
-    dataIndex: 'current_address',
-    key: 'current_address',
-    render: (address: LocationValue | null | undefined) => {
-      const formatted = formatLocationValue(address);
-      return formatted || null;
+    {
+      title: LeadPageText.COLUMN_ID,
+      dataIndex: 'id',
+      key: 'id',
+      width: LeadTableColumnWidth.ID,
     },
-  },
-  {
-    title: LeadPageText.COLUMN_STATUS,
-    dataIndex: 'status',
-    key: 'status',
-    render: (status: string | null) => {
-      if (!status) {
-        return null;
-      }
-      return LeadStatusLabel[status as keyof typeof LeadStatusLabel] ?? status;
+    {
+      title: LeadPageText.COLUMN_FULL_NAME,
+      dataIndex: 'full_name',
+      key: 'full_name',
     },
-  },
-  {
-    title: LeadPageText.COLUMN_SOURCE,
-    dataIndex: 'source',
-    key: 'source',
-    render: (source: string | null) => {
-      if (!source) {
-        return null;
-      }
-      const icon = LeadSourceIcon[source as keyof typeof LeadSourceIcon];
-      const label = LeadSourceLabel[source as keyof typeof LeadSourceLabel] ?? source;
-      return (
-        <Space size={LeadPageGap.ACTIONS}>
-          {icon}
-          {label}
-        </Space>
-      );
+    {
+      title: LeadPageText.COLUMN_EMAIL,
+      dataIndex: 'email',
+      key: 'email',
     },
-  },
-  {
-    title: LeadPageText.COLUMN_CREATED_AT,
-    dataIndex: 'created_at',
-    key: 'created_at',
-    render: (date: string | null) =>
-      date ? new Date(date).toLocaleDateString(DateLocale.VIET_NAM) : null,
-  },
-  {
-    title: LeadPageText.COLUMN_DETAIL,
-    key: 'detail',
-    align: 'center',
-    width: LeadTableColumnWidth.DETAIL,
-    render: (_: unknown, record: Lead) => (
-      <Button onClick={() => handleOpenDetailModal(record)}>
-        <HiOutlineInformationCircle size={LeadActionIconSize.DEFAULT} />
-      </Button>
-    ),
-  },
-  {
-    title: LeadPageText.COLUMN_ACTION,
-    key: 'action',
-    align: 'center',
-    fixed: 'right',
-    width: LeadTableColumnWidth.ACTION,
-    render: (_: unknown, record: Lead) => (
-      <Space>
-        <Button onClick={() => handleOpenModal(record)}>
-          <HiOutlinePencilAlt size={LeadActionIconSize.DEFAULT} />
+    {
+      title: LeadPageText.COLUMN_PHONE_NUMBER,
+      dataIndex: 'phone_number',
+      key: 'phone_number',
+    },
+    {
+      title: LeadPageText.COLUMN_DATE_OF_BIRTH,
+      dataIndex: 'date_of_birth',
+      key: 'date_of_birth',
+      render: (date: string | null) => date ? date : null,
+    },
+    {
+      title: LeadPageText.COLUMN_CURRENT_ADDRESS,
+      dataIndex: 'current_address',
+      key: 'current_address',
+      render: (address: LocationValue | null | undefined) => {
+        const formatted = formatLocationValue(address);
+        return formatted || null;
+      },
+    },
+    {
+      title: LeadPageText.COLUMN_STATUS,
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: string | null) => {
+        if (!status) {
+          return null;
+        }
+        return LeadStatusLabel[status as keyof typeof LeadStatusLabel] ?? status;
+      },
+    },
+    {
+      title: LeadPageText.COURSE_IDS_LABEL,
+      dataIndex: 'course_ids',
+      key: 'course_ids',
+      render: (courseIds: string[] | null) => {
+        if (!courseIds || courseIds.length === 0) {
+          return null;
+        }
+        if (!courses) {
+          return courseIds.join(', ');
+        }
+        const courseNames = courseIds.map((id) => {
+          const course = courses.find((c) => c.id === id);
+          return course ? course.name : id;
+        });
+        return courseNames.join(', ');
+      },
+    },
+    {
+      title: LeadPageText.COLUMN_NOTE,
+      dataIndex: 'note',
+      key: 'note',
+      render: (note: string | null) => {
+        if (!note || note.length === 0) {
+          return null;
+        }
+        return <Tooltip title={note}>{note.substring(0, 50)}...</Tooltip>;
+      },
+    },
+    {
+      title: LeadPageText.COLUMN_SOURCE,
+      dataIndex: 'source',
+      key: 'source',
+      render: (source: string | null) => {
+        if (!source) {
+          return null;
+        }
+        const icon = LeadSourceIcon[source as keyof typeof LeadSourceIcon];
+        const label = LeadSourceLabel[source as keyof typeof LeadSourceLabel] ?? source;
+        return (
+          <Space size={LeadPageGap.ACTIONS}>
+            {icon}
+            {label}
+          </Space>
+        );
+      },
+    },
+    {
+      title: LeadPageText.COLUMN_CREATED_AT,
+      dataIndex: 'created_at',
+      key: 'created_at',
+      render: (date: string | null) =>
+        date ? new Date(date).toLocaleDateString(DateLocale.VIET_NAM) : null,
+    },
+    {
+      title: LeadPageText.COLUMN_DETAIL,
+      key: 'detail',
+      align: 'center',
+      width: LeadTableColumnWidth.DETAIL,
+      render: (_: unknown, record: Lead) => (
+        <Button onClick={() => handleOpenDetailModal(record)}>
+          <HiOutlineInformationCircle size={LeadActionIconSize.DEFAULT} />
         </Button>
-        <Popconfirm
-          title={LeadPageText.DELETE_TITLE}
-          description={LeadPageText.DELETE_DESCRIPTION}
-          onConfirm={() => handleDelete(record.id)}
-          okText={LeadPageText.DELETE_OK_TEXT}
-          cancelText={LeadPageText.DELETE_CANCEL_TEXT}
-        >
-          <Button danger>
-            <HiOutlineTrash size={LeadActionIconSize.DEFAULT} />
+      ),
+    },
+    {
+      title: LeadPageText.COLUMN_ACTION,
+      key: 'action',
+      align: 'center',
+      fixed: 'right',
+      width: LeadTableColumnWidth.ACTION,
+      render: (_: unknown, record: Lead) => (
+        <Space>
+          <Button onClick={() => handleOpenModal(record)}>
+            <HiOutlinePencilAlt size={LeadActionIconSize.DEFAULT} />
           </Button>
-        </Popconfirm>
-      </Space>
-    ),
-  },
-];
+          <Popconfirm
+            title={LeadPageText.DELETE_TITLE}
+            description={LeadPageText.DELETE_DESCRIPTION}
+            onConfirm={() => handleDelete(record.id)}
+            okText={LeadPageText.DELETE_OK_TEXT}
+            cancelText={LeadPageText.DELETE_CANCEL_TEXT}
+          >
+            <Button danger>
+              <HiOutlineTrash size={LeadActionIconSize.DEFAULT} />
+            </Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
 
 
 export const Ethnicity = [

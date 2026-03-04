@@ -1,0 +1,48 @@
+import { createAdminClient } from '@/lib/supabase/admin';
+import type { Tables } from '@/types/supabase';
+import type { CreateCourseInput, UpdateCourseInput } from '@/lib/validators/course.validator';
+
+export type Course = Tables<'courses'>;
+
+export async function fetchAllCourses(): Promise<Course[]> {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase.from('courses').select('*').order('created_at', { ascending: false });
+
+    if (error) {
+        throw new Error(error.message);
+    }
+
+    return (data as unknown as Course[]) || [];
+}
+
+export async function createCourse(input: CreateCourseInput): Promise<Course> {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+        .from('courses')
+        .insert(input as any)
+        .select()
+        .single();
+
+    if (error) {
+        throw new Error(error.message);
+    }
+
+    return data as unknown as Course;
+}
+
+export async function updateCourse(id: string, input: UpdateCourseInput): Promise<Course> {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+        .from('courses')
+        // @ts-ignore
+        .update(input)
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) {
+        throw new Error(error.message);
+    }
+
+    return data as unknown as Course;
+}

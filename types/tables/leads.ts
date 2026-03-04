@@ -19,6 +19,7 @@ export interface LeadsTable {
     telesales_id: string | null;
     status: LeadStatus;
     note: string | null;
+    course_ids: string[] | null;
     created_at: string | null;
     updated_at: string | null;
   };
@@ -39,6 +40,7 @@ export interface LeadsTable {
     telesales_id?: string | null;
     status?: LeadStatus;
     note?: string | null;
+    course_ids?: string[] | null;
     created_at?: string | null;
     updated_at?: string | null;
   };
@@ -59,6 +61,7 @@ export interface LeadsTable {
     telesales_id?: string | null;
     status?: LeadStatus;
     note?: string | null;
+    course_ids?: string[] | null;
     created_at?: string | null;
     updated_at?: string | null;
   };

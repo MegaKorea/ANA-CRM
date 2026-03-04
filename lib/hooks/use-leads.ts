@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
-import type { Lead, LeadQueryParams } from '@/lib/services/lead.service';
+import type { Lead, LeadQueryParams, PaginatedLeads } from '@/lib/services/lead.service';
 import type { CreateLeadInput, UpdateLeadInput } from '@/lib/validators/lead.validator';
 
 const LeadQueryKey = {
@@ -12,10 +12,10 @@ const LeadApiPath = {
 } as const;
 
 export function useLeads(params?: LeadQueryParams) {
-  return useQuery<Lead[]>({
+  return useQuery<PaginatedLeads>({
     queryKey: [LeadQueryKey.LIST, params],
     queryFn: () =>
-      api.get<Lead[]>(LeadApiPath.BASE, {
+      api.get<PaginatedLeads>(LeadApiPath.BASE, {
         params,
       }),
   });

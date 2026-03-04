@@ -10,11 +10,27 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const search = searchParams.get('search') ?? undefined;
     const status = searchParams.get('status') ?? undefined;
     const telesalesId = searchParams.get('telesales_id') ?? undefined;
+    const source = searchParams.get('source') ?? undefined;
+    const courseId = searchParams.get('course_id') ?? undefined;
+    const startDate = searchParams.get('startDate') ?? undefined;
+    const endDate = searchParams.get('endDate') ?? undefined;
+
+    const pageStr = searchParams.get('page');
+    const limitStr = searchParams.get('limit');
+
+    const page = pageStr ? parseInt(pageStr, 10) : undefined;
+    const limit = limitStr ? parseInt(limitStr, 10) : undefined;
 
     const leads = await fetchAllLeads({
       search: search || undefined,
       status: status as never,
       telesales_id: telesalesId || undefined,
+      source: source || undefined,
+      course_id: courseId || undefined,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
+      page,
+      limit,
     });
     return NextResponse.json(leads, { status: HttpStatusCode.OK });
   } catch (error) {

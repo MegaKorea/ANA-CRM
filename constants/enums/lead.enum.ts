@@ -19,13 +19,14 @@ export enum LeadStatus {
   CONTACTED = 'contacted',
   QUALIFIED = 'qualified',
   CONVERTED = 'converted',
+  NURTURING = 'nurturing',
   LOST = 'lost',
 }
 
 
 export enum LeadSource {
   WEBSITE = 'website',
-  EMAIL = 'email',  
+  EMAIL = 'email',
   PHONE = 'phone',
   FACEBOOK = 'facebook',
   OTHER = 'other',

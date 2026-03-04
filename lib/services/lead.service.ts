@@ -12,12 +12,23 @@ export interface LeadQueryParams {
   search?: string;
   status?: LeadStatus;
   telesales_id?: string;
+  source?: string;
+  startDate?: string;
+  endDate?: string;
+  course_id?: string;
+  page?: number;
+  limit?: number;
 }
 
-export async function fetchAllLeads(params?: LeadQueryParams): Promise<Lead[]> {
+export interface PaginatedLeads {
+  data: Lead[];
+  total: number;
+}
+
+export async function fetchAllLeads(params?: LeadQueryParams): Promise<PaginatedLeads> {
   try {
     const supabase = createAdminClient();
-    let query = supabase.from('leads').select('*');
+    let query = supabase.from('leads').select('*', { count: 'exact' });
 
     if (params?.search) {
       const keyword = params.search.trim();
@@ -34,14 +45,44 @@ export async function fetchAllLeads(params?: LeadQueryParams): Promise<Lead[]> {
       query = query.eq('telesales_id', params.telesales_id);
     }
 
-    const { data, error } = await query;
+    if (params?.source) {
+      query = query.eq('source', params.source);
+    }
+
+    if (params?.course_id) {
+      query = query.contains('course_ids', [params.course_id]);
+    }
+
+    if (params?.startDate) {
+      query = query.gte('created_at', params.startDate);
+    }
+
+    if (params?.endDate) {
+      // For endDate, we usually want to include the whole day if it's just a date.
+      // But let's assume it's passed as ISO string or we can just use lte
+      query = query.lte('created_at', params.endDate);
+    }
+
+    // Order by created_at desc
+    query = query.order('created_at', { ascending: false });
+
+    if (params?.page && params?.limit) {
+      const from = (params.page - 1) * params.limit;
+      const to = from + params.limit - 1;
+      query = query.range(from, to);
+    }
+
+    const { data, count, error } = await query;
     if (error) {
       handleSupabaseError(error, {
         defaultErrorCode: LeadErrorCode.FETCH_FAILED,
       });
     }
 
-    return (data as unknown as Lead[]) || [];
+    return {
+      data: (data as unknown as Lead[]) || [],
+      total: count ?? 0,
+    };
   } catch (error) {
     handleServiceError(error, LeadErrorCode.FETCH_FAILED);
   }
@@ -89,6 +130,7 @@ export async function createLead(input: CreateLeadInput): Promise<Lead> {
       telesales_id: input.telesales_id ?? null,
       status: input.status ?? LeadStatus.NEW,
       note: input.note ?? null,
+      course_ids: input.course_ids ?? null,
     };
 
     const { data, error } = await supabase
@@ -133,6 +175,7 @@ export async function updateLeadById(id: number, input: UpdateLeadInput): Promis
       telesales_id: 'nullable',
       status: 'direct',
       note: 'nullable',
+      course_ids: 'nullable',
     });
 
     if (Object.keys(updateData).length > 0) {

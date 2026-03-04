@@ -24,6 +24,7 @@ import { LeadDetailModal } from '@/app/lead/components/LeadDetailModal';
 import { DebouncedInput } from '@/components/common/DebouncedInput';
 import { LeadStatus, DateFormat, LeadSource } from '@/constants/enums';
 import { type LocationValue } from '@/components/common/LocationSelect';
+import { useCourses } from '@/lib/hooks/use-courses';
 
 export default function LeadPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,16 +36,27 @@ export default function LeadPage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus | undefined>(undefined);
   const [sourceFilter, setSourceFilter] = useState<LeadSource | undefined>(undefined);
+  const [courseFilter, setCourseFilter] = useState<string | undefined>(undefined);
   const [createdAtRange, setCreatedAtRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
 
-  const { data: leads, isLoading, isFetching, refetch } = useLeads(
-    searchKeyword || statusFilter
-      ? {
-          search: searchKeyword || undefined,
-          status: statusFilter,
-        }
-      : undefined
-  );
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const { data, isLoading, isFetching, refetch } = useLeads({
+    search: searchKeyword || undefined,
+    status: statusFilter,
+    source: sourceFilter,
+    course_id: courseFilter,
+    startDate: createdAtRange?.[0] ? createdAtRange[0].format(DateFormat.ISO_DATE) : undefined,
+    endDate: createdAtRange?.[1] ? createdAtRange[1].format(DateFormat.ISO_DATE) : undefined,
+    page: currentPage,
+    limit: pageSize,
+  });
+
+  const { data: courses } = useCourses();
+
+  const leads = data?.data || [];
+  const total = data?.total || 0;
   const createLeadMutation = useCreateLead();
   const updateLeadMutation = useUpdateLead();
   const deleteLeadMutation = useDeleteLead();
@@ -57,7 +69,7 @@ export default function LeadPage() {
           full_name: lead.full_name,
           email: lead.email || undefined,
           phone_number: lead.phone_number || undefined,
-          date_of_birth: lead.date_of_birth ? dayjs(lead.date_of_birth) : undefined,
+          date_of_birth: lead.date_of_birth || undefined,
           place_of_birth: (lead.place_of_birth ?? undefined) as LocationValue | undefined,
           place_of_origin: (lead.place_of_origin ?? undefined) as LocationValue | undefined,
           current_address: (lead.current_address ?? undefined) as LocationValue | undefined,
@@ -67,6 +79,7 @@ export default function LeadPage() {
           source: lead.source || undefined,
           status: lead.status || undefined,
           note: lead.note || undefined,
+          course_ids: lead.course_ids || undefined,
         });
       } else {
         setEditingLead(null);
@@ -89,7 +102,7 @@ export default function LeadPage() {
         full_name: values.full_name,
         email: values.email,
         phone_number: values.phone_number,
-        date_of_birth: values.date_of_birth ? values.date_of_birth.format(DateFormat.ISO_DATE) : undefined,
+        date_of_birth: values.date_of_birth,
         place_of_birth: (values.place_of_birth),
         place_of_origin: (values.place_of_origin),
         current_address: values.current_address,
@@ -99,6 +112,7 @@ export default function LeadPage() {
         source: values.source,
         status: values.status,
         note: values.note,
+        course_ids: values.course_ids,
       };
       const onError = (error: unknown) => {
         const errorMessage = error instanceof Error ? error.message : LeadPageText.ERROR_GENERIC;
@@ -176,53 +190,13 @@ export default function LeadPage() {
         handleOpenModal,
         handleDelete,
         handleOpenDetailModal,
+        courses,
       }),
-    [handleOpenModal, handleDelete, handleOpenDetailModal]
+    [handleOpenModal, handleDelete, handleOpenDetailModal, courses]
   );
 
   const isSubmitting = createLeadMutation.isPending || updateLeadMutation.isPending;
-  const filteredLeads = useMemo(() => {
-    if (!leads) {
-      return [];
-    }
 
-    return leads.filter((lead) => {
-      if (searchKeyword) {
-        const keyword = searchKeyword.toLowerCase();
-        const fullNameMatch = lead.full_name.toLowerCase().includes(keyword);
-        const emailMatch = (lead.email || '').toLowerCase().includes(keyword);
-        const phoneMatch = (lead.phone_number || '').toLowerCase().includes(keyword);
-
-        if (!fullNameMatch && !emailMatch && !phoneMatch) {
-          return false;
-        }
-      }
-
-      if (statusFilter && lead.status !== statusFilter) {
-        return false;
-      }
-
-      if (sourceFilter && lead.source !== sourceFilter) {
-        return false;
-      }
-
-      if (createdAtRange) {
-        const createdAt = lead.created_at ? dayjs(lead.created_at) : null;
-        if (!createdAt) {
-          return false;
-        }
-        const [startDate, endDate] = createdAtRange;
-        if (startDate && createdAt.isBefore(startDate, LeadDateUnit.DAY)) {
-          return false;
-        }
-        if (endDate && createdAt.isAfter(endDate, LeadDateUnit.DAY)) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [leads, searchKeyword, statusFilter, sourceFilter, createdAtRange]);
 
   const handleSubmitAsync = useCallback(
     async (values: LeadFormValues) => {
@@ -254,7 +228,7 @@ export default function LeadPage() {
       </Row>
 
       <Row gutter={16} style={{ marginBottom: LeadPageMargin.HEADER_BOTTOM }}>
-        <Col xs={24} md={12}>
+        <Col xs={24} md={8}>
           <DebouncedInput
             placeholder={`${LeadPageText.COLUMN_FULL_NAME} / ${LeadPageText.COLUMN_EMAIL} / ${LeadPageText.COLUMN_PHONE_NUMBER}`}
             onChange={(value) => setSearchKeyword(value)}
@@ -296,6 +270,23 @@ export default function LeadPage() {
           />
         </Col>
         <Col xs={24} md={4}>
+          <Select
+            allowClear
+            placeholder={LeadPageText.FIELD_COURSE_IDS_PLACEHOLDER}
+            value={courseFilter}
+            onChange={(value) => setCourseFilter(value)}
+            options={courses?.map((course) => ({
+              label: course.name,
+              value: course.id,
+            }))}
+            style={{ width: '100%' }}
+            showSearch
+            filterOption={(input, option) =>
+              (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
+            }
+          />
+        </Col>
+        <Col xs={24} md={4}>
           <DatePicker.RangePicker
             allowClear
             placeholder={[LeadDateRangePlaceholder[0], LeadDateRangePlaceholder[1]]}
@@ -311,10 +302,19 @@ export default function LeadPage() {
           <Table<Lead>
             scroll={{ x: 'max-content' }}
             columns={columns}
-            dataSource={filteredLeads}
+            dataSource={leads}
             loading={isLoading}
             rowKey="id"
-            pagination={false}
+            pagination={{
+              current: currentPage,
+              pageSize: pageSize,
+              total: total,
+              showSizeChanger: true,
+              onChange: (page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+              },
+            }}
             bordered
           />
         </Col>

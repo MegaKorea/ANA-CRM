@@ -8,8 +8,9 @@ import logo from '../../app/assets/logo/logo-ana.png';
 import Image from 'next/image';
 import { useTheme } from '@/lib/hooks/use-theme';
 import { HiViewGridAdd } from 'react-icons/hi';
-import { menuItems } from '@/constants/menu';
+import { menuItems, type AppMenuItem, type MenuItem } from '@/constants/menu';
 import { useNavigation } from '@/lib/contexts/navigation.context';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
 
 const { Sider } = Layout;
 
@@ -22,6 +23,35 @@ export function Sidebar({ collapsed }: SidebarProps) {
   const { themeMode } = useTheme();
   const [mounted, setMounted] = useState(false);
   const { navigateWithDelay } = useNavigation();
+  const { user } = useCurrentUser();
+
+  const filteredMenuItems = useMemo(() => {
+    const userRole = user?.roleCode;
+
+    function filterMenu(items: AppMenuItem[]): MenuItem[] {
+      return items
+        .filter((item) => {
+          if (item.roles && item.roles.length > 0) {
+            if (!userRole || !item.roles.includes(userRole)) {
+              return false;
+            }
+          }
+          return true;
+        })
+        .map((item) => {
+          if (item.children) {
+            return {
+              ...item,
+              children: filterMenu(item.children),
+            } as MenuItem;
+          }
+          const { roles, ...rest } = item;
+          return rest as MenuItem;
+        });
+    }
+
+    return filterMenu(menuItems);
+  }, [user?.roleCode]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -59,9 +89,9 @@ export function Sidebar({ collapsed }: SidebarProps) {
     >
       <div className={styles.logoContainer}>
         <Typography.Title level={1}>
-         {!collapsed ? <Image src={logo} alt="logo" width={70} height={40} className={styles.logoImage} /> : <HiViewGridAdd 
-         size={40}
-         />}
+          {!collapsed ? <Image src={logo} alt="logo" width={70} height={40} className={styles.logoImage} /> : <HiViewGridAdd
+            size={40}
+          />}
         </Typography.Title>
       </div>
 
@@ -70,7 +100,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
         mode="inline"
         selectedKeys={selectedKeys}
         defaultOpenKeys={defaultOpenKeys}
-        items={menuItems}
+        items={filteredMenuItems}
         onClick={handleMenuClick}
         className={styles.menu}
       />

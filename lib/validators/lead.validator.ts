@@ -20,6 +20,7 @@ export interface CreateLeadInput {
   telesales_id?: string;
   status?: LeadStatus;
   note?: string;
+  course_ids?: string[];
 }
 
 export interface UpdateLeadInput {
@@ -38,6 +39,7 @@ export interface UpdateLeadInput {
   telesales_id?: string;
   status?: LeadStatus;
   note?: string;
+  course_ids?: string[];
 }
 
 export function validateLeadId(id: unknown): number {
@@ -141,6 +143,32 @@ function validateOptionalLocationField(value: unknown): LocationValue | undefine
   }
 
   return value as LocationValue;
+}
+
+function validateOptionalUuidArrayField(value: unknown): string[] | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (!Array.isArray(value)) {
+    throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+  }
+
+  const uuidRegex = new RegExp(ValidationPattern.UUID, 'i');
+  const result: string[] = [];
+
+  for (const item of value) {
+    if (typeof item !== 'string') {
+      throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+    }
+    const trimmedItem = item.trim();
+    if (!uuidRegex.test(trimmedItem)) {
+      throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+    }
+    result.push(trimmedItem);
+  }
+
+  return result.length > 0 ? result : undefined;
 }
 
 function validateStatusField(value: unknown): LeadStatus | undefined {
@@ -247,7 +275,7 @@ export function validateCreateLeadInput(input: unknown): CreateLeadInput {
     email,
     phone_number: phoneNumber,
     full_name: fullName,
-    date_of_birth: validateOptionalDateField(data.date_of_birth),
+    date_of_birth: validateOptionalStringField(data.date_of_birth),
     place_of_birth: validateOptionalLocationField(data.place_of_birth),
     place_of_origin: validateOptionalLocationField(data.place_of_origin),
     current_address: validateOptionalLocationField(data.current_address),
@@ -259,6 +287,7 @@ export function validateCreateLeadInput(input: unknown): CreateLeadInput {
     telesales_id: validateOptionalUuidField(data.telesales_id),
     status: validateStatusField(data.status),
     note: validateOptionalStringField(data.note),
+    course_ids: validateOptionalUuidArrayField(data.course_ids),
   };
 }
 
@@ -292,7 +321,7 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
     result.phone_number = phoneNumber;
   }
 
-  const dateOfBirth = validateOptionalDateField(data.date_of_birth);
+  const dateOfBirth = validateOptionalStringField(data.date_of_birth);
   const placeOfBirth = validateOptionalLocationField(data.place_of_birth);
   const placeOfOrigin = validateOptionalLocationField(data.place_of_origin);
   const currentAddress = validateOptionalLocationField(data.current_address);
@@ -304,6 +333,7 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
   const telesalesId = validateOptionalUuidField(data.telesales_id);
   const status = validateStatusField(data.status);
   const note = validateOptionalStringField(data.note);
+  const courseIds = validateOptionalUuidArrayField(data.course_ids);
 
   if (dateOfBirth !== undefined) {
     result.date_of_birth = dateOfBirth;
@@ -351,6 +381,10 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
 
   if (note !== undefined) {
     result.note = note;
+  }
+
+  if (courseIds !== undefined) {
+    result.course_ids = courseIds;
   }
 
   return result;

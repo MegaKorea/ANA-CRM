@@ -6,12 +6,13 @@ import { LeadSourceLabel, LeadStatusLabel, LeadPageText, Ethnicity } from '@/app
 import { LeadSource, LeadStatus } from '@/constants/enums';
 import type { Dayjs } from 'dayjs';
 import { LocationSelect, type LocationValue } from '@/components/common/LocationSelect';
+import { useCourses } from '@/lib/hooks/use-courses';
 
 export interface LeadFormValues {
   full_name: string;
   email?: string;
   phone_number?: string;
-  date_of_birth?: Dayjs;
+  date_of_birth?: string;
   place_of_birth?: LocationValue;
   place_of_origin?: LocationValue;
   current_address?: LocationValue;
@@ -21,6 +22,7 @@ export interface LeadFormValues {
   source?: string;
   status?: LeadStatus;
   note?: string;
+  course_ids?: string[];
 }
 
 interface LeadModalProps {
@@ -40,6 +42,8 @@ export function LeadModal({
   onClose,
   onSubmit,
 }: LeadModalProps) {
+  const { data: courses, isLoading: isCoursesLoading } = useCourses();
+
   return (
     <Modal
       open={open}
@@ -104,7 +108,13 @@ export function LeadModal({
               name="date_of_birth"
               label={LeadPageText.FIELD_DATE_OF_BIRTH_LABEL}
             >
-              <DatePicker style={{ width: '100%' }} />
+              <Select placeholder="Chọn năm" allowClear showSearch>
+                {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                  <Select.Option key={year} value={year.toString()}>
+                    {year}
+                  </Select.Option>
+                ))}
+              </Select>
             </Form.Item>
           </Col>
 
@@ -187,7 +197,23 @@ export function LeadModal({
             </Form.Item>
           </Col>
 
-         
+          <Col span={8}>
+            <Form.Item
+              name="course_ids"
+              label={LeadPageText.FIELD_COURSE_IDS_LABEL}
+            >
+              <Select
+                mode="multiple"
+                allowClear
+                placeholder={LeadPageText.FIELD_COURSE_IDS_PLACEHOLDER}
+                options={courses?.map((course) => ({
+                  label: course.name,
+                  value: course.id,
+                }))}
+                loading={isCoursesLoading}
+              />
+            </Form.Item>
+          </Col>
 
           <Col span={24}>
             <Form.Item

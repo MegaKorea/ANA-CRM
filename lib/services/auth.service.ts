@@ -5,13 +5,16 @@ import type { LoginInput } from '@/lib/validators/auth.validator';
 import type { Tables, UpdateTables } from '@/types/supabase';
 import { handleSupabaseError } from '@/lib/utils/error-handler';
 
-type UserData = Pick<Tables<'users'>, 'id' | 'email' | 'full_name' | 'status'>;
+type UserData = Pick<Tables<'users'>, 'id' | 'email' | 'full_name' | 'status'> & {
+  roles: Pick<Tables<'roles'>, 'code'> | null;
+};
 
 export interface LoginResult {
   user: {
     id: string;
     email: string;
     fullName: string;
+    roleCode: string | null;
   };
   session: {
     accessToken: string;
@@ -24,6 +27,7 @@ export interface CurrentUser {
   email: string | null;
   fullName: string;
   status: string;
+  roleCode: string | null;
 }
 
 export async function loginWithEmailAndPassword(
@@ -59,7 +63,7 @@ export async function loginWithEmailAndPassword(
 
   const { data: userData, error: userError } = await supabase
     .from('users')
-    .select('id, email, full_name, status')
+    .select('id, email, full_name, status, roles(code)')
     .eq('id', authData.user.id)
     .single<UserData>();
 
@@ -85,7 +89,7 @@ export async function loginWithEmailAndPassword(
   }
 
   const updateData: UpdateTables<'users'> = { last_login: new Date().toISOString() };
-  
+
   await supabase
     .from('users')
     .update(updateData as never)
@@ -98,6 +102,7 @@ export async function loginWithEmailAndPassword(
       id: userData.id,
       email: userEmail,
       fullName: userData.full_name,
+      roleCode: userData.roles?.code ?? null,
     },
     session: {
       accessToken: authData.session.access_token,
@@ -123,7 +128,7 @@ export async function getCurrentUser(): Promise<CurrentUser> {
 
   const { data: userData, error: userError } = await supabase
     .from('users')
-    .select('id, email, full_name, status')
+    .select('id, email, full_name, status, roles(code)')
     .eq('id', authUser.id)
     .single<UserData>();
 
@@ -146,6 +151,7 @@ export async function getCurrentUser(): Promise<CurrentUser> {
     email: userData.email,
     fullName: userData.full_name,
     status: userData.status,
+    roleCode: userData.roles?.code ?? null,
   };
 }
 
