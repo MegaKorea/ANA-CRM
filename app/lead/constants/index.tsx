@@ -56,6 +56,10 @@ export const LeadPageText = {
   COLUMN_STATUS: 'Trạng thái',
   COLUMN_NOTE: 'Ghi chú',
   COLUMN_CREATED_AT: 'Ngày tạo',
+  COLUMN_SALES_AMOUNT: 'Doanh thu',
+  COLUMN_DEPOSIT: 'Cọc',
+  COLUMN_OUTSTANDING_BALANCE: 'Công nợ',
+  COLUMN_APPOINTMENT_DATE: 'Lịch hẹn',
   COLUMN_ACTION: 'Thao tác',
   COLUMN_DETAIL: 'Thông tin thêm',
   FILTER_CREATED_AT_START: 'Ngày tạo từ',
@@ -269,6 +273,31 @@ export const getLeadTableColumns = ({
       key: 'created_at',
       render: (date: string | null) =>
         date ? new Date(date).toLocaleDateString(DateLocale.VIET_NAM) : null,
+    },
+    {
+      title: LeadPageText.COLUMN_SALES_AMOUNT,
+      dataIndex: 'sales_amount',
+      key: 'sales_amount',
+      render: (amount: number | null) => amount ? amount.toLocaleString() : null,
+    },
+    {
+      title: LeadPageText.COLUMN_DEPOSIT,
+      dataIndex: 'deposit',
+      key: 'deposit',
+      render: (amount: number | null) => amount ? amount.toLocaleString() : null,
+    },
+    {
+      title: LeadPageText.COLUMN_OUTSTANDING_BALANCE,
+      dataIndex: 'outstanding_balance',
+      key: 'outstanding_balance',
+      render: (amount: number | null) => amount ? amount.toLocaleString() : null,
+    },
+    {
+      title: LeadPageText.COLUMN_APPOINTMENT_DATE,
+      dataIndex: 'appointment_date',
+      key: 'appointment_date',
+      render: (date: string | null) =>
+        date ? new Date(date).toLocaleString(DateLocale.VIET_NAM) : null,
     },
     {
       title: LeadPageText.COLUMN_DETAIL,

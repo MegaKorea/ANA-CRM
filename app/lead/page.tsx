@@ -80,6 +80,10 @@ export default function LeadPage() {
           status: lead.status || undefined,
           note: lead.note || undefined,
           course_ids: lead.course_ids || undefined,
+          sales_amount: lead.sales_amount ?? undefined,
+          deposit: lead.deposit ?? undefined,
+          outstanding_balance: lead.outstanding_balance ?? undefined,
+          appointment_date: lead.appointment_date ? dayjs(lead.appointment_date) : undefined,
         });
       } else {
         setEditingLead(null);
@@ -113,6 +117,10 @@ export default function LeadPage() {
         status: values.status,
         note: values.note,
         course_ids: values.course_ids,
+        sales_amount: values.sales_amount === null ? null : values.sales_amount,
+        deposit: values.deposit === null ? null : values.deposit,
+        outstanding_balance: values.outstanding_balance === null ? null : values.outstanding_balance,
+        appointment_date: values.appointment_date === null ? null : (values.appointment_date ? values.appointment_date.toISOString() : undefined),
       };
       const onError = (error: unknown) => {
         const errorMessage = error instanceof Error ? error.message : LeadPageText.ERROR_GENERIC;

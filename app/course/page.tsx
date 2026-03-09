@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Card, Col, Row, Typography, Space, Spin, Tag } from 'antd';
+import { Button, Card, Col, Row, Typography, Space, Spin, Tag, Popconfirm, message } from 'antd';
 import { PlusOutlined, BookOutlined } from '@ant-design/icons';
-import { useCourses } from '@/lib/hooks/use-courses';
+import { useCourses, useDeleteCourse } from '@/lib/hooks/use-courses';
 import { CreateCourseModal } from './components/CreateCourseModal';
 import { UpdateCourseModal } from './components/UpdateCourseModal';
 import type { Course } from '@/lib/services/course.service';
@@ -16,6 +16,7 @@ export default function CoursePage() {
     const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
     const { data: courses, isLoading } = useCourses();
+    const { mutate: deleteCourse } = useDeleteCourse();
 
     const handleOpenCreateModal = () => setIsCreateModalOpen(true);
     const handleCloseCreateModal = () => setIsCreateModalOpen(false);
@@ -28,6 +29,17 @@ export default function CoursePage() {
     const handleCloseUpdateModal = () => {
         setIsUpdateModalOpen(false);
         setSelectedCourse(null);
+    };
+
+    const handleDelete = (id: string) => {
+        deleteCourse(id, {
+            onSuccess: () => {
+                message.success('Xóa khóa học thành công');
+            },
+            onError: (error: any) => {
+                message.error('Xóa khóa học thất bại: ' + error.message);
+            }
+        });
     };
 
     if (isLoading) {
@@ -72,6 +84,16 @@ export default function CoursePage() {
                             }
                             actions={[
                                 <Button key="edit" type="link" onClick={() => handleOpenUpdateModal(course)}>Chỉnh sửa</Button>,
+                                <Popconfirm
+                                    key="delete"
+                                    title="Xóa khóa học"
+                                    description="Bạn có chắc chắn muốn xóa khóa học này không?"
+                                    onConfirm={() => handleDelete(course.id)}
+                                    okText="Xóa"
+                                    cancelText="Hủy"
+                                >
+                                    <Button type="link" danger>Xóa</Button>
+                                </Popconfirm>
                             ]}
                             style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
                             bodyStyle={{ flex: 1 }}

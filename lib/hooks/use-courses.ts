@@ -62,3 +62,22 @@ export function useUpdateCourse() {
         },
     });
 }
+
+async function deleteCourseRequest(id: string): Promise<void> {
+    const res = await fetch(`/api/courses/${id}`, {
+        method: 'DELETE',
+    });
+    if (!res.ok) {
+        throw new Error('Failed to delete course');
+    }
+}
+
+export function useDeleteCourse() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: deleteCourseRequest,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [COURSE_QUERY_KEY] });
+        },
+    });
+}

@@ -17,7 +17,7 @@ export const buildUpdateByRules = <
 
     switch (rule) {
       case 'nullable':
-        result[key] = value ?? (undefined as T[keyof T]);
+        result[key] = value === null ? (null as T[keyof T]) : (value ?? (undefined as T[keyof T]));
         break;
       case 'direct':
         result[key] = value;

@@ -21,6 +21,11 @@ export interface CreateLeadInput {
   status?: LeadStatus;
   note?: string;
   course_ids?: string[];
+  sales_amount?: number | null;
+  deposit?: number | null;
+  outstanding_balance?: number | null;
+  appointment_date?: string | null;
+  images?: string[];
 }
 
 export interface UpdateLeadInput {
@@ -40,6 +45,11 @@ export interface UpdateLeadInput {
   status?: LeadStatus;
   note?: string;
   course_ids?: string[];
+  sales_amount?: number | null;
+  deposit?: number | null;
+  outstanding_balance?: number | null;
+  appointment_date?: string | null;
+  images?: string[];
 }
 
 export function validateLeadId(id: unknown): number {
@@ -74,9 +84,12 @@ function validateOptionalStringField(value: unknown): string | undefined {
   return trimmedValue;
 }
 
-function validateOptionalDateField(value: unknown): string | undefined {
-  if (value === undefined || value === null) {
+function validateOptionalDateField(value: unknown): string | null | undefined {
+  if (value === undefined) {
     return undefined;
+  }
+  if (value === null || value === '') {
+    return null;
   }
 
   if (typeof value !== 'string') {
@@ -86,7 +99,7 @@ function validateOptionalDateField(value: unknown): string | undefined {
   const trimmedValue = value.trim();
 
   if (!trimmedValue) {
-    return undefined;
+    return null;
   }
 
   const date = new Date(trimmedValue);
@@ -166,6 +179,45 @@ function validateOptionalUuidArrayField(value: unknown): string[] | undefined {
       throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
     }
     result.push(trimmedItem);
+  }
+
+  return result.length > 0 ? result : undefined;
+}
+
+function validateOptionalNumberField(value: unknown): number | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null || value === '') {
+    return null;
+  }
+
+  const numericValue = Number(value);
+  if (Number.isNaN(numericValue)) {
+    throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+  }
+
+  return numericValue;
+}
+
+function validateOptionalStringArrayField(value: unknown): string[] | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (!Array.isArray(value)) {
+    throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+  }
+
+  const result: string[] = [];
+  for (const item of value) {
+    if (typeof item !== 'string') {
+      throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+    }
+    const trimmedItem = item.trim();
+    if (trimmedItem) {
+      result.push(trimmedItem);
+    }
   }
 
   return result.length > 0 ? result : undefined;
@@ -288,6 +340,11 @@ export function validateCreateLeadInput(input: unknown): CreateLeadInput {
     status: validateStatusField(data.status),
     note: validateOptionalStringField(data.note),
     course_ids: validateOptionalUuidArrayField(data.course_ids),
+    sales_amount: validateOptionalNumberField(data.sales_amount),
+    deposit: validateOptionalNumberField(data.deposit),
+    outstanding_balance: validateOptionalNumberField(data.outstanding_balance),
+    appointment_date: validateOptionalDateField(data.appointment_date),
+    images: validateOptionalStringArrayField(data.images),
   };
 }
 
@@ -334,6 +391,11 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
   const status = validateStatusField(data.status);
   const note = validateOptionalStringField(data.note);
   const courseIds = validateOptionalUuidArrayField(data.course_ids);
+  const salesAmount = validateOptionalNumberField(data.sales_amount);
+  const deposit = validateOptionalNumberField(data.deposit);
+  const outstandingBalance = validateOptionalNumberField(data.outstanding_balance);
+  const appointmentDate = validateOptionalDateField(data.appointment_date);
+  const images = validateOptionalStringArrayField(data.images);
 
   if (dateOfBirth !== undefined) {
     result.date_of_birth = dateOfBirth;
@@ -385,6 +447,26 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
 
   if (courseIds !== undefined) {
     result.course_ids = courseIds;
+  }
+
+  if (salesAmount !== undefined) {
+    result.sales_amount = salesAmount;
+  }
+
+  if (deposit !== undefined) {
+    result.deposit = deposit;
+  }
+
+  if (outstandingBalance !== undefined) {
+    result.outstanding_balance = outstandingBalance;
+  }
+
+  if (appointmentDate !== undefined) {
+    result.appointment_date = appointmentDate;
+  }
+
+  if (images !== undefined) {
+    result.images = images;
   }
 
   return result;

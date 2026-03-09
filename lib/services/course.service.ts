@@ -46,3 +46,15 @@ export async function updateCourse(id: string, input: UpdateCourseInput): Promis
 
     return data as unknown as Course;
 }
+
+export async function deleteCourse(id: string): Promise<void> {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+        .from('courses')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        throw new Error(error.message);
+    }
+}

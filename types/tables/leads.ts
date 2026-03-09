@@ -20,6 +20,11 @@ export interface LeadsTable {
     status: LeadStatus;
     note: string | null;
     course_ids: string[] | null;
+    sales_amount: number | null;
+    deposit: number | null;
+    outstanding_balance: number | null;
+    appointment_date: string | null;
+    images: string[] | null;
     created_at: string | null;
     updated_at: string | null;
   };
@@ -41,6 +46,11 @@ export interface LeadsTable {
     status?: LeadStatus;
     note?: string | null;
     course_ids?: string[] | null;
+    sales_amount?: number | null;
+    deposit?: number | null;
+    outstanding_balance?: number | null;
+    appointment_date?: string | null;
+    images?: string[] | null;
     created_at?: string | null;
     updated_at?: string | null;
   };
@@ -62,6 +72,11 @@ export interface LeadsTable {
     status?: LeadStatus;
     note?: string | null;
     course_ids?: string[] | null;
+    sales_amount?: number | null;
+    deposit?: number | null;
+    outstanding_balance?: number | null;
+    appointment_date?: string | null;
+    images?: string[] | null;
     created_at?: string | null;
     updated_at?: string | null;
   };

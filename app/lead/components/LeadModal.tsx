@@ -1,6 +1,6 @@
 'use client';
 
-import { Modal, Form, Input, Select, DatePicker, Row, Col } from 'antd';
+import { Drawer, Form, Input, InputNumber, Select, DatePicker, Row, Col, Space, Button } from 'antd';
 import type { Lead } from '@/lib/services/lead.service';
 import { LeadSourceLabel, LeadStatusLabel, LeadPageText, Ethnicity } from '@/app/lead/constants';
 import { LeadSource, LeadStatus } from '@/constants/enums';
@@ -23,6 +23,10 @@ export interface LeadFormValues {
   status?: LeadStatus;
   note?: string;
   course_ids?: string[];
+  sales_amount?: number;
+  deposit?: number;
+  outstanding_balance?: number;
+  appointment_date?: Dayjs | null;
 }
 
 interface LeadModalProps {
@@ -45,19 +49,20 @@ export function LeadModal({
   const { data: courses, isLoading: isCoursesLoading } = useCourses();
 
   return (
-    <Modal
+    <Drawer
       open={open}
-      title={editingLead ? LeadPageText.MODAL_EDIT_TITLE : LeadPageText.MODAL_CREATE_TITLE}
-      onCancel={onClose}
+      title={editingLead ? LeadPageText.MODAL_EDIT_TITLE : 'Tạo mới'}
+      onClose={onClose}
       width={1000}
-      onOk={() => {
-        form.submit();
-      }}
-      okButtonProps={{
-        loading: isSubmitting,
-      }}
-      destroyOnHidden
-      centered
+      destroyOnClose
+      footer={
+        <Space style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Button onClick={onClose}>Hủy</Button>
+          <Button type="primary" onClick={() => form.submit()} loading={isSubmitting}>
+            Lưu
+          </Button>
+        </Space>
+      }
     >
       <Form<LeadFormValues>
         form={form}
@@ -215,6 +220,42 @@ export function LeadModal({
             </Form.Item>
           </Col>
 
+          <Col span={8}>
+            <Form.Item name="sales_amount" label="Doanh thu">
+              <InputNumber
+                style={{ width: '100%' }}
+                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
+              />
+            </Form.Item>
+          </Col>
+
+          <Col span={8}>
+            <Form.Item name="deposit" label="Cọc">
+              <InputNumber
+                style={{ width: '100%' }}
+                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
+              />
+            </Form.Item>
+          </Col>
+
+          <Col span={8}>
+            <Form.Item name="outstanding_balance" label="Công nợ">
+              <InputNumber
+                style={{ width: '100%' }}
+                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
+              />
+            </Form.Item>
+          </Col>
+
+          <Col span={8}>
+            <Form.Item name="appointment_date" label="Lịch hẹn">
+              <DatePicker showTime style={{ width: '100%' }} format="DD/MM/YYYY HH:mm" />
+            </Form.Item>
+          </Col>
+
           <Col span={24}>
             <Form.Item
               name="note"
@@ -225,6 +266,6 @@ export function LeadModal({
           </Col>
         </Row>
       </Form>
-    </Modal>
+    </Drawer>
   );
 }

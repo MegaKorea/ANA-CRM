@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { updateCourse } from '@/lib/services/course.service';
+import { updateCourse, deleteCourse } from '@/lib/services/course.service';
 import { validateUpdateCourseInput } from '@/lib/validators/course.validator';
 import { AppError } from '@/errors';
 
@@ -21,6 +21,28 @@ export async function PUT(
         return NextResponse.json(course);
     } catch (error: any) {
         console.error('Update course error:', error);
+        if (error instanceof AppError) {
+            return NextResponse.json({ error: error.message }, { status: error.statusCode });
+        }
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+}
+
+export async function DELETE(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { id } = await params;
+        if (!id) {
+            return NextResponse.json({ error: 'Missing course ID' }, { status: 400 });
+        }
+
+        await deleteCourse(id);
+
+        return NextResponse.json({ success: true });
+    } catch (error: any) {
+        console.error('Delete course error:', error);
         if (error instanceof AppError) {
             return NextResponse.json({ error: error.message }, { status: error.statusCode });
         }

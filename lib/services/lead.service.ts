@@ -58,9 +58,9 @@ export async function fetchAllLeads(params?: LeadQueryParams): Promise<Paginated
     }
 
     if (params?.endDate) {
-      // For endDate, we usually want to include the whole day if it's just a date.
-      // But let's assume it's passed as ISO string or we can just use lte
-      query = query.lte('created_at', params.endDate);
+      // Append end-of-day time so the filter includes the entire endDate day
+      const endOfDay = params.endDate.includes('T') ? params.endDate : `${params.endDate}T23:59:59.999Z`;
+      query = query.lte('created_at', endOfDay);
     }
 
     // Order by created_at desc
@@ -131,6 +131,11 @@ export async function createLead(input: CreateLeadInput): Promise<Lead> {
       status: input.status ?? LeadStatus.NEW,
       note: input.note ?? null,
       course_ids: input.course_ids ?? null,
+      sales_amount: input.sales_amount ?? null,
+      deposit: input.deposit ?? null,
+      outstanding_balance: input.outstanding_balance ?? null,
+      appointment_date: input.appointment_date ?? null,
+      images: input.images ?? null,
     };
 
     const { data, error } = await supabase
@@ -176,6 +181,11 @@ export async function updateLeadById(id: number, input: UpdateLeadInput): Promis
       status: 'direct',
       note: 'nullable',
       course_ids: 'nullable',
+      sales_amount: 'nullable',
+      deposit: 'nullable',
+      outstanding_balance: 'nullable',
+      appointment_date: 'nullable',
+      images: 'nullable',
     });
 
     if (Object.keys(updateData).length > 0) {
