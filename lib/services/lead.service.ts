@@ -129,7 +129,7 @@ export async function createLead(input: CreateLeadInput): Promise<Lead> {
       source: input.source ?? null,
       telesales_id: input.telesales_id ?? null,
       status: input.status ?? LeadStatus.NEW,
-      note: input.note ?? null,
+      note: input.note ?? ([] as never),
       course_ids: input.course_ids ?? null,
       sales_amount: input.sales_amount ?? null,
       deposit: input.deposit ?? null,

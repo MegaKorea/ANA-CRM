@@ -1,9 +1,11 @@
 'use client';
 
-import { Modal, Descriptions } from 'antd';
+import { Modal, Descriptions, Timeline, Tag, Typography, Empty } from 'antd';
 import type { Lead } from '@/lib/services/lead.service';
 import { LeadPageText, formatLocationValue } from '@/app/lead/constants';
 import type { LocationValue } from '@/components/common/LocationSelect';
+import type { NoteItem } from '@/types/tables/leads';
+import { ClockCircleOutlined } from '@ant-design/icons';
 import { JSX } from 'react';
 
 interface LeadDetailModalProps {
@@ -20,6 +22,10 @@ export function LeadDetailModal({ open, lead, onClose }: LeadDetailModalProps): 
   const placeOfBirth = lead.place_of_birth as LocationValue | null | undefined;
   const placeOfOrigin = lead.place_of_origin as LocationValue | null | undefined;
   const currentAddress = lead.current_address as LocationValue | null | undefined;
+  const notes: NoteItem[] = Array.isArray(lead.note) ? lead.note : [];
+  const sortedNotes = [...notes].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
 
   return (
     <Modal
@@ -50,7 +56,33 @@ export function LeadDetailModal({ open, lead, onClose }: LeadDetailModalProps): 
           {lead.ethnicity || '-'}
         </Descriptions.Item>
         <Descriptions.Item label={LeadPageText.COLUMN_NOTE}>
-          {lead.note || '-'}
+          {sortedNotes.length === 0 ? (
+            <Empty description="Chưa có ghi chú nào" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          ) : (
+            <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+              <Timeline
+                items={sortedNotes.map((note, index) => ({
+                  dot: <ClockCircleOutlined style={{ fontSize: 14 }} />,
+                  children: (
+                    <div key={index}>
+                      <Tag color="blue" style={{ fontSize: 11, marginBottom: 4 }}>
+                        {new Date(note.created_at).toLocaleString('vi-VN', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </Tag>
+                      <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                        {note.content}
+                      </Typography.Paragraph>
+                    </div>
+                  ),
+                }))}
+              />
+            </div>
+          )}
         </Descriptions.Item>
       </Descriptions>
     </Modal>

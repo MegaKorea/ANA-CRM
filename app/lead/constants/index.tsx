@@ -1,10 +1,12 @@
-import { Button, Popconfirm, Space, Tooltip } from 'antd';
+import { Button, Popconfirm, Space, Tooltip, Badge } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { HiOutlinePencilAlt, HiOutlineTrash, HiOutlineInformationCircle } from 'react-icons/hi';
+import { PlusOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { DateLocale, LeadSource, LeadStatus } from '@/constants/enums';
 import type { Lead } from '@/lib/services/lead.service';
 import type { Course } from '@/lib/services/course.service';
 import type { LocationValue } from '@/components/common/LocationSelect';
+import type { NoteItem } from '@/types/tables/leads';
 import { FiGlobe, FiMail, FiPhone, FiFacebook, FiMoreHorizontal } from 'react-icons/fi';
 
 export enum LeadPagePadding {
@@ -145,6 +147,10 @@ export type HandleDeleteLead = (id: number) => void;
 
 export type HandleOpenLeadDetailModal = (lead: Lead) => void;
 
+export type HandleOpenNoteAddModal = (lead: Lead) => void;
+
+export type HandleOpenNoteHistoryModal = (lead: Lead) => void;
+
 export function formatLocationValue(location: LocationValue | null | undefined): string {
   if (!location) {
     return '';
@@ -166,11 +172,15 @@ export const getLeadTableColumns = ({
   handleOpenModal,
   handleDelete,
   handleOpenDetailModal,
+  handleOpenNoteAddModal,
+  handleOpenNoteHistoryModal,
   courses,
 }: {
   handleOpenModal: HandleOpenLeadModal;
   handleDelete: HandleDeleteLead;
   handleOpenDetailModal: HandleOpenLeadDetailModal;
+  handleOpenNoteAddModal: HandleOpenNoteAddModal;
+  handleOpenNoteHistoryModal: HandleOpenNoteHistoryModal;
   courses?: Course[] | null;
 }): ColumnsType<Lead> => [
     {
@@ -242,11 +252,33 @@ export const getLeadTableColumns = ({
       title: LeadPageText.COLUMN_NOTE,
       dataIndex: 'note',
       key: 'note',
-      render: (note: string | null) => {
-        if (!note || note.length === 0) {
-          return null;
-        }
-        return <Tooltip title={note}>{note.substring(0, 50)}...</Tooltip>;
+      align: 'center',
+      width: 120,
+      render: (_: unknown, record: Lead) => {
+        const notes: NoteItem[] = Array.isArray(record.note) ? (record.note as NoteItem[]) : [];
+        const noteCount = notes.length;
+        return (
+          <Space>
+            <Tooltip title="Thêm ghi chú">
+              <Button
+                type="primary"
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={() => handleOpenNoteAddModal(record)}
+              />
+            </Tooltip>
+            <Tooltip title="Xem lịch sử ghi chú">
+              <Badge count={noteCount} size="small" offset={[-2, 0]}>
+                <Button
+                  size="small"
+                  icon={<InfoCircleOutlined />}
+                  onClick={() => handleOpenNoteHistoryModal(record)}
+                  disabled={noteCount === 0}
+                />
+              </Badge>
+            </Tooltip>
+          </Space>
+        );
       },
     },
     {

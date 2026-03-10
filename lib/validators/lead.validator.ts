@@ -3,6 +3,7 @@ import { HttpStatusCode, LeadErrorCode, LeadStatus, ValidationPattern } from '@/
 import { validateEmailField } from '@/lib/utils/validation';
 import { formatPhoneToE164, validateE164Format } from '@/lib/utils/phone';
 import type { LocationValue } from '@/components/common';
+import type { NoteItem } from '@/types/tables/leads';
 
 export interface CreateLeadInput {
   email?: string;
@@ -19,7 +20,7 @@ export interface CreateLeadInput {
   source?: string;
   telesales_id?: string;
   status?: LeadStatus;
-  note?: string;
+  note?: NoteItem[];
   course_ids?: string[];
   sales_amount?: number | null;
   deposit?: number | null;
@@ -43,7 +44,7 @@ export interface UpdateLeadInput {
   source?: string;
   telesales_id?: string;
   status?: LeadStatus;
-  note?: string;
+  note?: NoteItem[];
   course_ids?: string[];
   sales_amount?: number | null;
   deposit?: number | null;
@@ -223,6 +224,36 @@ function validateOptionalStringArrayField(value: unknown): string[] | undefined 
   return result.length > 0 ? result : undefined;
 }
 
+function validateOptionalNoteArrayField(value: unknown): NoteItem[] | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (!Array.isArray(value)) {
+    throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+  }
+
+  const result: NoteItem[] = [];
+  for (const item of value) {
+    if (typeof item !== 'object' || item === null) {
+      throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+    }
+    const noteItem = item as Record<string, unknown>;
+    if (typeof noteItem.content !== 'string' || !noteItem.content.trim()) {
+      throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+    }
+    if (typeof noteItem.created_at !== 'string') {
+      throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+    }
+    result.push({
+      content: noteItem.content.trim(),
+      created_at: noteItem.created_at,
+    });
+  }
+
+  return result.length > 0 ? result : undefined;
+}
+
 function validateStatusField(value: unknown): LeadStatus | undefined {
   if (value === undefined || value === null) {
     return undefined;
@@ -338,7 +369,7 @@ export function validateCreateLeadInput(input: unknown): CreateLeadInput {
     source: validateOptionalStringField(data.source),
     telesales_id: validateOptionalUuidField(data.telesales_id),
     status: validateStatusField(data.status),
-    note: validateOptionalStringField(data.note),
+    note: validateOptionalNoteArrayField(data.note),
     course_ids: validateOptionalUuidArrayField(data.course_ids),
     sales_amount: validateOptionalNumberField(data.sales_amount),
     deposit: validateOptionalNumberField(data.deposit),
@@ -389,7 +420,7 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
   const source = validateOptionalStringField(data.source);
   const telesalesId = validateOptionalUuidField(data.telesales_id);
   const status = validateStatusField(data.status);
-  const note = validateOptionalStringField(data.note);
+  const note = validateOptionalNoteArrayField(data.note);
   const courseIds = validateOptionalUuidArrayField(data.course_ids);
   const salesAmount = validateOptionalNumberField(data.sales_amount);
   const deposit = validateOptionalNumberField(data.deposit);

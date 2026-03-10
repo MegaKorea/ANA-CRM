@@ -21,7 +21,6 @@ export interface LeadFormValues {
   ethnicity?: string;
   source?: string;
   status?: LeadStatus;
-  note?: string;
   course_ids?: string[];
   sales_amount?: number;
   deposit?: number;
@@ -256,14 +255,6 @@ export function LeadModal({
             </Form.Item>
           </Col>
 
-          <Col span={24}>
-            <Form.Item
-              name="note"
-              label={LeadPageText.FIELD_NOTE_LABEL}
-            >
-              <Input.TextArea rows={4} />
-            </Form.Item>
-          </Col>
         </Row>
       </Form>
     </Drawer>

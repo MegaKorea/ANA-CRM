@@ -21,6 +21,8 @@ import {
 } from '@/app/lead/constants';
 import { LeadModal, type LeadFormValues } from '@/app/lead/components/LeadModal';
 import { LeadDetailModal } from '@/app/lead/components/LeadDetailModal';
+import { NoteAddModal } from '@/app/lead/components/NoteAddModal';
+import { NoteHistoryModal } from '@/app/lead/components/NoteHistoryModal';
 import { DebouncedInput } from '@/components/common/DebouncedInput';
 import { LeadStatus, DateFormat, LeadSource } from '@/constants/enums';
 import { type LocationValue } from '@/components/common/LocationSelect';
@@ -32,6 +34,11 @@ export default function LeadPage() {
   const [form] = Form.useForm<LeadFormValues>();
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailLead, setDetailLead] = useState<Lead | null>(null);
+
+  const [isNoteAddModalOpen, setIsNoteAddModalOpen] = useState(false);
+  const [noteAddLead, setNoteAddLead] = useState<Lead | null>(null);
+  const [isNoteHistoryModalOpen, setIsNoteHistoryModalOpen] = useState(false);
+  const [noteHistoryLead, setNoteHistoryLead] = useState<Lead | null>(null);
 
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus | undefined>(undefined);
@@ -78,7 +85,6 @@ export default function LeadPage() {
           ethnicity: lead.ethnicity || undefined,
           source: lead.source || undefined,
           status: lead.status || undefined,
-          note: lead.note || undefined,
           course_ids: lead.course_ids || undefined,
           sales_amount: lead.sales_amount ?? undefined,
           deposit: lead.deposit ?? undefined,
@@ -115,7 +121,6 @@ export default function LeadPage() {
         ethnicity: values.ethnicity,
         source: values.source,
         status: values.status,
-        note: values.note,
         course_ids: values.course_ids,
         sales_amount: values.sales_amount === null ? null : values.sales_amount,
         deposit: values.deposit === null ? null : values.deposit,
@@ -192,15 +197,37 @@ export default function LeadPage() {
     setDetailLead(null);
   }, []);
 
+  const handleOpenNoteAddModal = useCallback((lead: Lead) => {
+    setNoteAddLead(lead);
+    setIsNoteAddModalOpen(true);
+  }, []);
+
+  const handleCloseNoteAddModal = useCallback(() => {
+    setIsNoteAddModalOpen(false);
+    setNoteAddLead(null);
+  }, []);
+
+  const handleOpenNoteHistoryModal = useCallback((lead: Lead) => {
+    setNoteHistoryLead(lead);
+    setIsNoteHistoryModalOpen(true);
+  }, []);
+
+  const handleCloseNoteHistoryModal = useCallback(() => {
+    setIsNoteHistoryModalOpen(false);
+    setNoteHistoryLead(null);
+  }, []);
+
   const columns = useMemo(
     () =>
       getLeadTableColumns({
         handleOpenModal,
         handleDelete,
         handleOpenDetailModal,
+        handleOpenNoteAddModal,
+        handleOpenNoteHistoryModal,
         courses,
       }),
-    [handleOpenModal, handleDelete, handleOpenDetailModal, courses]
+    [handleOpenModal, handleDelete, handleOpenDetailModal, handleOpenNoteAddModal, handleOpenNoteHistoryModal, courses]
   );
 
   const isSubmitting = createLeadMutation.isPending || updateLeadMutation.isPending;
@@ -341,6 +368,18 @@ export default function LeadPage() {
         open={isDetailModalOpen}
         lead={detailLead}
         onClose={handleCloseDetailModal}
+      />
+
+      <NoteAddModal
+        open={isNoteAddModalOpen}
+        lead={noteAddLead}
+        onClose={handleCloseNoteAddModal}
+      />
+
+      <NoteHistoryModal
+        open={isNoteHistoryModalOpen}
+        lead={noteHistoryLead}
+        onClose={handleCloseNoteHistoryModal}
       />
     </div>
   );

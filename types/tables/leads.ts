@@ -1,6 +1,11 @@
 import { LocationValue } from '@/components/common';
 import { LeadStatus } from '@/constants/enums';
 
+export interface NoteItem {
+  content: string;
+  created_at: string;
+}
+
 export interface LeadsTable {
   Row: {
     id: number;
@@ -18,7 +23,7 @@ export interface LeadsTable {
     source: string | null;
     telesales_id: string | null;
     status: LeadStatus;
-    note: string | null;
+    note: NoteItem[] | null;
     course_ids: string[] | null;
     sales_amount: number | null;
     deposit: number | null;
@@ -44,7 +49,7 @@ export interface LeadsTable {
     source?: string | null;
     telesales_id?: string | null;
     status?: LeadStatus;
-    note?: string | null;
+    note?: NoteItem[] | null;
     course_ids?: string[] | null;
     sales_amount?: number | null;
     deposit?: number | null;
@@ -70,7 +75,7 @@ export interface LeadsTable {
     source?: string | null;
     telesales_id?: string | null;
     status?: LeadStatus;
-    note?: string | null;
+    note?: NoteItem[] | null;
     course_ids?: string[] | null;
     sales_amount?: number | null;
     deposit?: number | null;
