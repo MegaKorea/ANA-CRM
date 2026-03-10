@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Input } from 'antd';
 import type { InputProps } from 'antd';
-import debounce from 'lodash/debounce';
 
 type DebouncedInputProps = Omit<InputProps, 'onChange'> & {
   onChange?: (value: string) => void;
@@ -11,19 +10,27 @@ type DebouncedInputProps = Omit<InputProps, 'onChange'> & {
 };
 
 export function DebouncedInput({ onChange, delay = 300, ...rest }: DebouncedInputProps) {
-  const debouncedOnChange = useMemo(
-    () =>
-      debounce((nextValue: string) => {
+  const timerRef = useRef<number | null>(null);
+
+  const debouncedOnChange = useCallback(
+    (nextValue: string) => {
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+      }
+      timerRef.current = window.setTimeout(() => {
         onChange?.(nextValue);
-      }, delay),
-    [onChange, delay]
+      }, delay);
+    },
+    [delay, onChange]
   );
 
   useEffect(() => {
     return () => {
-      debouncedOnChange.cancel();
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+      }
     };
-  }, [debouncedOnChange]);
+  }, []);
 
   return (
     <Input

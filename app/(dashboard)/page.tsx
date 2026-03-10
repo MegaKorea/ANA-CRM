@@ -7,6 +7,7 @@ import {
   RiseOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
+import { formatCurrencyVnd } from '@/lib/utils/numberFormat';
 
 const { Title } = Typography;
 
@@ -45,13 +46,7 @@ export default function DashboardPage() {
               value={0}
               prefix={<DollarOutlined style={{ color: '#faad14' }} />}
               valueStyle={{ color: '#faad14' }}
-              formatter={(value) =>
-                new Intl.NumberFormat('vi-VN', {
-                  style: 'currency',
-                  currency: 'VND',
-                  maximumFractionDigits: 0,
-                }).format(value as number)
-              }
+              formatter={(value) => formatCurrencyVnd(value as number)}
             />
           </Card>
         </Col>

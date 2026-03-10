@@ -10,9 +10,15 @@ import type { CreateUserInput, UpdateUserInput } from '@/lib/validators/user.val
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from '@/lib/hooks/use-users';
 import { useRoles } from '@/lib/hooks/use-roles';
 import { UserPageGap, UserPageMargin, UserPagePadding, UserPageText, UserStatusLabel, getUserTableColumns } from '@/app/admin/user/constants';
-import { UserModal, type UserFormValues } from '@/app/admin/user/components/UserModal';
+import type { UserFormValues } from '@/app/admin/user/components/UserModal';
 import { DebouncedInput } from '@/components/common/DebouncedInput';
 import { DateFormat } from '@/constants/enums';
+import dynamic from 'next/dynamic';
+
+const UserModal = dynamic(
+  () => import('@/app/admin/user/components/UserModal').then((m) => m.UserModal),
+  { ssr: false }
+);
 
 export default function UserPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);

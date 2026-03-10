@@ -1,14 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button, Card, Col, Row, Typography, Space, Spin, Tag, Popconfirm, message } from 'antd';
 import { PlusOutlined, BookOutlined } from '@ant-design/icons';
 import { useCourses, useDeleteCourse } from '@/lib/hooks/use-courses';
-import { CreateCourseModal } from './components/CreateCourseModal';
-import { UpdateCourseModal } from './components/UpdateCourseModal';
 import type { Course } from '@/lib/services/course.service';
+import dynamic from 'next/dynamic';
+import { formatNumberVi } from '@/lib/utils/numberFormat';
 
 const { Title, Text } = Typography;
+
+const CreateCourseModal = dynamic(
+    () => import('./components/CreateCourseModal').then((m) => m.CreateCourseModal),
+    { ssr: false }
+);
+const UpdateCourseModal = dynamic(
+    () => import('./components/UpdateCourseModal').then((m) => m.UpdateCourseModal),
+    { ssr: false }
+);
 
 export default function CoursePage() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -18,29 +27,34 @@ export default function CoursePage() {
     const { data: courses, isLoading } = useCourses();
     const { mutate: deleteCourse } = useDeleteCourse();
 
-    const handleOpenCreateModal = () => setIsCreateModalOpen(true);
-    const handleCloseCreateModal = () => setIsCreateModalOpen(false);
+    const handleOpenCreateModal = useCallback(() => setIsCreateModalOpen(true), []);
+    const handleCloseCreateModal = useCallback(() => setIsCreateModalOpen(false), []);
 
-    const handleOpenUpdateModal = (course: Course) => {
+    const handleOpenUpdateModal = useCallback((course: Course) => {
         setSelectedCourse(course);
         setIsUpdateModalOpen(true);
-    };
+    }, []);
 
-    const handleCloseUpdateModal = () => {
+    const handleCloseUpdateModal = useCallback(() => {
         setIsUpdateModalOpen(false);
         setSelectedCourse(null);
-    };
+    }, []);
 
-    const handleDelete = (id: string) => {
-        deleteCourse(id, {
-            onSuccess: () => {
-                message.success('Xóa khóa học thành công');
-            },
-            onError: (error: any) => {
-                message.error('Xóa khóa học thất bại: ' + error.message);
-            }
-        });
-    };
+    const handleDelete = useCallback(
+        (id: string) => {
+            deleteCourse(id, {
+                onSuccess: () => {
+                    message.success('Xóa khóa học thành công');
+                },
+                onError: (error: any) => {
+                    message.error('Xóa khóa học thất bại: ' + error.message);
+                },
+            });
+        },
+        [deleteCourse]
+    );
+
+    const courseCards = useMemo(() => courses ?? [], [courses]);
 
     if (isLoading) {
         return <div className="p-8 flex justify-center h-full items-center"><Spin size="large" /></div>;
@@ -60,14 +74,14 @@ export default function CoursePage() {
             </Row>
 
             <Row gutter={[16, 16]}>
-                {courses?.length === 0 && (
+                {courseCards.length === 0 && (
                     <Col span={24}>
                         <div className="text-center py-10">
                             <Text type="secondary">Chưa có khóa học nào. Hãy tạo mới một khóa học.</Text>
                         </div>
                     </Col>
                 )}
-                {courses?.map((course) => (
+                {courseCards.map((course) => (
                     <Col xs={24} sm={12} md={8} lg={6} key={course.id}>
                         <Card
                             hoverable
@@ -106,7 +120,7 @@ export default function CoursePage() {
                                     </Text>
                                 )}
                                 <div style={{ marginTop: 'auto', paddingTop: '12px' }}>
-                                    <Text strong>Học phí: {course.fee?.toLocaleString()} đ</Text>
+                                    <Text strong>Học phí: {formatNumberVi(course.fee)} đ</Text>
                                 </div>
                                 {course.expected_duration && (
                                     <div>

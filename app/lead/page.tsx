@@ -9,7 +9,6 @@ import type { CreateLeadInput, UpdateLeadInput } from '@/lib/validators/lead.val
 import { useLeads, useCreateLead, useUpdateLead, useDeleteLead } from '@/lib/hooks/use-leads';
 import {
   LeadDateRangePlaceholder,
-  LeadDateUnit,
   LeadPageGap,
   LeadPageMargin,
   LeadPagePadding,
@@ -19,14 +18,29 @@ import {
   LeadStatusLabel,
   getLeadTableColumns,
 } from '@/app/lead/constants';
-import { LeadModal, type LeadFormValues } from '@/app/lead/components/LeadModal';
-import { LeadDetailModal } from '@/app/lead/components/LeadDetailModal';
-import { NoteAddModal } from '@/app/lead/components/NoteAddModal';
-import { NoteHistoryModal } from '@/app/lead/components/NoteHistoryModal';
+import type { LeadFormValues } from '@/app/lead/components/LeadModal';
 import { DebouncedInput } from '@/components/common/DebouncedInput';
 import { LeadStatus, DateFormat, LeadSource } from '@/constants/enums';
 import { type LocationValue } from '@/components/common/LocationSelect';
 import { useCourses } from '@/lib/hooks/use-courses';
+import dynamic from 'next/dynamic';
+
+const LeadModal = dynamic(
+  () => import('@/app/lead/components/LeadModal').then((m) => m.LeadModal),
+  { ssr: false }
+);
+const LeadDetailModal = dynamic(
+  () => import('@/app/lead/components/LeadDetailModal').then((m) => m.LeadDetailModal),
+  { ssr: false }
+);
+const NoteAddModal = dynamic(
+  () => import('@/app/lead/components/NoteAddModal').then((m) => m.NoteAddModal),
+  { ssr: false }
+);
+const NoteHistoryModal = dynamic(
+  () => import('@/app/lead/components/NoteHistoryModal').then((m) => m.NoteHistoryModal),
+  { ssr: false }
+);
 
 export default function LeadPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -316,9 +330,7 @@ export default function LeadPage() {
             }))}
             style={{ width: '100%' }}
             showSearch
-            filterOption={(input, option) =>
-              (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
-            }
+            optionFilterProp="label"
           />
         </Col>
         <Col xs={24} md={4}>

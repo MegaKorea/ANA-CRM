@@ -1,8 +1,7 @@
-import { Form, Input, InputNumber, Select, Modal, Row, Col, message } from 'antd';
+import { Col, Form, Input, InputNumber, message, Modal, Row, Select } from 'antd';
 import { useCreateCourse } from '@/lib/hooks/use-courses';
 import type { CreateCourseInput } from '@/lib/validators/course.validator';
-
-const { Option } = Select;
+import { formatIntegerInput, parseIntegerInput } from '@/lib/utils/numberFormat';
 
 interface CreateCourseModalProps {
     open: boolean;
@@ -63,22 +62,26 @@ export function CreateCourseModal({ open, onClose }: CreateCourseModalProps) {
                         <Form.Item name="fee" label="Học phí" rules={[{ required: true, message: 'Vui lòng nhập học phí' }]}>
                             <InputNumber
                                 style={{ width: '100%' }}
-                                min={0 as number}
+                                min={0}
                                 step={100000}
                                 placeholder="VD: 5.000.000"
-                                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
-                                parser={(value) => value ? Number(value.replace(/\./g, '')) : 0}
+                                formatter={formatIntegerInput}
+                                parser={parseIntegerInput}
                                 suffix="VNĐ"
                             />
                         </Form.Item>
                     </Col>
                     <Col span={12}>
                         <Form.Item name="level" label="Cấp độ">
-                            <Select placeholder="Chọn cấp độ" allowClear>
-                                <Option value="beginner">Sơ cấp</Option>
-                                <Option value="intermediate">Trung cấp</Option>
-                                <Option value="advanced">Cao cấp</Option>
-                            </Select>
+                            <Select
+                                placeholder="Chọn cấp độ"
+                                allowClear
+                                options={[
+                                    { value: 'beginner', label: 'Sơ cấp' },
+                                    { value: 'intermediate', label: 'Trung cấp' },
+                                    { value: 'advanced', label: 'Cao cấp' },
+                                ]}
+                            />
                         </Form.Item>
                     </Col>
                 </Row>

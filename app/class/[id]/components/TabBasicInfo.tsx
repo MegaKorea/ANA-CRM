@@ -1,41 +1,58 @@
-import { Form, Input, InputNumber, Select, Row, Col, Button, message, DatePicker, Space } from 'antd';
+import { Button, Col, DatePicker, Form, Input, InputNumber, message, Row, Select, Space } from 'antd';
 import { useUpdateClass } from '@/lib/hooks/use-classes';
 import { useCourses } from '@/lib/hooks/use-courses';
 import type { Class } from '@/lib/services/class.service';
 import type { UpdateClassInput } from '@/lib/validators/class.validator';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
+import { CLASS_STATUS_OPTIONS } from '@/lib/constants/classStatus';
 
-const { Option } = Select;
-const { TextArea } = Input;
+type ClassBasicInfoFormValues = Omit<UpdateClassInput, 'start_date' | 'end_date' | 'schedule'> & {
+    start_date?: Dayjs | null;
+    end_date?: Dayjs | null;
+    schedule?: Dayjs | null;
+};
 
 export function TabBasicInfo({ classData }: { classData: Class }) {
-    const [form] = Form.useForm<any>();
+    const [form] = Form.useForm<ClassBasicInfoFormValues>();
     const updateClassMutation = useUpdateClass();
     const { data: courses, isLoading: isCoursesLoading } = useCourses();
     const [isEditing, setIsEditing] = useState(false);
 
-    useEffect(() => {
-        if (classData) {
-            form.setFieldsValue({
-                code: classData.code,
-                name: classData.name,
-                course_id: classData.course_id,
-                capacity: classData.capacity,
-                status: classData.status as any,
-                start_date: classData.start_date ? dayjs(classData.start_date) : null,
-                end_date: classData.end_date ? dayjs(classData.end_date) : null,
-                schedule: classData.schedule,
-            });
-        }
-    }, [classData, form]);
+    const initialFormValues = useMemo<ClassBasicInfoFormValues>(
+        () => ({
+            code: classData.code,
+            name: classData.name,
+            course_id: classData.course_id,
+            capacity: classData.capacity,
+            status: classData.status as any,
+            start_date: classData.start_date ? dayjs(classData.start_date) : null,
+            end_date: classData.end_date ? dayjs(classData.end_date) : null,
+            schedule: classData.schedule ? dayjs(classData.schedule) : null,
+        }),
+        [
+            classData.capacity,
+            classData.code,
+            classData.course_id,
+            classData.end_date,
+            classData.name,
+            classData.schedule,
+            classData.start_date,
+            classData.status,
+        ]
+    );
 
-    const handleUpdate = async (values: any) => {
-        if (!classData) return;
+    useEffect(() => {
+        form.setFieldsValue(initialFormValues);
+    }, [form, initialFormValues]);
+
+    const handleUpdate = async (values: ClassBasicInfoFormValues) => {
         const normalizedValues: UpdateClassInput = {
             ...values,
             start_date: values.start_date ? values.start_date.format('YYYY-MM-DD') : null,
             end_date: values.end_date ? values.end_date.format('YYYY-MM-DD') : null,
+            schedule: values.schedule ? values.schedule.format('YYYY-MM-DD') : null,
         };
         updateClassMutation.mutate({ id: classData.id, data: normalizedValues }, {
             onSuccess: () => {
@@ -77,16 +94,12 @@ export function TabBasicInfo({ classData }: { classData: Class }) {
                                 loading={isCoursesLoading}
                                 allowClear
                                 showSearch
-                                filterOption={(input, option) =>
-                                    (option?.children as unknown as string).toLowerCase().includes(input.toLowerCase())
-                                }
-                            >
-                                {courses?.map((course) => (
-                                    <Option key={course.id} value={course.id}>
-                                        {course.name} {course.code ? `(${course.code})` : ''}
-                                    </Option>
-                                ))}
-                            </Select>
+                                optionFilterProp="label"
+                                options={(courses ?? []).map((course) => ({
+                                    value: course.id,
+                                    label: `${course.name}${course.code ? ` (${course.code})` : ''}`,
+                                }))}
+                            />
                         </Form.Item>
                     </Col>
                     <Col span={12}>
@@ -112,46 +125,38 @@ export function TabBasicInfo({ classData }: { classData: Class }) {
                 <Row gutter={16}>
                     <Col span={12}>
                         <Form.Item name="status" label="Trạng thái" rules={[{ required: true }]}>
-                            <Select placeholder="Chọn trạng thái">
-                                <Option value="planned">Sắp mở</Option>
-                                <Option value="enrolling">Đang tuyển sinh</Option>
-                                <Option value="in_progress">Đang học</Option>
-                                <Option value="completed">Đã kết thúc</Option>
-                                <Option value="cancelled">Đã hủy</Option>
-                            </Select>
+                            <Select placeholder="Chọn trạng thái" options={CLASS_STATUS_OPTIONS} />
                         </Form.Item>
                     </Col>
                     <Col span={12}>
-                        <Form.Item name="schedule" label="Thời khóa biểu (nháp)">
-                            <Input placeholder="VD: 18h - 20h Thứ 3,5,7" />
+                        <Form.Item name="schedule" label="Lịch mở lớp">
+                            <DatePicker style={{ width: '100%' }} placeholder="Chọn ngày mở lớp" format="DD/MM/YYYY" />
                         </Form.Item>
                     </Col>
                 </Row>
 
-                {isEditing ? (
-                    <Row justify="end" style={{ marginTop: 24, paddingBottom: 24 }}>
+                <Row justify="end" style={{ marginTop: 24, paddingBottom: 24 }}>
+                    {isEditing ? (
                         <Space>
-                            <Button onClick={() => {
-                                setIsEditing(false);
-                                form.resetFields();
-                            }}>
+                            <Button
+                                htmlType="button"
+                                onClick={() => {
+                                    setIsEditing(false);
+                                    form.setFieldsValue(initialFormValues);
+                                }}
+                            >
                                 Hủy bỏ
                             </Button>
                             <Button type="primary" htmlType="submit" loading={updateClassMutation.isPending}>
                                 Lưu thay đổi
                             </Button>
                         </Space>
-                    </Row>
-                ) : (
-                    <Row justify="end" style={{ marginTop: 24, paddingBottom: 24 }}>
-                        <Button type="primary" onClick={(e) => {
-                            e.preventDefault();
-                            setIsEditing(true);
-                        }}>
+                    ) : (
+                        <Button type="primary" htmlType="button" onClick={() => setIsEditing(true)}>
                             Sửa thông tin
                         </Button>
-                    </Row>
-                )}
+                    )}
+                </Row>
             </Form>
         </div>
     );

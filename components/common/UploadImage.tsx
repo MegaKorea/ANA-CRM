@@ -1,13 +1,15 @@
-"use client";
+'use client';
+/* eslint-disable @next/next/no-img-element */
 
-import { useState, useEffect } from "react";
-import { Upload, message, Button } from "antd";
+import { useEffect, useMemo, useState } from 'react';
+import { Button, message, Upload } from 'antd';
 import {
   InboxOutlined,
   LoadingOutlined,
   DeleteOutlined,
-} from "@ant-design/icons";
-import type { UploadProps } from "antd";
+} from '@ant-design/icons';
+import type { UploadProps } from 'antd';
+import { fetchJson } from '@/lib/utils/fetchJson';
 
 const { Dragger } = Upload;
 
@@ -22,8 +24,8 @@ interface ImageUploadProps {
 export default function ImageUpload({
   onUpload,
   onRemove,
-  label = "Kéo thả ảnh vào đây hoặc nhấp để chọn",
-  server = "server_1",
+  label = 'Kéo thả ảnh vào đây hoặc nhấp để chọn',
+  server = 'server_1',
   value,
 }: ImageUploadProps) {
   const [loading, setLoading] = useState(false);
@@ -33,20 +35,20 @@ export default function ImageUpload({
     setImageUrl(value || null);
   }, [value]);
 
-  const uploadProps: UploadProps = {
-    name: "file",
+  const uploadProps: UploadProps = useMemo(() => ({
+    name: 'file',
     multiple: false,
-    accept: "image/*",
+    accept: 'image/*',
     showUploadList: false,
     beforeUpload: (file) => {
-      const isImage = file.type.startsWith("image/");
+      const isImage = file.type.startsWith('image/');
       if (!isImage) {
-        message.error("Chỉ chấp nhận file ảnh!");
+        message.error('Chỉ chấp nhận file ảnh!');
         return Upload.LIST_IGNORE;
       }
       const isLt10M = file.size / 1024 / 1024 < 10;
       if (!isLt10M) {
-        message.error("Ảnh phải nhỏ hơn 10MB!");
+        message.error('Ảnh phải nhỏ hơn 10MB!');
         return Upload.LIST_IGNORE;
       }
       return true;
@@ -55,48 +57,50 @@ export default function ImageUpload({
       try {
         setLoading(true);
         const formData = new FormData();
-        formData.append("file", file as File);
-        formData.append("server", server);
+        formData.append('file', file as File);
+        formData.append('server', server);
 
-        const response = await fetch("/api/upload", {
-          method: "POST",
+        const result = await fetchJson<{
+          success: boolean;
+          data: { url: string };
+          error?: { message?: string };
+        }>('/api/upload', {
+          method: 'POST',
           body: formData,
         });
 
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-          throw new Error(result.error?.message || "Upload thất bại");
+        if (!result.success) {
+          throw new Error(result.error?.message || 'Upload thất bại');
         }
 
         const url = result.data.url;
         setImageUrl(url);
         onUpload(url);
-        message.success("Upload ảnh thành công!");
-        onSuccess?.(url);
+        message.success('Upload ảnh thành công!');
+        onSuccess?.(result);
       } catch (error) {
         const errorMessage =
-          error instanceof Error ? error.message : "Upload thất bại";
+          error instanceof Error ? error.message : 'Upload thất bại';
         message.error(errorMessage);
         onError?.(error as Error);
       } finally {
         setLoading(false);
       }
     },
-  };
+  }), [onUpload, server]);
 
   return (
     <div>
       <Dragger {...uploadProps} disabled={loading}>
         <p className="ant-upload-drag-icon">
           {loading ? (
-            <LoadingOutlined style={{ fontSize: 48, color: "#1890ff" }} />
+            <LoadingOutlined style={{ fontSize: 48, color: '#1890ff' }} />
           ) : (
-            <InboxOutlined style={{ fontSize: 48, color: "#1890ff" }} />
+            <InboxOutlined style={{ fontSize: 48, color: '#1890ff' }} />
           )}
         </p>
         <p className="ant-upload-text">
-          {loading ? "Đang upload..." : label}
+          {loading ? 'Đang upload...' : label}
         </p>
         <p className="ant-upload-hint">
           Hỗ trợ upload một ảnh. Kích thước tối đa 10MB
@@ -114,6 +118,8 @@ export default function ImageUpload({
           <img
             src={imageUrl}
             alt="Preview"
+            loading="lazy"
+            decoding="async"
             style={{
               width: "100%",
               maxHeight: 200,

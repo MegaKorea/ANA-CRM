@@ -7,7 +7,13 @@ import { useRoles, useCreateRole, useUpdateRole, useDeleteRole } from '@/lib/hoo
 import type { Role } from '@/lib/services/role.service';
 import type { CreateRoleInput, UpdateRoleInput } from '@/lib/services/role.service';
 import { RolePageGap, RolePageMargin, RolePagePadding, RolePageText, createRoleColumns } from './constants';
-import { RoleModal, type RoleFormValues } from './components';
+import type { RoleFormValues } from './components/RoleModal';
+import dynamic from 'next/dynamic';
+
+const RoleModal = dynamic(
+  () => import('./components/RoleModal').then((m) => m.RoleModal),
+  { ssr: false }
+);
 
 export default function RolePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);

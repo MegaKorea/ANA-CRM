@@ -7,6 +7,12 @@ import { LeadSource, LeadStatus } from '@/constants/enums';
 import type { Dayjs } from 'dayjs';
 import { LocationSelect, type LocationValue } from '@/components/common/LocationSelect';
 import { useCourses } from '@/lib/hooks/use-courses';
+import { formatIntegerInput, parseIntegerInput } from '@/lib/utils/numberFormat';
+
+const YEAR_OPTIONS = Array.from({ length: 100 }, (_, i) => {
+  const year = new Date().getFullYear() - i;
+  return { value: year.toString(), label: String(year) };
+});
 
 export interface LeadFormValues {
   full_name: string;
@@ -112,13 +118,13 @@ export function LeadModal({
               name="date_of_birth"
               label={LeadPageText.FIELD_DATE_OF_BIRTH_LABEL}
             >
-              <Select placeholder="Chọn năm" allowClear showSearch>
-                {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map((year) => (
-                  <Select.Option key={year} value={year.toString()}>
-                    {year}
-                  </Select.Option>
-                ))}
-              </Select>
+              <Select
+                placeholder="Chọn năm"
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                options={YEAR_OPTIONS}
+              />
             </Form.Item>
           </Col>
 
@@ -223,8 +229,8 @@ export function LeadModal({
             <Form.Item name="sales_amount" label="Doanh thu">
               <InputNumber
                 style={{ width: '100%' }}
-                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
+                formatter={formatIntegerInput}
+                parser={parseIntegerInput}
               />
             </Form.Item>
           </Col>
@@ -233,8 +239,8 @@ export function LeadModal({
             <Form.Item name="deposit" label="Cọc">
               <InputNumber
                 style={{ width: '100%' }}
-                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
+                formatter={formatIntegerInput}
+                parser={parseIntegerInput}
               />
             </Form.Item>
           </Col>
@@ -243,8 +249,8 @@ export function LeadModal({
             <Form.Item name="outstanding_balance" label="Công nợ">
               <InputNumber
                 style={{ width: '100%' }}
-                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
+                formatter={formatIntegerInput}
+                parser={parseIntegerInput}
               />
             </Form.Item>
           </Col>

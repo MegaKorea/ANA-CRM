@@ -18,6 +18,7 @@ export interface Class {
         name: string;
         code: string;
     };
+    class_students?: { id: string }[];
 }
 
 export async function fetchAllClasses(): Promise<Class[]> {
@@ -29,6 +30,9 @@ export async function fetchAllClasses(): Promise<Class[]> {
             courses (
                 name,
                 code
+            ),
+            class_students (
+                id
             )
         `)
         .order('created_at', { ascending: false });
@@ -86,8 +90,7 @@ export async function updateClass(id: string, input: UpdateClassInput): Promise<
     const supabase = createAdminClient();
     const { data, error } = await supabase
         .from('classes')
-        // @ts-ignore
-        .update(input)
+        .update(input as any)
         .eq('id', id)
         .select(`
             *,

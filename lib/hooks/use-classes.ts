@@ -1,35 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Class } from '@/lib/services/class.service';
-import type { CreateClassInput } from '@/lib/validators/class.validator';
+import type { CreateClassInput, UpdateClassInput } from '@/lib/validators/class.validator';
+import { fetchJson } from '@/lib/utils/fetchJson';
 
 export const CLASS_QUERY_KEY = 'classes';
 
 async function fetchClasses(): Promise<Class[]> {
-    const res = await fetch('/api/classes');
-    if (!res.ok) {
-        throw new Error('Failed to fetch classes');
-    }
-    return res.json();
+    return fetchJson<Class[]>('/api/classes');
 }
 
 async function createClass(data: CreateClassInput): Promise<Class> {
-    const res = await fetch('/api/classes', {
+    return fetchJson<Class>('/api/classes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
     });
-    if (!res.ok) {
-        throw new Error('Failed to create class');
-    }
-    return res.json();
 }
 
 async function getClass(id: string): Promise<Class> {
-    const res = await fetch(`/api/classes/${id}`);
-    if (!res.ok) {
-        throw new Error('Failed to fetch class');
-    }
-    return res.json();
+    return fetchJson<Class>(`/api/classes/${id}`);
 }
 
 export function useClass(id: string) {
@@ -57,16 +46,12 @@ export function useCreateClass() {
     });
 }
 
-async function updateClassRequest({ id, data }: { id: string; data: Partial<CreateClassInput> }): Promise<Class> {
-    const res = await fetch(`/api/classes/${id}`, {
+async function updateClassRequest({ id, data }: { id: string; data: UpdateClassInput }): Promise<Class> {
+    return fetchJson<Class>(`/api/classes/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
     });
-    if (!res.ok) {
-        throw new Error('Failed to update class');
-    }
-    return res.json();
 }
 
 export function useUpdateClass() {
@@ -81,12 +66,7 @@ export function useUpdateClass() {
 }
 
 async function deleteClassRequest(id: string): Promise<void> {
-    const res = await fetch(`/api/classes/${id}`, {
-        method: 'DELETE',
-    });
-    if (!res.ok) {
-        throw new Error('Failed to delete class');
-    }
+    await fetchJson<void>(`/api/classes/${id}`, { method: 'DELETE' });
 }
 
 export function useDeleteClass() {
@@ -102,9 +82,7 @@ export function useDeleteClass() {
 export const CLASS_STUDENT_QUERY_KEY = 'class-students';
 
 async function fetchClassStudents(classId: string) {
-    const res = await fetch(`/api/classes/${classId}/students`);
-    if (!res.ok) throw new Error('Failed to fetch class students');
-    return res.json();
+    return fetchJson<any[]>(`/api/classes/${classId}/students`);
 }
 
 export function useClassStudents(classId: string) {
@@ -116,14 +94,11 @@ export function useClassStudents(classId: string) {
 }
 
 async function addClassStudentReq({ classId, studentId }: { classId: string; studentId: number }) {
-    const res = await fetch(`/api/classes/${classId}/students`, {
+    return fetchJson(`/api/classes/${classId}/students`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ student_id: studentId }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to add student to class');
-    return data;
 }
 
 export function useAddClassStudent(classId: string) {
@@ -138,13 +113,7 @@ export function useAddClassStudent(classId: string) {
 }
 
 async function removeClassStudentReq(studentId: string) {
-    const res = await fetch(`/api/classes/students/${studentId}`, {
-        method: 'DELETE',
-    });
-    if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to remove student from class');
-    }
+    await fetchJson<void>(`/api/classes/students/${studentId}`, { method: 'DELETE' });
 }
 
 export function useRemoveClassStudent(classId: string) {

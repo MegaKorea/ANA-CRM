@@ -34,8 +34,7 @@ export async function updateCourse(id: string, input: UpdateCourseInput): Promis
     const supabase = createAdminClient();
     const { data, error } = await supabase
         .from('courses')
-        // @ts-ignore
-        .update(input)
+        .update(input as any)
         .eq('id', id)
         .select()
         .single();

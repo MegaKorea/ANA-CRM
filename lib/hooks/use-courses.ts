@@ -1,27 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Course } from '@/lib/services/course.service';
 import type { CreateCourseInput } from '@/lib/validators/course.validator';
+import { fetchJson } from '@/lib/utils/fetchJson';
 
 export const COURSE_QUERY_KEY = 'courses';
 
 async function fetchCourses(): Promise<Course[]> {
-    const res = await fetch('/api/courses');
-    if (!res.ok) {
-        throw new Error('Failed to fetch courses');
-    }
-    return res.json();
+    return fetchJson<Course[]>('/api/courses');
 }
 
 async function createCourse(data: CreateCourseInput): Promise<Course> {
-    const res = await fetch('/api/courses', {
+    return fetchJson<Course>('/api/courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
     });
-    if (!res.ok) {
-        throw new Error('Failed to create course');
-    }
-    return res.json();
 }
 
 export function useCourses() {
@@ -42,15 +35,11 @@ export function useCreateCourse() {
 }
 
 async function updateCourseRequest({ id, data }: { id: string; data: Partial<CreateCourseInput> }): Promise<Course> {
-    const res = await fetch(`/api/courses/${id}`, {
+    return fetchJson<Course>(`/api/courses/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
     });
-    if (!res.ok) {
-        throw new Error('Failed to update course');
-    }
-    return res.json();
 }
 
 export function useUpdateCourse() {
@@ -64,12 +53,7 @@ export function useUpdateCourse() {
 }
 
 async function deleteCourseRequest(id: string): Promise<void> {
-    const res = await fetch(`/api/courses/${id}`, {
-        method: 'DELETE',
-    });
-    if (!res.ok) {
-        throw new Error('Failed to delete course');
-    }
+    await fetchJson<void>(`/api/courses/${id}`, { method: 'DELETE' });
 }
 
 export function useDeleteCourse() {

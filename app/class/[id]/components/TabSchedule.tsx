@@ -8,7 +8,7 @@ export function TabSchedule({ classData }: { classData: Class }) {
             <Result
                 icon={<SyncOutlined spin style={{ color: '#1890ff' }} />}
                 title={<Typography.Title level={4}>Đang phát triển</Typography.Title>}
-                subTitle="Tính năng quản lý thời khóa biểu của lớp học đang trong quá trình phát triển."
+                subTitle="Tính năng quản lý lịch mở lớp đang trong quá trình phát triển."
             />
         </div>
     );

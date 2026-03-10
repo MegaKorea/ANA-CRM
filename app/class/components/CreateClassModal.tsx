@@ -1,9 +1,8 @@
-import { Form, Input, InputNumber, Select, Modal, Row, Col, message } from 'antd';
+import { Col, Form, Input, InputNumber, message, Modal, Row, Select } from 'antd';
 import { useCreateClass } from '@/lib/hooks/use-classes';
 import { useCourses } from '@/lib/hooks/use-courses';
 import type { CreateClassInput } from '@/lib/validators/class.validator';
-
-const { Option } = Select;
+import { CLASS_STATUS_OPTIONS } from '@/lib/constants/classStatus';
 
 interface CreateClassModalProps {
     open: boolean;
@@ -64,16 +63,12 @@ export function CreateClassModal({ open, onClose }: CreateClassModalProps) {
                                 loading={isCoursesLoading}
                                 allowClear
                                 showSearch
-                                filterOption={(input, option) =>
-                                    (option?.children as unknown as string).toLowerCase().includes(input.toLowerCase())
-                                }
-                            >
-                                {courses?.map((course) => (
-                                    <Option key={course.id} value={course.id}>
-                                        {course.name} {course.code ? `(${course.code})` : ''}
-                                    </Option>
-                                ))}
-                            </Select>
+                                optionFilterProp="label"
+                                options={(courses ?? []).map((course) => ({
+                                    value: course.id,
+                                    label: `${course.name}${course.code ? ` (${course.code})` : ''}`,
+                                }))}
+                            />
                         </Form.Item>
                     </Col>
                     <Col span={12}>
@@ -86,13 +81,7 @@ export function CreateClassModal({ open, onClose }: CreateClassModalProps) {
                 <Row gutter={16}>
                     <Col span={12}>
                         <Form.Item name="status" label="Trạng thái" rules={[{ required: true }]}>
-                            <Select placeholder="Chọn trạng thái">
-                                <Option value="planned">Sắp mở</Option>
-                                <Option value="enrolling">Đang tuyển sinh</Option>
-                                <Option value="in_progress">Đang học</Option>
-                                <Option value="completed">Đã kết thúc</Option>
-                                <Option value="cancelled">Đã hủy</Option>
-                            </Select>
+                            <Select placeholder="Chọn trạng thái" options={CLASS_STATUS_OPTIONS} />
                         </Form.Item>
                     </Col>
                 </Row>

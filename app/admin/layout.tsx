@@ -3,20 +3,12 @@
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import { Spin, Result, Button } from 'antd';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { hasPermission, isLoading } = useAuthPermission(['ADMIN']);
     const router = useRouter();
-    const [showResult, setShowResult] = useState(false);
 
-    useEffect(() => {
-        if (!isLoading && !hasPermission) {
-            setShowResult(true);
-        }
-    }, [isLoading, hasPermission]);
-
-    if (isLoading || (!hasPermission && !showResult)) {
+    if (isLoading) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-white p-8">
                 <Spin size="large" />
@@ -24,7 +16,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         );
     }
 
-    if (showResult && !hasPermission) {
+    if (!hasPermission) {
         return (
             <Result
                 status="403"

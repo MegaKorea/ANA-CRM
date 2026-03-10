@@ -8,6 +8,7 @@ import type { Course } from '@/lib/services/course.service';
 import type { LocationValue } from '@/components/common/LocationSelect';
 import type { NoteItem } from '@/types/tables/leads';
 import { FiGlobe, FiMail, FiPhone, FiFacebook, FiMoreHorizontal } from 'react-icons/fi';
+import { formatNumberVi } from '@/lib/utils/numberFormat';
 
 export enum LeadPagePadding {
   CONTAINER = 24,
@@ -310,19 +311,19 @@ export const getLeadTableColumns = ({
       title: LeadPageText.COLUMN_SALES_AMOUNT,
       dataIndex: 'sales_amount',
       key: 'sales_amount',
-      render: (amount: number | null) => amount ? amount.toLocaleString() : null,
+      render: (amount: number | null) => (amount ? formatNumberVi(amount) : null),
     },
     {
       title: LeadPageText.COLUMN_DEPOSIT,
       dataIndex: 'deposit',
       key: 'deposit',
-      render: (amount: number | null) => amount ? amount.toLocaleString() : null,
+      render: (amount: number | null) => (amount ? formatNumberVi(amount) : null),
     },
     {
       title: LeadPageText.COLUMN_OUTSTANDING_BALANCE,
       dataIndex: 'outstanding_balance',
       key: 'outstanding_balance',
-      render: (amount: number | null) => amount ? amount.toLocaleString() : null,
+      render: (amount: number | null) => (amount ? formatNumberVi(amount) : null),
     },
     {
       title: LeadPageText.COLUMN_APPOINTMENT_DATE,
