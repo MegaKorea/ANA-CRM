@@ -1,5 +1,5 @@
 import type { MenuProps } from 'antd';
-import { UserOutlined, TeamOutlined, SafetyOutlined, ContactsOutlined, BookOutlined } from '@ant-design/icons';
+import { UserOutlined, TeamOutlined, SafetyOutlined, ContactsOutlined, BookOutlined, ReadOutlined } from '@ant-design/icons';
 
 // Base Ant Design menu item type
 export type MenuItem = Required<MenuProps>['items'][number];
@@ -20,7 +20,6 @@ export const menuItems: AppMenuItem[] = [
     label: 'QUẢN TRỊ',
     roles: ['ADMIN'], // Hide menu if not admin
     children: [
-
       {
         key: '/admin/user',
         icon: <TeamOutlined />,
@@ -39,8 +38,20 @@ export const menuItems: AppMenuItem[] = [
     label: 'DATA',
   },
   {
-    key: '/course',
-    icon: <BookOutlined />,
-    label: 'KHÓA HỌC',
+    key: '/lms',
+    icon: <ReadOutlined />,
+    label: 'LMS',
+    children: [
+      {
+        key: '/course',
+        icon: <BookOutlined />,
+        label: 'KHÓA HỌC',
+      },
+      {
+        key: '/class',
+        icon: <TeamOutlined />,
+        label: 'LỚP HỌC',
+      },
+    ],
   },
 ];
