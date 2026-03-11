@@ -33,8 +33,8 @@ export default function UserPage() {
   const { data: users, isLoading, isFetching, refetch } = useUsers(
     searchKeyword
       ? {
-          search: searchKeyword,
-        }
+        search: searchKeyword,
+      }
       : undefined
   );
   const { data: roles } = useRoles();
@@ -150,7 +150,12 @@ export default function UserPage() {
         roles,
         handleOpenModal,
         handleDelete,
-      }),
+      }).map((col: any) => ({
+        ...col,
+        onCell: () => ({
+          'data-label': typeof col.title === 'string' ? col.title : '',
+        } as any),
+      })),
     [roles, handleOpenModal, handleDelete]
   );
 
@@ -275,6 +280,7 @@ export default function UserPage() {
       <Row>
         <Col span={24}>
           <Table<User>
+            className="mobile-card-table"
             columns={columns}
             dataSource={filteredUsers}
             loading={isLoading}

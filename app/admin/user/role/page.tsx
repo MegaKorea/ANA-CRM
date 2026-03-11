@@ -98,7 +98,12 @@ export default function RolePage() {
   );
 
   const columns = useMemo(
-    () => createRoleColumns(handleOpenModal, handleDelete),
+    () => createRoleColumns(handleOpenModal, handleDelete).map((col: any) => ({
+      ...col,
+      onCell: () => ({
+        'data-label': typeof col.title === 'string' ? col.title : '',
+      } as any),
+    })),
     [handleOpenModal, handleDelete]
   );
 
@@ -146,6 +151,7 @@ export default function RolePage() {
       <Row>
         <Col span={24}>
           <Table<Role>
+            className="mobile-card-table"
             columns={columns}
             dataSource={roles}
             loading={isLoading}

@@ -16,9 +16,11 @@ const { Sider } = Layout;
 
 interface SidebarProps {
   collapsed: boolean;
+  isMobile?: boolean;
+  onClose?: () => void;
 }
 
-export function Sidebar({ collapsed }: SidebarProps) {
+export function Sidebar({ collapsed, isMobile, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { themeMode } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -76,22 +78,20 @@ export function Sidebar({ collapsed }: SidebarProps) {
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
     navigateWithDelay(key);
+    if (isMobile && onClose) {
+      onClose();
+    }
   };
 
-  return (
-    <Sider
-      trigger={null}
-      collapsible
-      collapsed={collapsed}
-      width={260}
-      theme={themeMode}
-      className={styles.sider}
-    >
+  const sidebarContent = (
+    <>
       <div className={styles.logoContainer}>
         <Typography.Title level={1}>
-          {!collapsed ? <Image src={logo} alt="logo" width={70} height={40} className={styles.logoImage} /> : <HiViewGridAdd
-            size={40}
-          />}
+          {(!collapsed || isMobile) ? (
+            <Image src={logo} alt="logo" width={70} height={40} className={styles.logoImage} />
+          ) : (
+            <HiViewGridAdd size={40} />
+          )}
         </Typography.Title>
       </div>
 
@@ -104,6 +104,36 @@ export function Sidebar({ collapsed }: SidebarProps) {
         onClick={handleMenuClick}
         className={styles.menu}
       />
+    </>
+  );
+
+  if (isMobile) {
+    // Keep it minimal and avoid an additional Layout if not needed
+    return (
+      <Sider
+        trigger={null}
+        collapsible
+        collapsed={false}
+        width={260}
+        theme={themeMode}
+        className={styles.sider}
+        style={{ position: 'relative', height: '100%' }}
+      >
+        {sidebarContent}
+      </Sider>
+    );
+  }
+
+  return (
+    <Sider
+      trigger={null}
+      collapsible
+      collapsed={collapsed}
+      width={260}
+      theme={themeMode}
+      className={styles.sider}
+    >
+      {sidebarContent}
     </Sider>
   );
 }

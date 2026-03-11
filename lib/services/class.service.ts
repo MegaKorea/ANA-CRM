@@ -69,7 +69,7 @@ export async function createClass(input: CreateClassInput): Promise<Class> {
     const supabase = createAdminClient();
     const { data, error } = await supabase
         .from('classes')
-        .insert(input as any)
+        .insert(input as never)
         .select(`
             *,
             courses (
@@ -90,7 +90,7 @@ export async function updateClass(id: string, input: UpdateClassInput): Promise<
     const supabase = createAdminClient();
     const { data, error } = await supabase
         .from('classes')
-        .update(input as any)
+        .update(input as never)
         .eq('id', id)
         .select(`
             *,

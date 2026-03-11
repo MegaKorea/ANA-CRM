@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { Table, Button, Space, message, Row, Col, Form, Select, Typography, DatePicker } from 'antd';
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Table, Button, Space, message, Row, Col, Form, Typography, List, } from 'antd';
+import { PlusOutlined, ReloadOutlined, } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import type { Lead } from '@/lib/services/lead.service';
 import type { CreateLeadInput, UpdateLeadInput } from '@/lib/validators/lead.validator';
@@ -13,17 +13,16 @@ import {
   LeadPageMargin,
   LeadPagePadding,
   LeadPageText,
-  LeadSourceIcon,
-  LeadSourceLabel,
-  LeadStatusLabel,
   getLeadTableColumns,
 } from '@/app/lead/constants';
 import type { LeadFormValues } from '@/app/lead/components/LeadModal';
-import { DebouncedInput } from '@/components/common/DebouncedInput';
-import { LeadStatus, DateFormat, LeadSource } from '@/constants/enums';
+import { LeadStatus, DateFormat, LeadSource, DateLocale } from '@/constants/enums';
 import { type LocationValue } from '@/components/common/LocationSelect';
 import { useCourses } from '@/lib/hooks/use-courses';
+import { useIsMobile } from '@/lib/hooks/use-mobile';
 import dynamic from 'next/dynamic';
+import { LeadFilters } from '@/app/lead/components/LeadFilters';
+import { LeadMobileCard } from '@/app/lead/components/LeadMobileCard';
 
 const LeadModal = dynamic(
   () => import('@/app/lead/components/LeadModal').then((m) => m.LeadModal),
@@ -62,6 +61,7 @@ export default function LeadPage() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const isMobile = useIsMobile();
 
   const { data, isLoading, isFetching, refetch } = useLeads({
     search: searchKeyword || undefined,
@@ -120,6 +120,11 @@ export default function LeadPage() {
     form.resetFields();
   }, [form]);
 
+  const handleError = useCallback((error: unknown) => {
+    const errorMessage = error instanceof Error ? error.message : LeadPageText.ERROR_GENERIC;
+    message.error(errorMessage);
+  }, []);
+
   const handleSubmit = useCallback(
     (values: LeadFormValues) => {
       const payloadBase = {
@@ -141,10 +146,6 @@ export default function LeadPage() {
         outstanding_balance: values.outstanding_balance === null ? null : values.outstanding_balance,
         appointment_date: values.appointment_date === null ? null : (values.appointment_date ? values.appointment_date.toISOString() : undefined),
       };
-      const onError = (error: unknown) => {
-        const errorMessage = error instanceof Error ? error.message : LeadPageText.ERROR_GENERIC;
-        message.error(errorMessage);
-      };
 
       if (editingLead) {
         const payload: UpdateLeadInput = payloadBase;
@@ -158,7 +159,7 @@ export default function LeadPage() {
               message.success(LeadPageText.SUCCESS_UPDATE);
               handleCloseModal();
             },
-            onError,
+            onError: handleError,
           }
         );
       } else {
@@ -168,11 +169,11 @@ export default function LeadPage() {
             message.success(LeadPageText.SUCCESS_CREATE);
             handleCloseModal();
           },
-          onError,
+          onError: handleError,
         });
       }
     },
-    [editingLead, updateLeadMutation, createLeadMutation, handleCloseModal]
+    [editingLead, updateLeadMutation, createLeadMutation, handleCloseModal, handleError]
   );
 
   const handleDelete = useCallback(
@@ -181,13 +182,10 @@ export default function LeadPage() {
         onSuccess: () => {
           message.success(LeadPageText.SUCCESS_DELETE);
         },
-        onError: (error) => {
-          const errorMessage = error instanceof Error ? error.message : LeadPageText.ERROR_GENERIC;
-          message.error(errorMessage);
-        },
+        onError: handleError,
       });
     },
-    [deleteLeadMutation]
+    [deleteLeadMutation, handleError]
   );
 
   const handleRefresh = useCallback(() => {
@@ -195,11 +193,8 @@ export default function LeadPage() {
       .then(() => {
         message.success(LeadPageText.SUCCESS_REFRESH);
       })
-      .catch((error: unknown) => {
-        const errorMessage = error instanceof Error ? error.message : LeadPageText.ERROR_GENERIC;
-        message.error(errorMessage);
-      });
-  }, [refetch]);
+      .catch(handleError);
+  }, [refetch, handleError]);
 
   const handleOpenDetailModal = useCallback((lead: Lead) => {
     setDetailLead(lead);
@@ -240,7 +235,12 @@ export default function LeadPage() {
         handleOpenNoteAddModal,
         handleOpenNoteHistoryModal,
         courses,
-      }),
+      }).map((col: any) => ({
+        ...col,
+        onCell: () => ({
+          'data-label': typeof col.title === 'string' ? col.title : '',
+        } as any),
+      })),
     [handleOpenModal, handleDelete, handleOpenDetailModal, handleOpenNoteAddModal, handleOpenNoteHistoryModal, courses]
   );
 
@@ -255,16 +255,12 @@ export default function LeadPage() {
   );
 
   return (
-    <div
-      style={{
-        padding: LeadPagePadding.CONTAINER,
-      }}
-    >
-      <Row justify="space-between" align="middle" style={{ marginBottom: LeadPageMargin.HEADER_BOTTOM }}>
+    <div className="p-page">
+      <Row justify="space-between" align="middle" className="mb-section">
         <Col>
-          <Typography.Title level={1}>{LeadPageText.TITLE}</Typography.Title>
+          <Typography.Title level={2} className="text-h2" style={{ margin: 0 }}>{LeadPageText.TITLE}</Typography.Title>
         </Col>
-        <Col>
+        <Col style={{ marginTop: 15 }}>
           <Space size={LeadPageGap.ACTIONS}>
             <Button icon={<ReloadOutlined />} loading={isFetching} onClick={handleRefresh}>
               {LeadPageText.BUTTON_REFRESH}
@@ -276,94 +272,71 @@ export default function LeadPage() {
         </Col>
       </Row>
 
-      <Row gutter={16} style={{ marginBottom: LeadPageMargin.HEADER_BOTTOM }}>
-        <Col xs={24} md={8}>
-          <DebouncedInput
-            placeholder={`${LeadPageText.COLUMN_FULL_NAME} / ${LeadPageText.COLUMN_EMAIL} / ${LeadPageText.COLUMN_PHONE_NUMBER}`}
-            onChange={(value) => setSearchKeyword(value)}
-            allowClear
-          />
-        </Col>
-        <Col xs={24} md={4}>
-          <Select
-            allowClear
-            placeholder={LeadPageText.COLUMN_STATUS}
-            value={statusFilter}
-            onChange={(value) => setStatusFilter(value)}
-            options={Object.keys(LeadStatusLabel).map((status) => ({
-              label: LeadStatusLabel[status as keyof typeof LeadStatusLabel],
-              value: status,
-            }))}
-            style={{ width: '100%' }}
-          />
-        </Col>
-        <Col xs={24} md={4}>
-          <Select
-            allowClear
-            placeholder={LeadPageText.COLUMN_SOURCE}
-            value={sourceFilter}
-            onChange={(value) => setSourceFilter(value)}
-            options={Object.keys(LeadSourceLabel).map((source) => {
-              const sourceKey = source as keyof typeof LeadSourceLabel;
-              return {
-                label: (
-                  <Space size={LeadPageGap.ACTIONS}>
-                    {LeadSourceIcon[sourceKey]}
-                    {LeadSourceLabel[sourceKey]}
-                  </Space>
-                ),
-                value: source,
-              };
-            })}
-            style={{ width: '100%' }}
-          />
-        </Col>
-        <Col xs={24} md={4}>
-          <Select
-            allowClear
-            placeholder={LeadPageText.FIELD_COURSE_IDS_PLACEHOLDER}
-            value={courseFilter}
-            onChange={(value) => setCourseFilter(value)}
-            options={courses?.map((course) => ({
-              label: course.name,
-              value: course.id,
-            }))}
-            style={{ width: '100%' }}
-            showSearch
-            optionFilterProp="label"
-          />
-        </Col>
-        <Col xs={24} md={4}>
-          <DatePicker.RangePicker
-            allowClear
-            placeholder={[LeadDateRangePlaceholder[0], LeadDateRangePlaceholder[1]]}
-            value={createdAtRange ?? undefined}
-            onChange={(value) => setCreatedAtRange(value)}
-            style={{ width: '100%' }}
-            format={DateFormat.ISO_DATE}
-          />
-        </Col>
-      </Row>
+      <LeadFilters
+        onSearch={setSearchKeyword}
+        statusFilter={statusFilter}
+        onStatusChange={setStatusFilter}
+        sourceFilter={sourceFilter}
+        onSourceChange={setSourceFilter}
+        courseFilter={courseFilter}
+        onCourseChange={setCourseFilter}
+        createdAtRange={createdAtRange}
+        onCreatedAtRangeChange={setCreatedAtRange}
+        courses={courses || []}
+      />
+
       <Row>
         <Col span={24}>
-          <Table<Lead>
-            scroll={{ x: 'max-content' }}
-            columns={columns}
-            dataSource={leads}
-            loading={isLoading}
-            rowKey="id"
-            pagination={{
-              current: currentPage,
-              pageSize: pageSize,
-              total: total,
-              showSizeChanger: true,
-              onChange: (page, size) => {
-                setCurrentPage(page);
-                setPageSize(size);
-              },
-            }}
-            bordered
-          />
+          {!isMobile ? (
+            <Table<Lead>
+              scroll={{ x: 'max-content' }}
+              columns={columns}
+              dataSource={leads}
+              loading={isLoading}
+              rowKey="id"
+              pagination={{
+                current: currentPage,
+                pageSize: pageSize,
+                total: total,
+                showSizeChanger: true,
+                onChange: (page, size) => {
+                  setCurrentPage(page);
+                  setPageSize(size);
+                },
+              }}
+              bordered
+            />
+          ) : (
+            <List
+              grid={{ gutter: 16, column: 1 }}
+              dataSource={leads}
+              loading={isLoading}
+              pagination={{
+                current: currentPage,
+                pageSize: pageSize,
+                total: total,
+                size: 'small',
+                align: 'center',
+                onChange: (page, size) => {
+                  setCurrentPage(page);
+                  setPageSize(size);
+                },
+              }}
+              renderItem={(lead) => (
+                <List.Item>
+                  <LeadMobileCard
+                    lead={lead}
+                    courses={courses || []}
+                    onOpenDetail={handleOpenDetailModal}
+                    onOpenModal={handleOpenModal}
+                    onOpenNoteAdd={handleOpenNoteAddModal}
+                    onOpenNoteHistory={handleOpenNoteHistoryModal}
+                    onDelete={handleDelete}
+                  />
+                </List.Item>
+              )}
+            />
+          )}
         </Col>
       </Row>
 

@@ -110,7 +110,12 @@ export function TabStudents({ classData }: { classData: Class }) {
                     </Space>
                 ),
             },
-        ],
+        ].map(col => ({
+            ...col,
+            onCell: () => ({
+                'data-label': typeof col.title === 'string' ? col.title : '',
+            } as any),
+        })),
         [handleRemoveStudent]
     );
 
@@ -157,7 +162,7 @@ export function TabStudents({ classData }: { classData: Class }) {
                             icon={<UserAddOutlined />}
                             onClick={handleAddStudent}
                             loading={addStudentMutation.isPending}
-                            disabled={!selectedLeadId || isFull}
+                            disabled={!selectedLeadId || !!isFull}
                         >
                             Thêm vào lớp
                         </Button>
@@ -166,6 +171,7 @@ export function TabStudents({ classData }: { classData: Class }) {
             </Row>
 
             <Table
+                className="mobile-card-table"
                 columns={columns}
                 dataSource={students || []}
                 rowKey="id"

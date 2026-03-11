@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
-import { Button, Col, Input, message, Popconfirm, Row, Select, Space, Spin, Table, Tag, Tooltip, Typography } from 'antd';
+import { Button, Col, Input, message, Popconfirm, Row, Select, Space, Spin, Table, Tag, Tooltip, Typography, List, Card, Flex } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined, FilterOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useClasses, useDeleteClass } from '@/lib/hooks/use-classes';
@@ -11,6 +11,7 @@ import type { Class } from '@/lib/services/class.service';
 import type { ColumnsType } from 'antd/es/table';
 import { CLASS_STATUS_OPTIONS, getClassStatusMeta } from '@/lib/constants/classStatus';
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
+import { useIsMobile } from '@/lib/hooks/use-mobile';
 import dynamic from 'next/dynamic';
 
 const { Title, Text } = Typography;
@@ -25,6 +26,7 @@ export default function ClassPage() {
     const [nameFilter, setNameFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
     const [courseFilter, setCourseFilter] = useState<string | undefined>(undefined);
+    const isMobile = useIsMobile();
 
     const router = useRouter();
 
@@ -73,7 +75,7 @@ export default function ClassPage() {
         [courses]
     );
 
-    const columns = useMemo<ColumnsType<Class>>(
+    const columns = useMemo(
         () => [
             {
                 title: 'STT',
@@ -169,19 +171,24 @@ export default function ClassPage() {
                     </Space>
                 ),
             },
-        ],
+        ].map(col => ({
+            ...col,
+            onCell: () => ({
+                'data-label': typeof col.title === 'string' ? col.title : '',
+            } as any),
+        })),
         [handleDelete, router]
-    );
+    ) as ColumnsType<Class>;
 
     if (isClassesLoading) {
         return <div className="p-8 flex justify-center h-full items-center"><Spin size="large" /></div>;
     }
 
     return (
-        <div className="p-6 h-full overflow-y-auto">
-            <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
+        <div className="p-page h-full overflow-y-auto">
+            <Row justify="space-between" align="middle" className="mb-section">
                 <Col>
-                    <Title level={2} style={{ margin: 0 }}>Danh sách Lớp học</Title>
+                    <Title level={2} className="text-h2" style={{ margin: 0 }}>Danh sách Lớp học</Title>
                 </Col>
                 <Col>
                     <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateModal} size="large">
@@ -238,18 +245,95 @@ export default function ClassPage() {
                 </Col>
             </Row>
 
-            <Table
-                columns={columns}
-                dataSource={filteredClasses}
-                rowKey="id"
-                pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `Tổng ${total} lớp học` }}
-                locale={{
-                    emptyText:
-                        classes?.length === 0
-                        ? 'Chưa có lớp học nào. Hãy tạo mới một lớp học.'
-                        : 'Không tìm thấy lớp học nào phù hợp với bộ lọc.',
-                }}
-            />
+            {!isMobile ? (
+                <Table
+                    columns={columns}
+                    dataSource={filteredClasses}
+                    rowKey="id"
+                    pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `Tổng ${total} lớp học` }}
+                    locale={{
+                        emptyText:
+                            classes?.length === 0
+                                ? 'Chưa có lớp học nào. Hãy tạo mới một lớp học.'
+                                : 'Không tìm thấy lớp học nào phù hợp với bộ lọc.',
+                    }}
+                />
+            ) : (
+                <List
+                    grid={{ gutter: 16, column: 1 }}
+                    dataSource={filteredClasses}
+                    pagination={{ pageSize: 20, size: 'small', showSizeChanger: false, align: 'center' }}
+                    locale={{
+                        emptyText:
+                            classes?.length === 0
+                                ? 'Chưa có lớp học nào. Hãy tạo mới một lớp học.'
+                                : 'Không tìm thấy lớp học nào phù hợp với bộ lọc.',
+                    }}
+                    renderItem={(cls) => {
+                        const enrolled = cls.class_students?.length ?? 0;
+                        const capacity = cls.capacity;
+                        const isFull = capacity ? enrolled >= capacity : false;
+
+                        return (
+                            <List.Item>
+                                <Card
+                                    size="small"
+                                    title={<Text strong style={{ fontSize: '15px', whiteSpace: 'normal', wordBreak: 'break-word', color: '#1677ff' }}>{cls.name}</Text>}
+                                    extra={cls.status && <Tag style={{ margin: 0 }} color={getClassStatusMeta(cls.status).color}>{getClassStatusMeta(cls.status).label}</Tag>}
+                                    style={{ width: '100%', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+                                    styles={{ body: { padding: '12px' } }}
+                                    actions={[
+                                        <Tooltip key="detail" title="Xem chi tiết">
+                                            <div onClick={() => router.push(`/class/${cls.id}`)} style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                                <EyeOutlined style={{ fontSize: '16px' }} />
+                                            </div>
+                                        </Tooltip>,
+                                        <Popconfirm
+                                            key="delete"
+                                            title="Xóa lớp học"
+                                            description="Bạn có chắc chắn muốn xóa lớp học này không?"
+                                            onConfirm={() => handleDelete(cls.id)}
+                                            okText="Xóa"
+                                            cancelText="Hủy"
+                                        >
+                                            <Tooltip title="Xóa">
+                                                <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#ff4d4f' }}>
+                                                    <DeleteOutlined style={{ fontSize: '16px' }} />
+                                                </div>
+                                            </Tooltip>
+                                        </Popconfirm>
+                                    ]}
+                                >
+                                    <Flex vertical gap="small">
+                                        <Flex justify="space-between" align="center" style={{ fontSize: '14px', borderBottom: '1px solid #f0f0f0', paddingBottom: '8px' }}>
+                                            <Text type="secondary">Mã lớp</Text>
+                                            <Text strong>{cls.code || '—'}</Text>
+                                        </Flex>
+                                        <Flex justify="space-between" align="center" style={{ fontSize: '14px', borderBottom: '1px solid #f0f0f0', paddingBottom: '8px' }}>
+                                            <Text type="secondary">Khóa học</Text>
+                                            <Text style={{ textAlign: 'right', marginLeft: '16px' }}>{cls.courses ? `${cls.courses.name}${cls.courses.code ? ` (${cls.courses.code})` : ''}` : '—'}</Text>
+                                        </Flex>
+                                        <Flex justify="space-between" align="center" style={{ fontSize: '14px', borderBottom: '1px solid #f0f0f0', paddingBottom: '8px' }}>
+                                            <Text type="secondary">Sĩ số</Text>
+                                            {capacity ? (
+                                                <Tag color={isFull ? 'red' : enrolled > 0 ? 'orange' : 'default'} style={{ margin: 0, fontWeight: 500 }}>
+                                                    {enrolled}/{capacity}
+                                                </Tag>
+                                            ) : (
+                                                <Text type="secondary">—</Text>
+                                            )}
+                                        </Flex>
+                                        <Flex justify="space-between" align="center" style={{ fontSize: '14px' }}>
+                                            <Text type="secondary">Lịch mở lớp</Text>
+                                            <Text>{cls.schedule ? dayjs(cls.schedule).format('DD/MM/YYYY') : '—'}</Text>
+                                        </Flex>
+                                    </Flex>
+                                </Card>
+                            </List.Item>
+                        );
+                    }}
+                />
+            )}
 
             <CreateClassModal open={isCreateModalOpen} onClose={handleCloseCreateModal} />
         </div>

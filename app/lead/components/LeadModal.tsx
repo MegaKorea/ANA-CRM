@@ -75,7 +75,7 @@ export function LeadModal({
         onFinish={onSubmit}
         initialValues={{
           status: LeadStatus.NEW,
-          source: LeadSource.WEBSITE,
+          source: LeadSource.FACEBOOK,
           ethnicity: Ethnicity[0],
         }}
       >
