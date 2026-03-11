@@ -12,6 +12,7 @@ type ClassBasicInfoFormValues = Omit<UpdateClassInput, 'start_date' | 'end_date'
     start_date?: Dayjs | null;
     end_date?: Dayjs | null;
     schedule?: Dayjs | null;
+    timetable?: 'Sáng' | 'Chiều' | 'Tối' | null;
 };
 
 export function TabBasicInfo({ classData }: { classData: Class }) {
@@ -30,6 +31,7 @@ export function TabBasicInfo({ classData }: { classData: Class }) {
             start_date: classData.start_date ? dayjs(classData.start_date) : null,
             end_date: classData.end_date ? dayjs(classData.end_date) : null,
             schedule: classData.schedule ? dayjs(classData.schedule) : null,
+            timetable: classData.timetable,
         }),
         [
             classData.capacity,
@@ -40,6 +42,7 @@ export function TabBasicInfo({ classData }: { classData: Class }) {
             classData.schedule,
             classData.start_date,
             classData.status,
+            classData.timetable,
         ]
     );
 
@@ -53,6 +56,7 @@ export function TabBasicInfo({ classData }: { classData: Class }) {
             start_date: values.start_date ? values.start_date.format('YYYY-MM-DD') : null,
             end_date: values.end_date ? values.end_date.format('YYYY-MM-DD') : null,
             schedule: values.schedule ? values.schedule.format('YYYY-MM-DD') : null,
+            timetable: values.timetable,
         };
         updateClassMutation.mutate({ id: classData.id, data: normalizedValues }, {
             onSuccess: () => {
@@ -135,29 +139,42 @@ export function TabBasicInfo({ classData }: { classData: Class }) {
                     </Col>
                 </Row>
 
-                <Row justify="end" style={{ marginTop: 24, paddingBottom: 24 }}>
-                    {isEditing ? (
-                        <Space>
-                            <Button
-                                htmlType="button"
-                                onClick={() => {
-                                    setIsEditing(false);
-                                    form.setFieldsValue(initialFormValues);
-                                }}
-                            >
-                                Hủy bỏ
-                            </Button>
-                            <Button type="primary" htmlType="submit" loading={updateClassMutation.isPending}>
-                                Lưu thay đổi
-                            </Button>
-                        </Space>
-                    ) : (
-                        <Button type="primary" htmlType="button" onClick={() => setIsEditing(true)}>
-                            Sửa thông tin
-                        </Button>
-                    )}
+                <Row gutter={16}>
+                    <Col span={12}>
+                        <Form.Item name="timetable" label="Thời khóa biểu">
+                            <Select placeholder="Chọn buổi học" allowClear options={[
+                                { label: 'Sáng', value: 'Sáng' },
+                                { label: 'Chiều', value: 'Chiều' },
+                                { label: 'Tối', value: 'Tối' },
+                            ]} />
+                        </Form.Item>
+                    </Col>
                 </Row>
+
             </Form>
+
+            <Row justify="end" style={{ marginTop: 24, paddingBottom: 24 }}>
+                {isEditing ? (
+                    <Space>
+                        <Button
+                            htmlType="button"
+                            onClick={() => {
+                                setIsEditing(false);
+                                form.setFieldsValue(initialFormValues);
+                            }}
+                        >
+                            Hủy bỏ
+                        </Button>
+                        <Button type="primary" onClick={() => form.submit()} loading={updateClassMutation.isPending}>
+                            Lưu thay đổi
+                        </Button>
+                    </Space>
+                ) : (
+                    <Button type="primary" onClick={() => setIsEditing(true)}>
+                        Sửa thông tin
+                    </Button>
+                )}
+            </Row>
         </div>
     );
 }

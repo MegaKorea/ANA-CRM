@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Mona_Sans } from 'next/font/google';
 import { AppProviders } from '@/providers';
 import { ConditionalLayout } from '@/components/layout/ConditionalLayout';
+import logoAna from '@/app/assets/logo/logo-ana.png';
 import './scss/index.scss';
 
 const monaSans = Mona_Sans({
@@ -13,7 +14,12 @@ const monaSans = Mona_Sans({
 
 export const metadata: Metadata = {
   title: 'ANA CRM',
-  description: 'Hệ thống quản lý quan hệ khách hàng',
+  description: 'Hệ thống LMS ANA',
+  icons: {
+    icon: logoAna.src,
+    shortcut: logoAna.src,
+    apple: logoAna.src,
+  },
 };
 
 export default function RootLayout({

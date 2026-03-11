@@ -10,6 +10,7 @@ export interface CreateClassInput {
     start_date?: string | null;
     end_date?: string | null;
     schedule?: string | null;
+    timetable?: 'Sáng' | 'Chiều' | 'Tối' | null;
 }
 
 export function validateCreateClassInput(input: unknown): CreateClassInput {
@@ -38,6 +39,7 @@ export function validateCreateClassInput(input: unknown): CreateClassInput {
         start_date: typeof data.start_date === 'string' ? data.start_date.trim() : null,
         end_date: typeof data.end_date === 'string' ? data.end_date.trim() : null,
         schedule: typeof data.schedule === 'string' ? data.schedule.trim() : null,
+        timetable: ['Sáng', 'Chiều', 'Tối'].includes(data.timetable as string) ? (data.timetable as any) : null,
     };
 }
 
@@ -89,6 +91,10 @@ export function validateUpdateClassInput(input: unknown): UpdateClassInput {
 
     if (data.schedule !== undefined) {
         updateData.schedule = typeof data.schedule === 'string' ? data.schedule.trim() : null;
+    }
+
+    if (data.timetable !== undefined) {
+        updateData.timetable = ['Sáng', 'Chiều', 'Tối'].includes(data.timetable as string) ? (data.timetable as any) : null;
     }
 
     return updateData;
