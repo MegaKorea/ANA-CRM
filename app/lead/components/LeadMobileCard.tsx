@@ -34,7 +34,7 @@ export const LeadMobileCard = memo(function LeadMobileCard({
             size="small"
             title={<Typography.Text strong style={{ fontSize: '15px', whiteSpace: 'normal', wordBreak: 'break-word', color: '#1677ff' }}>{lead.full_name}</Typography.Text>}
             extra={
-                lead.status ? <Tag style={{ margin: 0, fontWeight: 500 }} color={lead.status === LeadStatus.NEW ? 'blue' : lead.status === LeadStatus.CONVERTED ? 'green' : lead.status === LeadStatus.LOST ? 'red' : 'default'}>{LeadStatusLabel[lead.status as keyof typeof LeadStatusLabel] ?? lead.status}</Tag> : null
+                lead.status ? <Tag style={{ margin: 0, fontWeight: 500 }} color={lead.status === LeadStatus.NEW ? 'blue' : lead.status === LeadStatus.CONVERTED ? 'green' : (lead.status === LeadStatus.NOT_CONTACTED || lead.status === ('lost' as LeadStatus)) ? 'red' : 'default'}>{LeadStatusLabel[lead.status as keyof typeof LeadStatusLabel] ?? lead.status}</Tag> : null
             }
             style={{ width: '100%', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
             bodyStyle={{ padding: '12px' }}

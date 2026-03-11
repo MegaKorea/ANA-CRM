@@ -118,7 +118,7 @@ export const LeadStatusLabel = {
   [LeadStatus.QUALIFIED]: 'ĐÃ ĐỦ ĐIỀU KIỆN',
   [LeadStatus.NURTURING]: 'ĐANG CHĂM SÓC',
   [LeadStatus.CONVERTED]: 'ĐÃ CHUYỂN ĐỔI',
-  [LeadStatus.LOST]: 'RỚT',
+  [LeadStatus.NOT_CONTACTED]: 'CHƯA TIẾP CẬN',
 } as const;
 
 export const LeadSourceLabel = {

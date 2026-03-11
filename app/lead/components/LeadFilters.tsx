@@ -45,7 +45,7 @@ export const LeadFilters = memo(function LeadFilters({
                     placeholder={LeadPageText.COLUMN_STATUS}
                     value={statusFilter}
                     onChange={onStatusChange}
-                    options={Object.keys(LeadStatusLabel).map((status) => ({
+                    options={Object.values(LeadStatus).map((status) => ({
                         label: LeadStatusLabel[status as keyof typeof LeadStatusLabel],
                         value: status,
                     }))}

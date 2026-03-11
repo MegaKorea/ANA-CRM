@@ -279,8 +279,8 @@ function validateStatusField(value: unknown): LeadStatus | undefined {
     return LeadStatus.CONVERTED;
   }
 
-  if (value === LeadStatus.LOST) {
-    return LeadStatus.LOST;
+  if (value === LeadStatus.NOT_CONTACTED) {
+    return LeadStatus.NOT_CONTACTED;
   }
 
   throw new AppError(LeadErrorCode.STATUS_INVALID, HttpStatusCode.BAD_REQUEST);
