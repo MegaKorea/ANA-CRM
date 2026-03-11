@@ -1,5 +1,5 @@
 import { Card, Flex, Typography, Tag, Space, Tooltip, Badge, Button, Popconfirm } from 'antd';
-import { PlusOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { PlusOutlined, InfoCircleOutlined, PictureOutlined } from '@ant-design/icons';
 import { HiOutlineInformationCircle, HiOutlinePencilAlt, HiOutlineTrash } from 'react-icons/hi';
 import { formatNumberVi } from '@/lib/utils/numberFormat';
 import { LeadStatus, DateLocale } from '@/constants/enums';
@@ -14,6 +14,7 @@ interface LeadMobileCardProps {
     onOpenModal: (lead: Lead) => void;
     onOpenNoteAdd: (lead: Lead) => void;
     onOpenNoteHistory: (lead: Lead) => void;
+    onOpenImages: (lead: Lead) => void;
     onDelete: (id: number) => void;
 }
 
@@ -24,10 +25,12 @@ export const LeadMobileCard = memo(function LeadMobileCard({
     onOpenModal,
     onOpenNoteAdd,
     onOpenNoteHistory,
+    onOpenImages,
     onDelete,
 }: LeadMobileCardProps) {
     const notes = Array.isArray(lead.note) ? lead.note : [];
     const noteCount = notes.length;
+    const imageCount = lead.images?.length || 0;
 
     return (
         <Card
@@ -95,7 +98,7 @@ export const LeadMobileCard = memo(function LeadMobileCard({
                     <Typography.Text>{lead.appointment_date ? new Date(lead.appointment_date).toLocaleString(DateLocale.VIET_NAM) : '—'}</Typography.Text>
                 </Flex>
                 <Flex justify="space-between" align="center" className="text-body-small">
-                    <Typography.Text type="secondary">Ghi chú</Typography.Text>
+                    <Typography.Text type="secondary">Ghi chú & Hình ảnh</Typography.Text>
                     <Space>
                         <Tooltip title="Thêm ghi chú">
                             <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => onOpenNoteAdd(lead)} />
@@ -103,6 +106,11 @@ export const LeadMobileCard = memo(function LeadMobileCard({
                         <Tooltip title="Xem lịch sử ghi chú">
                             <Badge count={noteCount} size="small" offset={[-2, 0]}>
                                 <Button size="small" icon={<InfoCircleOutlined />} onClick={() => onOpenNoteHistory(lead)} disabled={noteCount === 0} />
+                            </Badge>
+                        </Tooltip>
+                        <Tooltip title="Hình ảnh">
+                            <Badge count={imageCount} size="small" offset={[-2, 0]}>
+                                <Button size="small" icon={<PictureOutlined />} onClick={() => onOpenImages(lead)} />
                             </Badge>
                         </Tooltip>
                     </Space>

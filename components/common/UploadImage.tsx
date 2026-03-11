@@ -1,8 +1,7 @@
 'use client';
-/* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useMemo, useState } from 'react';
-import { Button, message, Upload } from 'antd';
+import { Button, message, Upload, Image } from 'antd';
 import {
   InboxOutlined,
   LoadingOutlined,
@@ -19,6 +18,8 @@ interface ImageUploadProps {
   label?: string;
   server?: string;
   value?: string;
+  showPreview?: boolean;
+  showSuccessMessage?: boolean;
 }
 
 export default function ImageUpload({
@@ -27,6 +28,8 @@ export default function ImageUpload({
   label = 'Kéo thả ảnh vào đây hoặc nhấp để chọn',
   server = 'server_1',
   value,
+  showPreview = true,
+  showSuccessMessage = true,
 }: ImageUploadProps) {
   const [loading, setLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(value || null);
@@ -74,9 +77,9 @@ export default function ImageUpload({
         }
 
         const url = result.data.url;
-        setImageUrl(url);
+        if (showPreview) setImageUrl(url);
         onUpload(url);
-        message.success('Upload ảnh thành công!');
+        if (showSuccessMessage) message.success('Upload ảnh thành công!');
         onSuccess?.(result);
       } catch (error) {
         const errorMessage =
@@ -115,13 +118,11 @@ export default function ImageUpload({
             width: "100%",
           }}
         >
-          <img
+          <Image
             src={imageUrl}
             alt="Preview"
-            loading="lazy"
-            decoding="async"
+            width="100%"
             style={{
-              width: "100%",
               maxHeight: 200,
               objectFit: "contain",
               borderRadius: 4,

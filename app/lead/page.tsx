@@ -40,6 +40,10 @@ const NoteHistoryModal = dynamic(
   () => import('@/app/lead/components/NoteHistoryModal').then((m) => m.NoteHistoryModal),
   { ssr: false }
 );
+const LeadImagesModal = dynamic(
+  () => import('@/app/lead/components/LeadImagesModal').then((m) => m.LeadImagesModal),
+  { ssr: false }
+);
 
 export default function LeadPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -52,6 +56,9 @@ export default function LeadPage() {
   const [noteAddLead, setNoteAddLead] = useState<Lead | null>(null);
   const [isNoteHistoryModalOpen, setIsNoteHistoryModalOpen] = useState(false);
   const [noteHistoryLead, setNoteHistoryLead] = useState<Lead | null>(null);
+
+  const [isImagesModalOpen, setIsImagesModalOpen] = useState(false);
+  const [imagesLead, setImagesLead] = useState<Lead | null>(null);
 
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus | undefined>(undefined);
@@ -226,6 +233,16 @@ export default function LeadPage() {
     setNoteHistoryLead(null);
   }, []);
 
+  const handleOpenImagesModal = useCallback((lead: Lead) => {
+    setImagesLead(lead);
+    setIsImagesModalOpen(true);
+  }, []);
+
+  const handleCloseImagesModal = useCallback(() => {
+    setIsImagesModalOpen(false);
+    setImagesLead(null);
+  }, []);
+
   const columns = useMemo(
     () =>
       getLeadTableColumns({
@@ -234,6 +251,7 @@ export default function LeadPage() {
         handleOpenDetailModal,
         handleOpenNoteAddModal,
         handleOpenNoteHistoryModal,
+        handleOpenImagesModal,
         courses,
       }).map((col: any) => ({
         ...col,
@@ -241,7 +259,7 @@ export default function LeadPage() {
           'data-label': typeof col.title === 'string' ? col.title : '',
         } as any),
       })),
-    [handleOpenModal, handleDelete, handleOpenDetailModal, handleOpenNoteAddModal, handleOpenNoteHistoryModal, courses]
+    [handleOpenModal, handleDelete, handleOpenDetailModal, handleOpenNoteAddModal, handleOpenNoteHistoryModal, handleOpenImagesModal, courses]
   );
 
   const isSubmitting = createLeadMutation.isPending || updateLeadMutation.isPending;
@@ -331,6 +349,7 @@ export default function LeadPage() {
                     onOpenModal={handleOpenModal}
                     onOpenNoteAdd={handleOpenNoteAddModal}
                     onOpenNoteHistory={handleOpenNoteHistoryModal}
+                    onOpenImages={handleOpenImagesModal}
                     onDelete={handleDelete}
                   />
                 </List.Item>
@@ -365,6 +384,12 @@ export default function LeadPage() {
         open={isNoteHistoryModalOpen}
         lead={noteHistoryLead}
         onClose={handleCloseNoteHistoryModal}
+      />
+
+      <LeadImagesModal
+        open={isImagesModalOpen}
+        lead={imagesLead}
+        onClose={handleCloseImagesModal}
       />
     </div>
   );

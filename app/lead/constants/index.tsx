@@ -1,7 +1,7 @@
 import { Button, Popconfirm, Space, Tooltip, Badge } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { HiOutlinePencilAlt, HiOutlineTrash, HiOutlineInformationCircle } from 'react-icons/hi';
-import { PlusOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { PlusOutlined, InfoCircleOutlined, PictureOutlined } from '@ant-design/icons';
 import { DateLocale, LeadSource, LeadStatus } from '@/constants/enums';
 import type { Lead } from '@/lib/services/lead.service';
 import type { Course } from '@/lib/services/course.service';
@@ -65,6 +65,7 @@ export const LeadPageText = {
   COLUMN_APPOINTMENT_DATE: 'Lịch hẹn',
   COLUMN_ACTION: 'Thao tác',
   COLUMN_DETAIL: 'Thông tin thêm',
+  COLUMN_IMAGES: 'Hình ảnh',
   FILTER_CREATED_AT_START: 'Ngày tạo từ',
   FILTER_CREATED_AT_END: 'Ngày tạo đến',
   MODAL_CREATE_TITLE: 'Thêm Data',
@@ -152,6 +153,8 @@ export type HandleOpenNoteAddModal = (lead: Lead) => void;
 
 export type HandleOpenNoteHistoryModal = (lead: Lead) => void;
 
+export type HandleOpenImagesModal = (lead: Lead) => void;
+
 export function formatLocationValue(location: LocationValue | null | undefined): string {
   if (!location) {
     return '';
@@ -175,6 +178,7 @@ export const getLeadTableColumns = ({
   handleOpenDetailModal,
   handleOpenNoteAddModal,
   handleOpenNoteHistoryModal,
+  handleOpenImagesModal,
   courses,
 }: {
   handleOpenModal: HandleOpenLeadModal;
@@ -182,6 +186,7 @@ export const getLeadTableColumns = ({
   handleOpenDetailModal: HandleOpenLeadDetailModal;
   handleOpenNoteAddModal: HandleOpenNoteAddModal;
   handleOpenNoteHistoryModal: HandleOpenNoteHistoryModal;
+  handleOpenImagesModal: HandleOpenImagesModal;
   courses?: Course[] | null;
 }): ColumnsType<Lead> => [
     {
@@ -331,6 +336,21 @@ export const getLeadTableColumns = ({
       key: 'appointment_date',
       render: (date: string | null) =>
         date ? new Date(date).toLocaleString(DateLocale.VIET_NAM) : null,
+    },
+    {
+      title: LeadPageText.COLUMN_IMAGES,
+      key: 'images',
+      align: 'center',
+      width: 100,
+      render: (_: unknown, record: Lead) => (
+        <Badge count={record.images?.length || 0} size="small" offset={[-2, 0]}>
+          <Button
+            size="small"
+            icon={<PictureOutlined />}
+            onClick={() => handleOpenImagesModal(record)}
+          />
+        </Badge>
+      ),
     },
     {
       title: LeadPageText.COLUMN_DETAIL,
