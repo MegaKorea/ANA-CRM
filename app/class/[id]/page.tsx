@@ -1,9 +1,10 @@
 'use client';
 
-import { Tabs, Spin, Typography, Card, Breadcrumb, Space, Tag } from 'antd';
+import { Tabs, Spin, Typography, Card, Breadcrumb, Space, Tag, Result, Button } from 'antd';
 import { HomeOutlined } from '@ant-design/icons';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useClass } from '@/lib/hooks/use-classes';
+import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 
 import { TabBasicInfo } from './components/TabBasicInfo';
 import { TabTeachers } from './components/TabTeachers';
@@ -15,16 +16,37 @@ const { Title, Text } = Typography;
 
 export default function ClassDetailPage() {
     const params = useParams();
+    const router = useRouter();
     const classId = params.id as string;
 
-    const { data: classData, isLoading } = useClass(classId);
+    const { hasPermission, isLoading: isAuthLoading } = useAuthPermission(['ADMIN', 'AO', 'STU', 'TEA']);
+    const { data: classData, isLoading: isClassLoading } = useClass(classId);
+
+    const isLoading = isAuthLoading || isClassLoading;
 
     if (isLoading) {
         return <div className="p-8 flex justify-center h-full items-center"><Spin size="large" /></div>;
     }
 
+    if (!hasPermission) {
+        return (
+            <div className="flex h-full w-full items-center justify-center p-8">
+                <Result
+                    status="403"
+                    title="403"
+                    subTitle="Xin lỗi, bạn không có quyền truy cập trang này."
+                    extra={
+                        <Button type="primary" onClick={() => router.push('/')}>
+                            Trở về trang chủ
+                        </Button>
+                    }
+                />
+            </div>
+        );
+    }
+
     if (!classData) {
-        return <div className="p-8 text-center"><Text type="secondary">Không tìm thấy thông tin lớp học.</Text></div>;
+        return <div className="p-8 text-center h-full flex items-center justify-center"><Text type="secondary">Không tìm thấy thông tin lớp học.</Text></div>;
     }
 
     const statusMeta = getClassStatusMeta(classData.status);
@@ -80,7 +102,7 @@ export default function ClassDetailPage() {
                             children: <TabStudents classData={classData} />,
                         },
                         {
-                            label: 'Lịch mở lớp',
+                            label: 'Thời khóa biểu',
                             key: 'schedule',
                             children: <TabSchedule classData={classData} />,
                         },
