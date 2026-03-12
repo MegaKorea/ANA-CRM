@@ -41,26 +41,13 @@ export async function updateSession(request: NextRequest) {
   );
 
   const {
-    data: { user: adminUser },
+    data: { user: authUser },
   } = await supabase.auth.getUser();
 
-  // 1. Check for Student Authentication
-  const studentToken = request.cookies.get('ana_student_session')?.value;
-  let isStudentAuthenticated = false;
+  const isAuthenticated = !!authUser;
+  const isStudentAuthenticated = isAuthenticated && authUser?.user_metadata?.role === 'STU';
+  const isAdminAuthenticated = isAuthenticated && authUser?.user_metadata?.role !== 'STU';
 
-  if (studentToken) {
-    try {
-      const { jwtVerify } = await import('jose');
-      const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_for_development_only';
-      const secret = new TextEncoder().encode(JWT_SECRET);
-      await jwtVerify(studentToken, secret);
-      isStudentAuthenticated = true;
-    } catch (e) {
-      console.error('Invalid student session', e);
-    }
-  }
-
-  const isAdminAuthenticated = !!adminUser;
   const isPublic = isPublicRoute(pathname);
   const isAuth = isAuthRoute(pathname);
   const isApiRoute = pathname.startsWith('/api');

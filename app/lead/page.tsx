@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { Table, Button, Space, message, Row, Col, Form, Typography, List, Tabs } from 'antd';
-import { PlusOutlined, ReloadOutlined, } from '@ant-design/icons';
+import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import type { Lead } from '@/lib/services/lead.service';
 import type { CreateLeadInput, UpdateLeadInput } from '@/lib/validators/lead.validator';
@@ -27,28 +27,28 @@ import { LeadStatistics } from '@/app/lead/components/LeadStatistics';
 
 const LeadModal = dynamic(
   () => import('@/app/lead/components/LeadModal').then((m) => m.LeadModal),
-  { ssr: false }
+  { ssr: false },
 );
 const LeadDetailModal = dynamic(
   () => import('@/app/lead/components/LeadDetailModal').then((m) => m.LeadDetailModal),
-  { ssr: false }
+  { ssr: false },
 );
 const NoteAddModal = dynamic(
   () => import('@/app/lead/components/NoteAddModal').then((m) => m.NoteAddModal),
-  { ssr: false }
+  { ssr: false },
 );
 const NoteHistoryModal = dynamic(
   () => import('@/app/lead/components/NoteHistoryModal').then((m) => m.NoteHistoryModal),
-  { ssr: false }
+  { ssr: false },
 );
 const LeadImagesModal = dynamic(
   () => import('@/app/lead/components/LeadImagesModal').then((m) => m.LeadImagesModal),
-  { ssr: false }
+  { ssr: false },
 );
 
 const AttendanceModal = dynamic(
   () => import('@/app/lead/components/AttendanceModal').then((m) => m.AttendanceModal),
-  { ssr: false }
+  { ssr: false },
 );
 
 export default function LeadPage() {
@@ -68,7 +68,6 @@ export default function LeadPage() {
 
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [attendanceLead, setAttendanceLead] = useState<Lead | null>(null);
-
 
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus | undefined>(undefined);
@@ -128,7 +127,7 @@ export default function LeadPage() {
       }
       setIsModalOpen(true);
     },
-    [form]
+    [form],
   );
 
   const handleCloseModal = useCallback(() => {
@@ -149,8 +148,8 @@ export default function LeadPage() {
         email: values.email,
         phone_number: values.phone_number,
         date_of_birth: values.date_of_birth,
-        place_of_birth: (values.place_of_birth),
-        place_of_origin: (values.place_of_origin),
+        place_of_birth: values.place_of_birth,
+        place_of_origin: values.place_of_origin,
         current_address: values.current_address,
         citizen_id: values.citizen_id,
         nationality: 'Việt Nam',
@@ -160,8 +159,14 @@ export default function LeadPage() {
         course_ids: values.course_ids,
         sales_amount: values.sales_amount === null ? null : values.sales_amount,
         deposit: values.deposit === null ? null : values.deposit,
-        outstanding_balance: values.outstanding_balance === null ? null : values.outstanding_balance,
-        appointment_date: values.appointment_date === null ? null : (values.appointment_date ? values.appointment_date.toISOString() : undefined),
+        outstanding_balance:
+          values.outstanding_balance === null ? null : values.outstanding_balance,
+        appointment_date:
+          values.appointment_date === null
+            ? null
+            : values.appointment_date
+              ? values.appointment_date.toISOString()
+              : undefined,
       };
 
       if (editingLead) {
@@ -177,7 +182,7 @@ export default function LeadPage() {
               handleCloseModal();
             },
             onError: handleError,
-          }
+          },
         );
       } else {
         const payload: CreateLeadInput = payloadBase as CreateLeadInput;
@@ -190,7 +195,7 @@ export default function LeadPage() {
         });
       }
     },
-    [editingLead, updateLeadMutation, createLeadMutation, handleCloseModal, handleError]
+    [editingLead, updateLeadMutation, createLeadMutation, handleCloseModal, handleError],
   );
 
   const handleDelete = useCallback(
@@ -202,7 +207,7 @@ export default function LeadPage() {
         onError: handleError,
       });
     },
-    [deleteLeadMutation, handleError]
+    [deleteLeadMutation, handleError],
   );
 
   const handleRefresh = useCallback(() => {
@@ -276,28 +281,39 @@ export default function LeadPage() {
         courses,
       }).map((col: any) => ({
         ...col,
-        onCell: () => ({
-          'data-label': typeof col.title === 'string' ? col.title : '',
-        } as any),
+        onCell: () =>
+          ({
+            'data-label': typeof col.title === 'string' ? col.title : '',
+          }) as any,
       })),
-    [handleOpenModal, handleDelete, handleOpenDetailModal, handleOpenNoteAddModal, handleOpenNoteHistoryModal, handleOpenImagesModal, handleOpenAttendanceModal, courses]
+    [
+      handleOpenModal,
+      handleDelete,
+      handleOpenDetailModal,
+      handleOpenNoteAddModal,
+      handleOpenNoteHistoryModal,
+      handleOpenImagesModal,
+      handleOpenAttendanceModal,
+      courses,
+    ],
   );
 
   const isSubmitting = createLeadMutation.isPending || updateLeadMutation.isPending;
-
 
   const handleSubmitAsync = useCallback(
     async (values: LeadFormValues) => {
       handleSubmit(values);
     },
-    [handleSubmit]
+    [handleSubmit],
   );
 
   return (
     <div className="p-page">
       <Row justify="space-between" align="middle" className="mb-section">
         <Col>
-          <Typography.Title level={2} className="text-h2" style={{ margin: 0 }}>{LeadPageText.TITLE}</Typography.Title>
+          <Typography.Title level={2} className="text-h2" style={{ margin: 0 }}>
+            {LeadPageText.TITLE}
+          </Typography.Title>
         </Col>
         <Col style={{ marginTop: 15 }}>
           <Space size={LeadPageGap.ACTIONS}>
@@ -394,8 +410,8 @@ export default function LeadPage() {
           {
             key: 'stats',
             label: 'Thống kê',
-            children: <LeadStatistics />
-          }
+            children: <LeadStatistics />,
+          },
         ]}
       />
 

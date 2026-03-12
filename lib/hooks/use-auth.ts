@@ -12,6 +12,7 @@ interface LoginResponse {
     id: string;
     email: string;
     fullName: string;
+    roleCode?: string | null;
   };
 }
 
@@ -21,7 +22,7 @@ export function useLogin() {
 
   return useMutation<LoginResponse, unknown, LoginInput>({
     mutationFn: (input: LoginInput) => api.post<LoginResponse>(AuthApiPath.LOGIN, input),
-    onSuccess: () => {
+    onSuccess: (data) => {
       // Clear React Query cache before login to ensure fresh data
       queryClient.clear();
 
@@ -29,7 +30,13 @@ export function useLogin() {
       useUserStore.getState().clearUser();
 
       message.success(LoginFormMessage.LOGIN_SUCCESS);
-      router.push(DEFAULT_AUTHENTICATED_ROUTE);
+
+      if (data?.user?.roleCode === 'STU') {
+        router.push('/student');
+      } else {
+        router.push(DEFAULT_AUTHENTICATED_ROUTE);
+      }
+
       router.refresh();
     },
     onError: (error: unknown) => {

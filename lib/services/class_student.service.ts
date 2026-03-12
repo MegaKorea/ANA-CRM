@@ -51,25 +51,23 @@ export async function getClassStudents(classId: string): Promise<ClassStudent[]>
 
 export async function addClassStudent(classId: string, studentId: number): Promise<ClassStudent> {
     const supabase = createAdminClient();
-
-    // 1. Fetch the lead to get phone number
-    const { data: lead, error: leadError } = await supabase
+    const { data: leadRaw, error: leadError } = await supabase
         .from('leads')
-        .select('phone_number')
+        .select('phone_number, full_name')
         .eq('id', studentId)
         .single();
+
+    const lead = leadRaw as any;
 
     if (leadError) {
         throw new Error(`Failed to fetch lead: ${leadError.message}`);
     }
 
     if (lead && lead.phone_number) {
-        // 2. Ensure student account exists
-        const { createStudentAccountIfNotExists } = await import('./student_account.service');
-        await createStudentAccountIfNotExists(studentId, lead.phone_number);
+        // TODO: Re-implement student account creation using user.service.ts
+        // const { createStudentAccountIfNotExists } = await import('./student_account.service');
+        // await createStudentAccountIfNotExists(studentId, lead.phone_number, lead.full_name);
     }
-
-    // 3. Add to class
     const { data, error } = await supabase
         .from('class_students')
         .insert({ class_id: classId, student_id: studentId } as any)

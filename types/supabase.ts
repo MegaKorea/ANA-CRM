@@ -1,4 +1,4 @@
-import { TablesMap } from './tables';
+import { TablesMap } from '@/lib/supabase/types/tables';
 
 export interface Database {
   public: {

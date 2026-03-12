@@ -29,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" suppressHydrationWarning>
-      <body className={`${monaSans.variable} antialiased`}>
+      <body className={monaSans.variable}>
         <AppProviders>
           <ConditionalLayout>{children}</ConditionalLayout>
         </AppProviders>

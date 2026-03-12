@@ -6,14 +6,19 @@ import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useRoles, useCreateRole, useUpdateRole, useDeleteRole } from '@/lib/hooks/use-roles';
 import type { Role } from '@/lib/services/role.service';
 import type { CreateRoleInput, UpdateRoleInput } from '@/lib/services/role.service';
-import { RolePageGap, RolePageMargin, RolePagePadding, RolePageText, createRoleColumns } from './constants';
+import {
+  RolePageGap,
+  RolePageMargin,
+  RolePagePadding,
+  RolePageText,
+  createRoleColumns,
+} from './constants';
 import type { RoleFormValues } from './components/RoleModal';
 import dynamic from 'next/dynamic';
 
-const RoleModal = dynamic(
-  () => import('./components/RoleModal').then((m) => m.RoleModal),
-  { ssr: false }
-);
+const RoleModal = dynamic(() => import('./components/RoleModal').then((m) => m.RoleModal), {
+  ssr: false,
+});
 
 export default function RolePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -25,20 +30,23 @@ export default function RolePage() {
   const updateRoleMutation = useUpdateRole();
   const deleteRoleMutation = useDeleteRole();
 
-  const handleOpenModal = useCallback((role?: Role) => {
-    if (role) {
-      setEditingRole(role);
-      form.setFieldsValue({
-        name: role.name,
-        code: role.code,
-        description: role.description || undefined,
-      });
-    } else {
-      setEditingRole(null);
-      form.resetFields();
-    }
-    setIsModalOpen(true);
-  }, [form]);
+  const handleOpenModal = useCallback(
+    (role?: Role) => {
+      if (role) {
+        setEditingRole(role);
+        form.setFieldsValue({
+          name: role.name,
+          code: role.code,
+          description: role.description || undefined,
+        });
+      } else {
+        setEditingRole(null);
+        form.resetFields();
+      }
+      setIsModalOpen(true);
+    },
+    [form],
+  );
 
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
@@ -66,7 +74,7 @@ export default function RolePage() {
               handleCloseModal();
             },
             onError,
-          }
+          },
         );
       } else {
         const payload: CreateRoleInput = values;
@@ -79,7 +87,7 @@ export default function RolePage() {
         });
       }
     },
-    [editingRole, updateRoleMutation, createRoleMutation, handleCloseModal]
+    [editingRole, updateRoleMutation, createRoleMutation, handleCloseModal],
   );
 
   const handleDelete = useCallback(
@@ -94,17 +102,19 @@ export default function RolePage() {
         },
       });
     },
-    [deleteRoleMutation]
+    [deleteRoleMutation],
   );
 
   const columns = useMemo(
-    () => createRoleColumns(handleOpenModal, handleDelete).map((col: any) => ({
-      ...col,
-      onCell: () => ({
-        'data-label': typeof col.title === 'string' ? col.title : '',
-      } as any),
-    })),
-    [handleOpenModal, handleDelete]
+    () =>
+      createRoleColumns(handleOpenModal, handleDelete).map((col: any) => ({
+        ...col,
+        onCell: () =>
+          ({
+            'data-label': typeof col.title === 'string' ? col.title : '',
+          }) as any,
+      })),
+    [handleOpenModal, handleDelete],
   );
 
   const handleRefresh = useCallback(() => {
@@ -124,7 +134,7 @@ export default function RolePage() {
     async (values: RoleFormValues) => {
       handleSubmit(values);
     },
-    [handleSubmit]
+    [handleSubmit],
   );
 
   return (
@@ -133,7 +143,11 @@ export default function RolePage() {
         padding: RolePagePadding.CONTAINER,
       }}
     >
-      <Row justify="space-between" align="middle" style={{ marginBottom: RolePageMargin.HEADER_BOTTOM }}>
+      <Row
+        justify="space-between"
+        align="middle"
+        style={{ marginBottom: RolePageMargin.HEADER_BOTTOM }}
+      >
         <Col>
           <Typography.Title level={1}>{RolePageText.TITLE}</Typography.Title>
         </Col>

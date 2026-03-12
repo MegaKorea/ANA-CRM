@@ -63,7 +63,7 @@ export type HandleDeleteRole = (id: number) => void;
 
 export function createRoleColumns(
   handleOpenModal: HandleOpenRoleModal,
-  handleDelete: HandleDeleteRole
+  handleDelete: HandleDeleteRole,
 ): ColumnsType<Role> {
   return [
     {

@@ -3,7 +3,7 @@ import { AppError } from '@/errors';
 import { HttpStatusCode, AuthErrorCode, UserStatusDb, AuthMessage } from '@/constants/enums';
 import type { LoginInput } from '@/lib/validators/auth.validator';
 import type { Tables, UpdateTables } from '@/types/supabase';
-import { handleSupabaseError } from '@/lib/utils/error-handler';
+
 
 type UserData = Pick<Tables<'users'>, 'id' | 'email' | 'full_name' | 'status'> & {
   roles: Pick<Tables<'roles'>, 'code'> | null;
@@ -40,6 +40,8 @@ export async function loginWithEmailAndPassword(
     password: input.password,
   });
 
+  console.log(authData, authError);
+
   if (authError) {
     if (authError.message.includes(AuthMessage.INVALID_CREDENTIALS)) {
       throw new AppError(
@@ -65,50 +67,37 @@ export async function loginWithEmailAndPassword(
     .from('users')
     .select('id, email, full_name, status, roles(code)')
     .eq('id', authData.user.id)
-    .single<UserData>();
+    .maybeSingle() as { data: UserData | null, error: any };
 
-  if (userError) {
-    handleSupabaseError(userError, {
-      notFoundErrorCode: AuthErrorCode.UNAUTHORIZED,
-      defaultErrorCode: AuthErrorCode.LOGIN_FAILED,
-    }, HttpStatusCode.INTERNAL_SERVER_ERROR);
+  if (userData) {
+    if (userData.status !== UserStatusDb.ACTIVE) {
+      throw new AppError(
+        AuthErrorCode.UNAUTHORIZED,
+        HttpStatusCode.UNAUTHORIZED
+      );
+    }
+
+    const updateData: UpdateTables<'users'> = { last_login: new Date().toISOString() };
+    await supabase.from('users').update(updateData as never).eq('id', authData.user.id);
+
+    return {
+      user: {
+        id: userData.id,
+        email: userData.email ?? input.email,
+        fullName: userData.full_name,
+        roleCode: userData.roles?.code ?? null,
+      },
+      session: {
+        accessToken: authData.session.access_token,
+        refreshToken: authData.session.refresh_token,
+      },
+    };
   }
 
-  if (!userData) {
-    throw new AppError(
-      AuthErrorCode.LOGIN_FAILED,
-      HttpStatusCode.INTERNAL_SERVER_ERROR
-    );
-  }
-
-  if (userData.status !== UserStatusDb.ACTIVE) {
-    throw new AppError(
-      AuthErrorCode.UNAUTHORIZED,
-      HttpStatusCode.UNAUTHORIZED
-    );
-  }
-
-  const updateData: UpdateTables<'users'> = { last_login: new Date().toISOString() };
-
-  await supabase
-    .from('users')
-    .update(updateData as never)
-    .eq('id', authData.user.id);
-
-  const userEmail = userData.email ?? input.email;
-
-  return {
-    user: {
-      id: userData.id,
-      email: userEmail,
-      fullName: userData.full_name,
-      roleCode: userData.roles?.code ?? null,
-    },
-    session: {
-      accessToken: authData.session.access_token,
-      refreshToken: authData.session.refresh_token,
-    },
-  };
+  throw new AppError(
+    AuthErrorCode.LOGIN_FAILED,
+    HttpStatusCode.INTERNAL_SERVER_ERROR
+  );
 }
 
 export async function getCurrentUser(): Promise<CurrentUser> {
@@ -130,29 +119,22 @@ export async function getCurrentUser(): Promise<CurrentUser> {
     .from('users')
     .select('id, email, full_name, status, roles(code)')
     .eq('id', authUser.id)
-    .single<UserData>();
+    .maybeSingle() as { data: UserData | null, error: any };
 
-  if (userError) {
-    handleSupabaseError(userError, {
-      notFoundErrorCode: AuthErrorCode.UNAUTHORIZED,
-      defaultErrorCode: AuthErrorCode.UNAUTHORIZED,
-    }, HttpStatusCode.UNAUTHORIZED);
+  if (userData) {
+    return {
+      id: userData.id,
+      email: userData.email,
+      fullName: userData.full_name,
+      status: userData.status,
+      roleCode: userData.roles?.code ?? null,
+    };
   }
 
-  if (!userData) {
-    throw new AppError(
-      AuthErrorCode.UNAUTHORIZED,
-      HttpStatusCode.UNAUTHORIZED
-    );
-  }
-
-  return {
-    id: userData.id,
-    email: userData.email,
-    fullName: userData.full_name,
-    status: userData.status,
-    roleCode: userData.roles?.code ?? null,
-  };
+  throw new AppError(
+    AuthErrorCode.UNAUTHORIZED,
+    HttpStatusCode.UNAUTHORIZED
+  );
 }
 
 export async function logout(): Promise<void> {

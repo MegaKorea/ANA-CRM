@@ -3,7 +3,7 @@ import { HttpStatusCode, LeadErrorCode, LeadStatus, AttendanceStatus, Validation
 import { validateEmailField } from '@/lib/utils/validation';
 import { formatPhoneToE164, validateE164Format, formatPhoneToLocal } from '@/lib/utils/phone';
 import type { LocationValue } from '@/components/common';
-import type { NoteItem } from '@/types/tables/leads';
+import type { NoteItem } from '@/lib/supabase/types/tables/leads';
 
 export interface CreateLeadInput {
   email?: string;

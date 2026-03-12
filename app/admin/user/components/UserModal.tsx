@@ -1,6 +1,17 @@
 'use client';
 
-import { Modal, Form, Input, Select, DatePicker, InputNumber, Button, Row, Col, message } from 'antd';
+import {
+  Modal,
+  Form,
+  Input,
+  Select,
+  DatePicker,
+  InputNumber,
+  Button,
+  Row,
+  Col,
+  message,
+} from 'antd';
 import type { User } from '@/lib/services/user.service';
 import type { Role } from '@/lib/services/role.service';
 import { generateStrongPassword } from '@/lib/utils/password';
@@ -39,8 +50,6 @@ export function UserModal({
   onClose,
   onSubmit,
 }: UserModalProps) {
-
-  
   const handleGeneratePassword = () => {
     const password = generateStrongPassword();
     form.setFieldsValue({ password });
@@ -108,19 +117,21 @@ export function UserModal({
             <Form.Item<UserFormValues> name="sex" label={UserPageText.FIELD_SEX_LABEL}>
               <Select
                 placeholder={UserPageText.FIELD_SEX_PLACEHOLDER}
-                options={
-                  Object.values(Sex).map((sex) => ({
-                    label: SexLabel[sex],
-                    value: sex,
-                  }))
-                }
+                options={Object.values(Sex).map((sex) => ({
+                  label: SexLabel[sex],
+                  value: sex,
+                }))}
               />
             </Form.Item>
           </Col>
 
           {!editingUser && (
             <Col xs={24} md={12}>
-              <Form.Item<UserFormValues> name="password" label={UserPageText.FIELD_PASSWORD_LABEL} required>
+              <Form.Item<UserFormValues>
+                name="password"
+                label={UserPageText.FIELD_PASSWORD_LABEL}
+                required
+              >
                 <Input.Password
                   placeholder={UserPageText.FIELD_PASSWORD_PLACEHOLDER}
                   addonAfter={
@@ -135,10 +146,7 @@ export function UserModal({
 
           <Col xs={24} md={24}>
             <Form.Item<UserFormValues> name="address" label={UserPageText.FIELD_ADDRESS_LABEL}>
-              <Input.TextArea
-                rows={3}
-                placeholder={UserPageText.FIELD_ADDRESS_PLACEHOLDER}
-              />
+              <Input.TextArea rows={3} placeholder={UserPageText.FIELD_ADDRESS_PLACEHOLDER} />
             </Form.Item>
           </Col>
 
@@ -188,4 +196,3 @@ export function UserModal({
     </Modal>
   );
 }
-

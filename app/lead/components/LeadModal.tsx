@@ -1,6 +1,17 @@
 'use client';
 
-import { Drawer, Form, Input, InputNumber, Select, DatePicker, Row, Col, Space, Button } from 'antd';
+import {
+  Drawer,
+  Form,
+  Input,
+  InputNumber,
+  Select,
+  DatePicker,
+  Row,
+  Col,
+  Space,
+  Button,
+} from 'antd';
 import type { Lead } from '@/lib/services/lead.service';
 import { LeadSourceLabel, LeadStatusLabel, LeadPageText, Ethnicity } from '@/app/lead/constants';
 import { LeadSource, LeadStatus } from '@/constants/enums';
@@ -84,9 +95,7 @@ export function LeadModal({
             <Form.Item
               name="full_name"
               label={LeadPageText.FIELD_FULL_NAME_LABEL}
-              rules={[
-                { required: true, message: LeadPageText.FIELD_FULL_NAME_PLACEHOLDER },
-              ]}
+              rules={[{ required: true, message: LeadPageText.FIELD_FULL_NAME_PLACEHOLDER }]}
             >
               <Input placeholder={LeadPageText.FIELD_FULL_NAME_PLACEHOLDER} />
             </Form.Item>
@@ -96,28 +105,20 @@ export function LeadModal({
             <Form.Item
               name="email"
               label={LeadPageText.FIELD_EMAIL_LABEL}
-              rules={[
-                { type: 'email', message: LeadPageText.FIELD_EMAIL_PLACEHOLDER },
-              ]}
+              rules={[{ type: 'email', message: LeadPageText.FIELD_EMAIL_PLACEHOLDER }]}
             >
               <Input placeholder={LeadPageText.FIELD_EMAIL_PLACEHOLDER} />
             </Form.Item>
           </Col>
 
           <Col span={8}>
-            <Form.Item
-              name="phone_number"
-              label={LeadPageText.FIELD_PHONE_NUMBER_LABEL}
-            >
+            <Form.Item name="phone_number" label={LeadPageText.FIELD_PHONE_NUMBER_LABEL}>
               <Input placeholder={LeadPageText.FIELD_PHONE_NUMBER_PLACEHOLDER} />
             </Form.Item>
           </Col>
 
           <Col span={6}>
-            <Form.Item
-              name="date_of_birth"
-              label={LeadPageText.FIELD_DATE_OF_BIRTH_LABEL}
-            >
+            <Form.Item name="date_of_birth" label={LeadPageText.FIELD_DATE_OF_BIRTH_LABEL}>
               <Select
                 placeholder="Chọn năm"
                 allowClear
@@ -129,28 +130,19 @@ export function LeadModal({
           </Col>
 
           <Col span={6}>
-            <Form.Item
-              name="place_of_birth"
-              label={LeadPageText.FIELD_PLACE_OF_BIRTH_LABEL}
-            >
+            <Form.Item name="place_of_birth" label={LeadPageText.FIELD_PLACE_OF_BIRTH_LABEL}>
               <LocationSelect onlyProvince disabled={Boolean(isSubmitting)} />
             </Form.Item>
           </Col>
 
           <Col span={6}>
-            <Form.Item
-              name="citizen_id"
-              label={LeadPageText.FIELD_CITIZEN_ID_LABEL}
-            >
+            <Form.Item name="citizen_id" label={LeadPageText.FIELD_CITIZEN_ID_LABEL}>
               <Input />
             </Form.Item>
           </Col>
 
           <Col span={6}>
-            <Form.Item
-              name="ethnicity"
-              label={LeadPageText.FIELD_ETHNICITY_LABEL}
-            >
+            <Form.Item name="ethnicity" label={LeadPageText.FIELD_ETHNICITY_LABEL}>
               <Select
                 options={Ethnicity.map((ethnicity) => ({
                   label: ethnicity,
@@ -161,29 +153,19 @@ export function LeadModal({
           </Col>
 
           <Col span={24}>
-            <Form.Item
-              name="place_of_origin"
-              label={LeadPageText.FIELD_PLACE_OF_ORIGIN_LABEL}
-            >
+            <Form.Item name="place_of_origin" label={LeadPageText.FIELD_PLACE_OF_ORIGIN_LABEL}>
               <LocationSelect disabled={Boolean(isSubmitting)} />
             </Form.Item>
           </Col>
 
           <Col span={24}>
-            <Form.Item
-              name="current_address"
-              label={LeadPageText.FIELD_CURRENT_ADDRESS_LABEL}
-            >
+            <Form.Item name="current_address" label={LeadPageText.FIELD_CURRENT_ADDRESS_LABEL}>
               <LocationSelect disabled={Boolean(isSubmitting)} />
             </Form.Item>
           </Col>
 
-
           <Col span={8}>
-            <Form.Item
-              name="source"
-              label={LeadPageText.FIELD_SOURCE_LABEL}
-            >
+            <Form.Item name="source" label={LeadPageText.FIELD_SOURCE_LABEL}>
               <Select
                 options={Object.values(LeadSource).map((source) => ({
                   label: LeadSourceLabel[source as keyof typeof LeadSourceLabel],
@@ -194,10 +176,7 @@ export function LeadModal({
           </Col>
 
           <Col span={8}>
-            <Form.Item
-              name="status"
-              label={LeadPageText.FIELD_STATUS_LABEL}
-            >
+            <Form.Item name="status" label={LeadPageText.FIELD_STATUS_LABEL}>
               <Select
                 options={Object.values(LeadStatus).map((status) => ({
                   label: LeadStatusLabel[status as keyof typeof LeadStatusLabel],
@@ -208,10 +187,7 @@ export function LeadModal({
           </Col>
 
           <Col span={8}>
-            <Form.Item
-              name="course_ids"
-              label={LeadPageText.FIELD_COURSE_IDS_LABEL}
-            >
+            <Form.Item name="course_ids" label={LeadPageText.FIELD_COURSE_IDS_LABEL}>
               <Select
                 mode="multiple"
                 allowClear
@@ -260,7 +236,6 @@ export function LeadModal({
               <DatePicker showTime style={{ width: '100%' }} format="DD/MM/YYYY HH:mm" />
             </Form.Item>
           </Col>
-
         </Row>
       </Form>
     </Drawer>

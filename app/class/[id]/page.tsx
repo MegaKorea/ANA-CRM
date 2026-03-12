@@ -1,5 +1,6 @@
 'use client';
 
+import styles from './page.module.scss';
 import { Tabs, Spin, Typography, Card, Breadcrumb, Space, Tag, Result, Button } from 'antd';
 import { HomeOutlined } from '@ant-design/icons';
 import { useParams, useRouter } from 'next/navigation';
@@ -15,100 +16,129 @@ import { getClassStatusMeta } from '@/lib/constants/classStatus';
 const { Title, Text } = Typography;
 
 export default function ClassDetailPage() {
-    const params = useParams();
-    const router = useRouter();
-    const classId = params.id as string;
+  const params = useParams();
+  const router = useRouter();
+  const classId = params.id as string;
 
-    const { hasPermission, isLoading: isAuthLoading } = useAuthPermission(['ADMIN', 'AO', 'STU', 'TEA']);
-    const { data: classData, isLoading: isClassLoading } = useClass(classId);
+  const { hasPermission, isLoading: isAuthLoading } = useAuthPermission([
+    'ADMIN',
+    'AO',
+    'STU',
+    'TEA',
+  ]);
+  const { data: classData, isLoading: isClassLoading } = useClass(classId);
 
-    const isLoading = isAuthLoading || isClassLoading;
+  const isLoading = isAuthLoading || isClassLoading;
 
-    if (isLoading) {
-        return <div className="p-8 flex justify-center h-full items-center"><Spin size="large" /></div>;
-    }
-
-    if (!hasPermission) {
-        return (
-            <div className="flex h-full w-full items-center justify-center p-8">
-                <Result
-                    status="403"
-                    title="403"
-                    subTitle="Xin lỗi, bạn không có quyền truy cập trang này."
-                    extra={
-                        <Button type="primary" onClick={() => router.push('/')}>
-                            Trở về trang chủ
-                        </Button>
-                    }
-                />
-            </div>
-        );
-    }
-
-    if (!classData) {
-        return <div className="p-8 text-center h-full flex items-center justify-center"><Text type="secondary">Không tìm thấy thông tin lớp học.</Text></div>;
-    }
-
-    const statusMeta = getClassStatusMeta(classData.status);
-
+  if (isLoading) {
     return (
-        <div className="p-6 h-full overflow-y-auto">
-            <Breadcrumb style={{ marginBottom: 16 }}>
-                <Breadcrumb.Item href="/">
-                    <HomeOutlined />
-                </Breadcrumb.Item>
-                <Breadcrumb.Item href="/class">
-                    Danh sách lớp học
-                </Breadcrumb.Item>
-                <Breadcrumb.Item>
-                    {classData.name} {classData.code ? `(${classData.code})` : ''}
-                </Breadcrumb.Item>
-            </Breadcrumb>
-
-            <div style={{ marginBottom: 24 }}>
-                <Space align="center" size="large">
-                    <Title level={2} style={{ margin: 0 }}>
-                        {classData.name}
-                    </Title>
-                    <Tag color={statusMeta.color} style={{ fontSize: 14, padding: '4px 8px' }}>
-                        {statusMeta.label}
-                    </Tag>
-                </Space>
-                {classData.courses && (
-                    <div style={{ marginTop: 8 }}>
-                        <Text type="secondary">Khóa học: </Text>
-                        <Text strong>{classData.courses.name}</Text>
-                    </div>
-                )}
-            </div>
-
-            <Card className="h-full">
-                <Tabs
-                    defaultActiveKey="basic_info"
-                    items={[
-                        {
-                            label: 'Thông tin cơ bản',
-                            key: 'basic_info',
-                            children: <TabBasicInfo classData={classData} />,
-                        },
-                        {
-                            label: 'Giáo viên',
-                            key: 'teachers',
-                            children: <TabTeachers classData={classData} />,
-                        },
-                        {
-                            label: 'Học viên',
-                            key: 'students',
-                            children: <TabStudents classData={classData} />,
-                        },
-                        {
-                            label: 'Thời khóa biểu',
-                            key: 'schedule',
-                            children: <TabSchedule classData={classData} />,
-                        },
-                    ]}
-                />
-            </Card>
-        </div>
+      <div className={styles.loadingContainer}>
+        <Spin size="large" />
+      </div>
     );
+  }
+
+  if (!hasPermission) {
+    return (
+      <div className={styles.errorContainer}>
+        <Result
+          status="403"
+          title="403"
+          subTitle="Xin lỗi, bạn không có quyền truy cập trang này."
+          extra={
+            <Button type="primary" onClick={() => router.push('/')}>
+              Trở về trang chủ
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+  if (!classData) {
+    return (
+      <div className={styles.notFoundContainer}>
+        <Text type="secondary">Không tìm thấy thông tin lớp học.</Text>
+      </div>
+    );
+  }
+
+  const statusMeta = getClassStatusMeta(classData.status);
+
+  return (
+    <div className={styles.pageContainer}>
+      <Breadcrumb className={styles.breadcrumb}>
+        <Breadcrumb.Item href="/">
+          <HomeOutlined />
+        </Breadcrumb.Item>
+        <Breadcrumb.Item href="/class">
+          <span className={styles.breadcrumbTextDesktop}>Danh sách lớp học</span>
+          <span className={styles.breadcrumbTextMobile}>Lớp học</span>
+        </Breadcrumb.Item>
+        <Breadcrumb.Item>
+          <span className={styles.breadcrumbClassName}>
+            {classData.name} {classData.code ? `(${classData.code})` : ''}
+          </span>
+        </Breadcrumb.Item>
+      </Breadcrumb>
+
+      <div className={styles.headerContainer}>
+        <div className={styles.titleRow}>
+          <Title level={2} className={styles.pageTitle}>
+            {classData.name}
+          </Title>
+          <div className={styles.tagWrapper}>
+            <Tag color={statusMeta.color} className={styles.statusTag}>
+              {statusMeta.label}
+            </Tag>
+          </div>
+        </div>
+        {classData.courses && (
+          <div className={styles.courseInfo}>
+            <Text type="secondary" className={styles.courseLabel}>
+              Khóa học:{' '}
+            </Text>
+            <Text strong className={styles.courseName}>
+              {classData.courses.name}
+            </Text>
+          </div>
+        )}
+      </div>
+
+      <Card
+        className={styles.cardContainer}
+        styles={{
+          body: { padding: '12px 24px' }, // Fix from padding '12px sm:24px' string notation tailwind -> regular string since dynamic css shouldn't apply here in tailwind syntax anyway
+        }}
+      >
+        <Tabs
+          defaultActiveKey="basic_info"
+          size="small"
+          className={styles.tabsContainer}
+          items={[
+            {
+              label: 'Thông tin cơ bản',
+              key: 'basic_info',
+              children: <TabBasicInfo classData={classData} />,
+            },
+            {
+              label: 'Giáo viên',
+              key: 'teachers',
+              children: <TabTeachers classData={classData} />,
+            },
+            {
+              label: 'Học viên',
+              key: 'students',
+              children: <TabStudents classData={classData} />,
+            },
+            {
+              label: 'Lịch học',
+              key: 'schedule',
+              children: <TabSchedule classData={classData} />,
+            },
+          ]}
+        />
+      </Card>
+    </div>
+  );
 }

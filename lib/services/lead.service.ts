@@ -1,12 +1,12 @@
 import { createAdminClient } from '@/lib/supabase/admin';
-import type { Tables, UpdateTables, InsertTables } from '@/types/supabase';
 import { handleServiceError, handleSupabaseError, validateDataExists } from '@/lib/utils/error-handler';
 import { LeadErrorCode, LeadStatus } from '@/constants/enums';
 import type { CreateLeadInput, UpdateLeadInput } from '@/lib/validators/lead.validator';
 import { buildUpdateByRules } from '@/app/utils/buildUpdateByRules';
+import { LeadsTable } from '../supabase/types/tables/leads';
+import type { InsertTables, UpdateTables } from '@/types/supabase';
 
-
-export type Lead = Tables<'leads'>;
+export type Lead = LeadsTable['Row'];
 
 export interface LeadQueryParams {
   search?: string;
@@ -58,12 +58,10 @@ export async function fetchAllLeads(params?: LeadQueryParams): Promise<Paginated
     }
 
     if (params?.endDate) {
-      // Append end-of-day time so the filter includes the entire endDate day
       const endOfDay = params.endDate.includes('T') ? params.endDate : `${params.endDate}T23:59:59.999Z`;
       query = query.lte('created_at', endOfDay);
     }
 
-    // Order by created_at desc
     query = query.order('created_at', { ascending: false });
 
     if (params?.page && params?.limit) {

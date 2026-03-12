@@ -1,7 +1,27 @@
 import React, { useState } from 'react';
-import { Row, Col, Card, Statistic, DatePicker, Table, Typography, Space, message, theme, List, Divider } from 'antd';
+import {
+    Row,
+    Col,
+    Card,
+    Statistic,
+    DatePicker,
+    Table,
+    Typography,
+    Space,
+    message,
+    theme,
+    List,
+    Divider,
+} from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
-import { DollarOutlined, UserOutlined, FacebookOutlined, WalletOutlined, CreditCardOutlined } from '@ant-design/icons';
+import {
+    DollarOutlined,
+    UserOutlined,
+    FacebookOutlined,
+    WalletOutlined,
+    CreditCardOutlined,
+    DatabaseOutlined,
+} from '@ant-design/icons';
 import { DateFormat } from '@/constants/enums';
 import { useQuery } from '@tanstack/react-query';
 import { useIsMobile } from '@/lib/hooks/use-mobile';
@@ -53,17 +73,19 @@ const fetchStatisticsData = async (startDate: string, endDate: string) => {
             fbData = await fbRes.json();
         }
     } catch (fbErr) {
-        console.warn("Facebook API error", fbErr);
+        console.warn('Facebook API error', fbErr);
     }
 
     let totalSpend = 0;
     let totalMessages = 0;
-    const fbMap = new Map<string, { spend: number, messages: number }>();
+    const fbMap = new Map<string, { spend: number; messages: number }>();
 
     if (Array.isArray(fbData)) {
         fbData.forEach((row: FBApiResponse) => {
             const rowSpend = parseFloat(row.spend || '0');
-            const messageAction = row.actions?.find(a => a.action_type === 'onsite_conversion.messaging_conversation_started_7d');
+            const messageAction = row.actions?.find(
+                (a) => a.action_type === 'onsite_conversion.messaging_conversation_started_7d',
+            );
             const rowMessages = messageAction ? parseInt(messageAction.value || '0', 10) : 0;
 
             totalSpend += rowSpend;
@@ -77,12 +99,12 @@ const fetchStatisticsData = async (startDate: string, endDate: string) => {
         });
     }
 
-    const finalChartData = (leadData.chartData as ChartDataRow[]).map(row => {
+    const finalChartData = (leadData.chartData as ChartDataRow[]).map((row) => {
         const fbStats = fbMap.get(row.date);
         return {
             ...row,
             fbSpend: fbStats?.spend || 0,
-            fbMessages: fbStats?.messages || 0
+            fbMessages: fbStats?.messages || 0,
         };
     });
 
@@ -100,7 +122,7 @@ export function LeadStatistics() {
     const { hasPermission: isAdmin } = useAuthPermission(['ADMIN']);
     const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>([
         dayjs(),
-        dayjs()
+        dayjs(),
     ]);
 
     const startDate = dateRange?.[0]?.format(DateFormat.ISO_DATE) || '';
@@ -123,31 +145,76 @@ export function LeadStatistics() {
         fbTotalMessages: 0,
     };
 
+    const totalLeads = chartData.reduce((acc: number, curr: ChartDataRow) => acc + (curr.totalLeads || 0), 0);
+
+
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
     };
 
     const columns = [
-        { title: 'Ngày', dataIndex: 'date', key: 'date', render: (val: string) => dayjs(val).format('DD/MM/YYYY') },
+        {
+            title: 'Ngày',
+            dataIndex: 'date',
+            key: 'date',
+            render: (val: string) => dayjs(val).format('DD/MM/YYYY'),
+        },
         { title: 'Tương Tác', dataIndex: 'fbMessages', key: 'fbMessages' },
         { title: 'Data', dataIndex: 'totalLeads', key: 'totalLeads' },
         { title: 'Đăng ký', dataIndex: 'registeredLeads', key: 'registeredLeads' },
         { title: 'Lịch hẹn', dataIndex: 'totalAppointments', key: 'totalAppointments' },
         { title: 'Đến tư vấn', dataIndex: 'arrivedAppointments', key: 'arrivedAppointments' },
-        { title: 'Doanh số', dataIndex: 'salesAmount', key: 'salesAmount', render: (val: number) => formatCurrency(val) },
-        { title: 'Doanh thu', dataIndex: 'deposit', key: 'deposit', render: (val: number) => formatCurrency(val) },
-        { title: 'Công nợ', dataIndex: 'outstandingBalance', key: 'outstandingBalance', render: (val: number) => formatCurrency(val) },
-        ...(isAdmin ? [{ title: 'Chi Tiêu', dataIndex: 'fbSpend', key: 'fbSpend', render: (val: number) => formatCurrency(val) }] : []),
+        {
+            title: 'Doanh số',
+            dataIndex: 'salesAmount',
+            key: 'salesAmount',
+            render: (val: number) => formatCurrency(val),
+        },
+        {
+            title: 'Doanh thu',
+            dataIndex: 'deposit',
+            key: 'deposit',
+            render: (val: number) => formatCurrency(val),
+        },
+        {
+            title: 'Công nợ',
+            dataIndex: 'outstandingBalance',
+            key: 'outstandingBalance',
+            render: (val: number) => formatCurrency(val),
+        },
+        ...(isAdmin
+            ? [
+                {
+                    title: 'Chi Tiêu',
+                    dataIndex: 'fbSpend',
+                    key: 'fbSpend',
+                    render: (val: number) => formatCurrency(val),
+                },
+            ]
+            : []),
     ];
 
     return (
         <div style={{ marginTop: 16 }}>
             <Row justify="space-between" align="middle" style={{ marginBottom: 16 }} gutter={[16, 16]}>
                 <Col xs={24} md={12}>
-                    <Title level={4} style={{ margin: 0 }}>Thống kê tổng quan</Title>
+                    <Title level={4} style={{ margin: 0 }}>
+                        Thống kê tổng quan
+                    </Title>
                 </Col>
-                <Col xs={24} md={12} style={{ display: 'flex', justifyContent: isMobile ? 'flex-start' : 'flex-end', width: '100%' }}>
-                    <Space direction={isMobile ? 'vertical' : 'horizontal'} style={{ width: isMobile ? '100%' : 'auto' }}>
+                <Col
+                    xs={24}
+                    md={12}
+                    style={{
+                        display: 'flex',
+                        justifyContent: isMobile ? 'flex-start' : 'flex-end',
+                        width: '100%',
+                    }}
+                >
+                    <Space
+                        direction={isMobile ? 'vertical' : 'horizontal'}
+                        style={{ width: isMobile ? '100%' : 'auto' }}
+                    >
                         <span style={{ fontWeight: 500 }}>Bộ lọc ngày:</span>
                         {!isMobile ? (
                             <RangePicker
@@ -183,7 +250,14 @@ export function LeadStatistics() {
 
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                 <Col xs={24} sm={12} md={8}>
-                    <Card size="small" style={{ borderColor: token.colorSuccessBorder, backgroundColor: token.colorSuccessBg, borderRadius: 12 }}>
+                    <Card
+                        size="small"
+                        style={{
+                            borderColor: token.colorSuccessBorder,
+                            backgroundColor: token.colorSuccessBg,
+                            borderRadius: 12,
+                        }}
+                    >
                         <Statistic
                             title="Tổng Doanh Số"
                             value={summary.totalSales}
@@ -194,7 +268,14 @@ export function LeadStatistics() {
                     </Card>
                 </Col>
                 <Col xs={24} sm={12} md={8}>
-                    <Card size="small" style={{ borderColor: token.colorInfoBorder, backgroundColor: token.colorInfoBg, borderRadius: 12 }}>
+                    <Card
+                        size="small"
+                        style={{
+                            borderColor: token.colorInfoBorder,
+                            backgroundColor: token.colorInfoBg,
+                            borderRadius: 12,
+                        }}
+                    >
                         <Statistic
                             title="Tổng Doanh Thu (Cọc)"
                             value={summary.totalDeposit}
@@ -205,7 +286,14 @@ export function LeadStatistics() {
                     </Card>
                 </Col>
                 <Col xs={24} sm={12} md={8}>
-                    <Card size="small" style={{ borderColor: token.colorErrorBorder, backgroundColor: token.colorErrorBg, borderRadius: 12 }}>
+                    <Card
+                        size="small"
+                        style={{
+                            borderColor: token.colorErrorBorder,
+                            backgroundColor: token.colorErrorBg,
+                            borderRadius: 12,
+                        }}
+                    >
                         <Statistic
                             title="Tổng Công Nợ"
                             value={summary.totalDebt}
@@ -219,8 +307,15 @@ export function LeadStatistics() {
 
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                 {isAdmin && (
-                    <Col xs={24} sm={12}>
-                        <Card size="small" style={{ borderColor: token.colorPrimaryBorder, backgroundColor: token.colorPrimaryBg, borderRadius: 12 }}>
+                    <Col xs={24} sm={12} md={8}>
+                        <Card
+                            size="small"
+                            style={{
+                                borderColor: token.colorPrimaryBorder,
+                                backgroundColor: token.colorPrimaryBg,
+                                borderRadius: 12,
+                            }}
+                        >
                             <Statistic
                                 title="Chi Tiêu"
                                 value={fbTotalSpend}
@@ -231,8 +326,15 @@ export function LeadStatistics() {
                         </Card>
                     </Col>
                 )}
-                <Col xs={24} sm={12}>
-                    <Card size="small" style={{ borderColor: token.colorWarningBorder, backgroundColor: token.colorWarningBg, borderRadius: 12 }}>
+                <Col xs={24} sm={12} md={isAdmin ? 8 : 12}>
+                    <Card
+                        size="small"
+                        style={{
+                            borderColor: token.colorWarningBorder,
+                            backgroundColor: token.colorWarningBg,
+                            borderRadius: 12,
+                        }}
+                    >
                         <Statistic
                             title="Tương Tác"
                             value={fbTotalMessages}
@@ -241,10 +343,29 @@ export function LeadStatistics() {
                         />
                     </Card>
                 </Col>
+                <Col xs={24} sm={12} md={isAdmin ? 8 : 12}>
+                    <Card
+                        size="small"
+                        style={{
+                            borderColor: token.colorSuccessBorder,
+                            backgroundColor: token.colorSuccessBg,
+                            borderRadius: 12,
+                        }}
+                    >
+                        <Statistic
+                            title="Tổng Data"
+                            value={totalLeads}
+                            prefix={<DatabaseOutlined />}
+                            valueStyle={{ color: token.colorSuccessText, fontWeight: 'bold' }}
+                        />
+                    </Card>
+                </Col>
             </Row>
 
             <Card style={{ marginTop: 16, borderRadius: 12 }}>
-                <Title level={5} style={{ marginBottom: 16 }}>Bảng thống kê theo ngày</Title>
+                <Title level={5} style={{ marginBottom: 16 }}>
+                    Bảng thống kê theo ngày
+                </Title>
                 {!isMobile ? (
                     <Table
                         columns={columns}
@@ -265,20 +386,34 @@ export function LeadStatistics() {
                             let tFbSpend = 0;
                             let tFbMsgs = 0;
 
-                            pageData.forEach(({ totalLeads, registeredLeads, totalAppointments, arrivedAppointments, salesAmount, deposit, outstandingBalance, fbSpend, fbMessages }) => {
-                                tLeads += totalLeads;
-                                tRegLeads += registeredLeads;
-                                tAppts += totalAppointments;
-                                tArrAppts += arrivedAppointments;
-                                tSales += salesAmount;
-                                tDep += deposit;
-                                tDebt += outstandingBalance;
-                                tFbSpend += (fbSpend || 0);
-                                tFbMsgs += (fbMessages || 0);
-                            });
+                            pageData.forEach(
+                                ({
+                                    totalLeads,
+                                    registeredLeads,
+                                    totalAppointments,
+                                    arrivedAppointments,
+                                    salesAmount,
+                                    deposit,
+                                    outstandingBalance,
+                                    fbSpend,
+                                    fbMessages,
+                                }) => {
+                                    tLeads += totalLeads;
+                                    tRegLeads += registeredLeads;
+                                    tAppts += totalAppointments;
+                                    tArrAppts += arrivedAppointments;
+                                    tSales += salesAmount;
+                                    tDep += deposit;
+                                    tDebt += outstandingBalance;
+                                    tFbSpend += fbSpend || 0;
+                                    tFbMsgs += fbMessages || 0;
+                                },
+                            );
 
                             return (
-                                <Table.Summary.Row style={{ backgroundColor: token.colorFillAlter, fontWeight: 'bold' }}>
+                                <Table.Summary.Row
+                                    style={{ backgroundColor: token.colorFillAlter, fontWeight: 'bold' }}
+                                >
                                     <Table.Summary.Cell index={0}>Tổng cộng</Table.Summary.Cell>
                                     <Table.Summary.Cell index={1}>{tFbMsgs}</Table.Summary.Cell>
                                     <Table.Summary.Cell index={2}>{tLeads}</Table.Summary.Cell>
@@ -288,7 +423,9 @@ export function LeadStatistics() {
                                     <Table.Summary.Cell index={6}>{formatCurrency(tSales)}</Table.Summary.Cell>
                                     <Table.Summary.Cell index={7}>{formatCurrency(tDep)}</Table.Summary.Cell>
                                     <Table.Summary.Cell index={8}>{formatCurrency(tDebt)}</Table.Summary.Cell>
-                                    {isAdmin && <Table.Summary.Cell index={9}>{formatCurrency(tFbSpend)}</Table.Summary.Cell>}
+                                    {isAdmin && (
+                                        <Table.Summary.Cell index={9}>{formatCurrency(tFbSpend)}</Table.Summary.Cell>
+                                    )}
                                 </Table.Summary.Row>
                             );
                         }}
@@ -299,16 +436,30 @@ export function LeadStatistics() {
                         loading={isLoading}
                         renderItem={(item) => (
                             <List.Item style={{ padding: 0, marginBottom: 16 }}>
-                                <Card size="small" style={{ width: '100%', borderColor: token.colorBorder, borderRadius: 8 }}>
-                                    <Title level={5} style={{ margin: 0, paddingBottom: 8, borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+                                <Card
+                                    size="small"
+                                    style={{ width: '100%', borderColor: token.colorBorder, borderRadius: 8 }}
+                                >
+                                    <Title
+                                        level={5}
+                                        style={{
+                                            margin: 0,
+                                            paddingBottom: 8,
+                                            borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                                        }}
+                                    >
                                         {dayjs(item.date).format('DD/MM/YYYY')}
                                     </Title>
 
                                     <Row gutter={[8, 8]} style={{ marginTop: 8 }}>
                                         {isAdmin && (
                                             <Col span={12}>
-                                                <div style={{ color: token.colorTextSecondary, fontSize: 12 }}>Chi tiêu</div>
-                                                <div style={{ fontWeight: 'bold', color: token.colorPrimaryText }}>{formatCurrency(item.fbSpend || 0)}</div>
+                                                <div style={{ color: token.colorTextSecondary, fontSize: 12 }}>
+                                                    Chi tiêu
+                                                </div>
+                                                <div style={{ fontWeight: 'bold', color: token.colorPrimaryText }}>
+                                                    {formatCurrency(item.fbSpend || 0)}
+                                                </div>
                                             </Col>
                                         )}
                                         <Col span={12}>
@@ -329,8 +480,15 @@ export function LeadStatistics() {
                                             <div style={{ fontWeight: 500 }}>{item.registeredLeads}</div>
                                         </Col>
                                         <Col span={12}>
-                                            <div style={{ color: token.colorTextSecondary, fontSize: 12 }}>Lịch hẹn / Khách đến</div>
-                                            <div style={{ fontWeight: 500 }}>{item.totalAppointments} / <span style={{ color: token.colorSuccessText }}>{item.arrivedAppointments}</span></div>
+                                            <div style={{ color: token.colorTextSecondary, fontSize: 12 }}>
+                                                Lịch hẹn / Khách đến
+                                            </div>
+                                            <div style={{ fontWeight: 500 }}>
+                                                {item.totalAppointments} /{' '}
+                                                <span style={{ color: token.colorSuccessText }}>
+                                                    {item.arrivedAppointments}
+                                                </span>
+                                            </div>
                                         </Col>
                                     </Row>
 
@@ -339,11 +497,15 @@ export function LeadStatistics() {
                                     <Row gutter={[8, 8]}>
                                         <Col span={12}>
                                             <div style={{ color: token.colorTextSecondary, fontSize: 12 }}>Doanh số</div>
-                                            <div style={{ fontWeight: 500, color: token.colorSuccessText }}>{formatCurrency(item.salesAmount)}</div>
+                                            <div style={{ fontWeight: 500, color: token.colorSuccessText }}>
+                                                {formatCurrency(item.salesAmount)}
+                                            </div>
                                         </Col>
                                         <Col span={12}>
                                             <div style={{ color: token.colorTextSecondary, fontSize: 12 }}>Công nợ</div>
-                                            <div style={{ fontWeight: 500, color: token.colorErrorText }}>{formatCurrency(item.outstandingBalance)}</div>
+                                            <div style={{ fontWeight: 500, color: token.colorErrorText }}>
+                                                {formatCurrency(item.outstandingBalance)}
+                                            </div>
                                         </Col>
                                     </Row>
                                 </Card>

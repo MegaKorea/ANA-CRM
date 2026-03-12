@@ -42,11 +42,7 @@ export function RoleModal({
       destroyOnHidden
       centered
     >
-      <Form<RoleFormValues>
-        form={form}
-        layout="vertical"
-        onFinish={onSubmit}
-      >
+      <Form<RoleFormValues> form={form} layout="vertical" onFinish={onSubmit}>
         <Form.Item<RoleFormValues>
           name="name"
           label={RolePageText.FIELD_NAME_LABEL}
@@ -73,14 +69,8 @@ export function RoleModal({
           <Input placeholder={RolePageText.FIELD_CODE_PLACEHOLDER} />
         </Form.Item>
 
-        <Form.Item<RoleFormValues>
-          name="description"
-          label={RolePageText.FIELD_DESCRIPTION_LABEL}
-        >
-          <Input.TextArea
-            rows={4}
-            placeholder={RolePageText.FIELD_DESCRIPTION_PLACEHOLDER}
-          />
+        <Form.Item<RoleFormValues> name="description" label={RolePageText.FIELD_DESCRIPTION_LABEL}>
+          <Input.TextArea rows={4} placeholder={RolePageText.FIELD_DESCRIPTION_PLACEHOLDER} />
         </Form.Item>
       </Form>
     </Modal>

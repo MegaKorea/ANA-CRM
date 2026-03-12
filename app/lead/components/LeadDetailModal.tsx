@@ -4,7 +4,7 @@ import { Modal, Descriptions, Timeline, Tag, Typography, Empty } from 'antd';
 import type { Lead } from '@/lib/services/lead.service';
 import { LeadPageText, formatLocationValue } from '@/app/lead/constants';
 import type { LocationValue } from '@/components/common/LocationSelect';
-import type { NoteItem } from '@/types/tables/leads';
+import type { NoteItem } from '@/lib/supabase/types/tables/leads';
 import { ClockCircleOutlined } from '@ant-design/icons';
 import { JSX } from 'react';
 
@@ -24,7 +24,7 @@ export function LeadDetailModal({ open, lead, onClose }: LeadDetailModalProps): 
   const currentAddress = lead.current_address as LocationValue | null | undefined;
   const notes: NoteItem[] = Array.isArray(lead.note) ? lead.note : [];
   const sortedNotes = [...notes].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );
 
   return (

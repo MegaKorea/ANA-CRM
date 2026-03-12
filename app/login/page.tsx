@@ -1,8 +1,7 @@
 'use client';
 
-import { Form, Input, Button, Card, Row, Col, Tabs } from 'antd';
+import { Form, Input, Button, Card, Row, Col } from 'antd';
 import { MailOutlined, LockOutlined, SunOutlined, MoonOutlined } from '@ant-design/icons';
-import StudentLoginForm from './components/StudentLoginForm';
 import Image from 'next/image';
 import styles from './Login.module.scss';
 import logoImage from '../assets/logo/logo-ana.png';
@@ -55,71 +54,63 @@ export default function LoginPage() {
             <Row justify="center">
               <Col xs={24} sm={20} md={18}>
                 <Card className={styles.loginCard} bordered={false}>
-                  <Tabs defaultActiveKey="staff" centered>
-                    <Tabs.TabPane tab="Nhân viên" key="staff">
-                      <Form
-                        form={form}
-                        name="login"
-                        onFinish={handleSubmit}
-                        autoComplete="off"
-                        layout="vertical"
-                        size="large"
+                  <Form
+                    form={form}
+                    name="login"
+                    onFinish={handleSubmit}
+                    autoComplete="off"
+                    layout="vertical"
+                    size="large"
+                  >
+                    <Form.Item
+                      name="email"
+                      label={LoginFormLabel.EMAIL}
+                      rules={[
+                        {
+                          required: true,
+                          message: LoginFormMessage.EMAIL_REQUIRED,
+                        },
+                        {
+                          type: 'email',
+                          message: LoginFormMessage.EMAIL_INVALID,
+                        },
+                      ]}
+                    >
+                      <Input
+                        prefix={<MailOutlined />}
+                        placeholder={LoginFormMessage.EMAIL_PLACEHOLDER}
+                        type="email"
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      name="password"
+                      label={LoginFormLabel.PASSWORD}
+                      rules={[
+                        {
+                          required: true,
+                          message: LoginFormMessage.PASSWORD_REQUIRED,
+                        },
+                      ]}
+                    >
+                      <Input.Password
+                        prefix={<LockOutlined />}
+                        placeholder={LoginFormMessage.PASSWORD_PLACEHOLDER}
+                      />
+                    </Form.Item>
+
+                    <Form.Item>
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                        block
+                        loading={loginMutation.isPending}
+                        className={styles.submitButton}
                       >
-                        <Form.Item
-                          name="email"
-                          label={LoginFormLabel.EMAIL}
-                          rules={[
-                            {
-                              required: true,
-                              message: LoginFormMessage.EMAIL_REQUIRED,
-                            },
-                            {
-                              type: 'email',
-                              message: LoginFormMessage.EMAIL_INVALID,
-                            },
-                          ]}
-                        >
-                          <Input
-                            prefix={<MailOutlined />}
-                            placeholder={LoginFormMessage.EMAIL_PLACEHOLDER}
-                            type="email"
-                          />
-                        </Form.Item>
-
-                        <Form.Item
-                          name="password"
-                          label={LoginFormLabel.PASSWORD}
-                          rules={[
-                            {
-                              required: true,
-                              message: LoginFormMessage.PASSWORD_REQUIRED,
-                            },
-                          ]}
-                        >
-                          <Input.Password
-                            prefix={<LockOutlined />}
-                            placeholder={LoginFormMessage.PASSWORD_PLACEHOLDER}
-                          />
-                        </Form.Item>
-
-                        <Form.Item>
-                          <Button
-                            type="primary"
-                            htmlType="submit"
-                            block
-                            loading={loginMutation.isPending}
-                            className={styles.submitButton}
-                          >
-                            {LoginFormLabel.SUBMIT}
-                          </Button>
-                        </Form.Item>
-                      </Form>
-                    </Tabs.TabPane>
-
-                    <Tabs.TabPane tab="Học viên" key="student">
-                      <StudentLoginForm />
-                    </Tabs.TabPane>
-                  </Tabs>
+                        {LoginFormLabel.SUBMIT}
+                      </Button>
+                    </Form.Item>
+                  </Form>
                 </Card>
               </Col>
             </Row>

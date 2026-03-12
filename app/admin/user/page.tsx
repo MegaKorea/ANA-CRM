@@ -1,15 +1,32 @@
-
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { Table, Button, Space, message, Row, Col, Form, Select, DatePicker, Typography } from 'antd';
+import {
+  Table,
+  Button,
+  Space,
+  message,
+  Row,
+  Col,
+  Form,
+  Select,
+  DatePicker,
+  Typography,
+} from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { User } from '@/lib/services/user.service';
 import type { CreateUserInput, UpdateUserInput } from '@/lib/validators/user.validator';
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from '@/lib/hooks/use-users';
 import { useRoles } from '@/lib/hooks/use-roles';
-import { UserPageGap, UserPageMargin, UserPagePadding, UserPageText, UserStatusLabel, getUserTableColumns } from '@/app/admin/user/constants';
+import {
+  UserPageGap,
+  UserPageMargin,
+  UserPagePadding,
+  UserPageText,
+  UserStatusLabel,
+  getUserTableColumns,
+} from '@/app/admin/user/constants';
 import type { UserFormValues } from '@/app/admin/user/components/UserModal';
 import { DebouncedInput } from '@/components/common/DebouncedInput';
 import { DateFormat } from '@/constants/enums';
@@ -17,7 +34,7 @@ import dynamic from 'next/dynamic';
 
 const UserModal = dynamic(
   () => import('@/app/admin/user/components/UserModal').then((m) => m.UserModal),
-  { ssr: false }
+  { ssr: false },
 );
 
 export default function UserPage() {
@@ -30,12 +47,17 @@ export default function UserPage() {
   const [roleFilter, setRoleFilter] = useState<number | undefined>(undefined);
   const [createdAtRange, setCreatedAtRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
 
-  const { data: users, isLoading, isFetching, refetch } = useUsers(
+  const {
+    data: users,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useUsers(
     searchKeyword
       ? {
-        search: searchKeyword,
-      }
-      : undefined
+          search: searchKeyword,
+        }
+      : undefined,
   );
   const { data: roles } = useRoles();
   const createUserMutation = useCreateUser();
@@ -62,7 +84,7 @@ export default function UserPage() {
       }
       setIsModalOpen(true);
     },
-    [form]
+    [form],
   );
 
   const handleCloseModal = useCallback(() => {
@@ -93,7 +115,7 @@ export default function UserPage() {
         const payload: UpdateUserInput = payloadBase;
         updateUserMutation.mutate(
           {
-            id: (editingUser.id),
+            id: editingUser.id,
             input: payload,
           },
           {
@@ -102,7 +124,7 @@ export default function UserPage() {
               handleCloseModal();
             },
             onError,
-          }
+          },
         );
       } else {
         const payload: CreateUserInput = payloadBase as CreateUserInput;
@@ -115,7 +137,7 @@ export default function UserPage() {
         });
       }
     },
-    [editingUser, updateUserMutation, createUserMutation, handleCloseModal]
+    [editingUser, updateUserMutation, createUserMutation, handleCloseModal],
   );
 
   const handleDelete = useCallback(
@@ -130,7 +152,7 @@ export default function UserPage() {
         },
       });
     },
-    [deleteUserMutation]
+    [deleteUserMutation],
   );
 
   const handleRefresh = useCallback(() => {
@@ -152,11 +174,12 @@ export default function UserPage() {
         handleDelete,
       }).map((col: any) => ({
         ...col,
-        onCell: () => ({
-          'data-label': typeof col.title === 'string' ? col.title : '',
-        } as any),
+        onCell: () =>
+          ({
+            'data-label': typeof col.title === 'string' ? col.title : '',
+          }) as any,
       })),
-    [roles, handleOpenModal, handleDelete]
+    [roles, handleOpenModal, handleDelete],
   );
 
   const isSubmitting = createUserMutation.isPending || updateUserMutation.isPending;
@@ -197,12 +220,11 @@ export default function UserPage() {
     });
   }, [users, searchKeyword, statusFilter, roleFilter, createdAtRange]);
 
-
   const handleSubmitAsync = useCallback(
     async (values: UserFormValues) => {
       handleSubmit(values);
     },
-    [handleSubmit]
+    [handleSubmit],
   );
 
   return (
@@ -211,7 +233,11 @@ export default function UserPage() {
         padding: UserPagePadding.CONTAINER,
       }}
     >
-      <Row justify="space-between" align="middle" style={{ marginBottom: UserPageMargin.HEADER_BOTTOM }}>
+      <Row
+        justify="space-between"
+        align="middle"
+        style={{ marginBottom: UserPageMargin.HEADER_BOTTOM }}
+      >
         <Col>
           <Typography.Title level={1}>{UserPageText.TITLE}</Typography.Title>
         </Col>
@@ -303,4 +329,3 @@ export default function UserPage() {
     </div>
   );
 }
-

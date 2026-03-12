@@ -1,8 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/admin';
-import type { Tables } from '@/types/supabase';
 import type { CreateCourseInput, UpdateCourseInput } from '@/lib/validators/course.validator';
+import { CoursesTable } from '../supabase/types/tables/courses';
 
-export type Course = Tables<'courses'>;
+export type Course = CoursesTable['Row'];
 
 export async function fetchAllCourses(): Promise<Course[]> {
     const supabase = createAdminClient();

@@ -3,7 +3,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { HiOutlinePencilAlt, HiOutlineTrash } from 'react-icons/hi';
 import { UserStatusDb } from '@/constants/enums';
 import type { User } from '@/lib/services/user.service';
-import type { RolesTable } from '@/types/tables/roles';
+import type { RolesTable } from '@/lib/supabase/types/tables/roles';
 import defaultAvatar from '@/app/assets/avatar/avt.webp';
 
 type RoleRow = RolesTable['Row'];
@@ -87,7 +87,6 @@ export const UserStatusLabel = {
   [UserStatusDb.DELETED]: 'Đã xóa',
 } as const;
 
-
 export const SexLabel = {
   [Sex.MALE]: 'Nam',
   [Sex.FEMALE]: 'Nữ',
@@ -121,7 +120,8 @@ export const getUserTableColumns = ({
     dataIndex: 'full_name',
     key: 'full_name',
     render: (fullName: string, record: User) => {
-      const avatarSrc: string = record.avatar || (typeof defaultAvatar === 'string' ? defaultAvatar : defaultAvatar.src);
+      const avatarSrc: string =
+        record.avatar || (typeof defaultAvatar === 'string' ? defaultAvatar : defaultAvatar.src);
       return (
         <Space>
           <Avatar src={avatarSrc} alt={fullName} />

@@ -20,7 +20,7 @@ export default function DashboardPage() {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} style={{ borderRadius: 8 }}>
+          <Card variant='borderless' style={{ borderRadius: 8 }}>
             <Statistic
               title="Tổng khách hàng"
               value={0}
@@ -30,7 +30,7 @@ export default function DashboardPage() {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} style={{ borderRadius: 8 }}>
+          <Card variant='borderless' style={{ borderRadius: 8 }}>
             <Statistic
               title="Đơn hàng mới"
               value={0}
@@ -40,7 +40,7 @@ export default function DashboardPage() {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} style={{ borderRadius: 8 }}>
+          <Card variant='borderless' style={{ borderRadius: 8 }}>
             <Statistic
               title="Doanh thu tháng"
               value={0}
@@ -51,7 +51,7 @@ export default function DashboardPage() {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} style={{ borderRadius: 8 }}>
+          <Card variant='borderless' style={{ borderRadius: 8 }}>
             <Statistic
               title="Tăng trưởng"
               value={0}
