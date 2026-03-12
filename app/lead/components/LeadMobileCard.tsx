@@ -1,8 +1,8 @@
 import { Card, Flex, Typography, Tag, Space, Tooltip, Badge, Button, Popconfirm } from 'antd';
-import { PlusOutlined, InfoCircleOutlined, PictureOutlined } from '@ant-design/icons';
+import { PlusOutlined, InfoCircleOutlined, PictureOutlined, CheckCircleTwoTone, ClockCircleTwoTone, CloseCircleTwoTone } from '@ant-design/icons';
 import { HiOutlineInformationCircle, HiOutlinePencilAlt, HiOutlineTrash } from 'react-icons/hi';
 import { formatNumberVi } from '@/lib/utils/numberFormat';
-import { LeadStatus, DateLocale } from '@/constants/enums';
+import { LeadStatus, DateLocale, AttendanceStatus } from '@/constants/enums';
 import type { Lead } from '@/lib/services/lead.service';
 import { LeadPageText, LeadStatusLabel, LeadSourceIcon, LeadSourceLabel } from '@/app/lead/constants';
 import { memo } from 'react';
@@ -15,6 +15,7 @@ interface LeadMobileCardProps {
     onOpenNoteAdd: (lead: Lead) => void;
     onOpenNoteHistory: (lead: Lead) => void;
     onOpenImages: (lead: Lead) => void;
+    onOpenAttendance: (lead: Lead) => void;
     onDelete: (id: number) => void;
 }
 
@@ -26,6 +27,7 @@ export const LeadMobileCard = memo(function LeadMobileCard({
     onOpenNoteAdd,
     onOpenNoteHistory,
     onOpenImages,
+    onOpenAttendance,
     onDelete,
 }: LeadMobileCardProps) {
     const notes = Array.isArray(lead.note) ? lead.note : [];
@@ -95,7 +97,27 @@ export const LeadMobileCard = memo(function LeadMobileCard({
                 </Flex>
                 <Flex justify="space-between" align="center" className="text-body-small">
                     <Typography.Text type="secondary">Lịch hẹn</Typography.Text>
-                    <Typography.Text>{lead.appointment_date ? new Date(lead.appointment_date).toLocaleString(DateLocale.VIET_NAM) : '—'}</Typography.Text>
+                    {lead.appointment_date ? (
+                        <Space>
+                            <Typography.Text>{new Date(lead.appointment_date).toLocaleString(DateLocale.VIET_NAM)}</Typography.Text>
+                            <Tooltip title="Cập nhật trạng thái điểm danh">
+                                <Badge dot={lead.attendance_status === AttendanceStatus.NOT_ARRIVED} offset={[-2, 2]}>
+                                    <Button
+                                        size="small"
+                                        type="text"
+                                        icon={
+                                            lead.attendance_status === AttendanceStatus.ARRIVED ? <CheckCircleTwoTone twoToneColor="#52c41a" style={{ fontSize: 16 }} /> :
+                                                lead.attendance_status === AttendanceStatus.NO_SHOW ? <CloseCircleTwoTone twoToneColor="#ff4d4f" style={{ fontSize: 16 }} /> :
+                                                    <ClockCircleTwoTone twoToneColor="#faad14" style={{ fontSize: 16 }} />
+                                        }
+                                        onClick={() => onOpenAttendance(lead)}
+                                    />
+                                </Badge>
+                            </Tooltip>
+                        </Space>
+                    ) : (
+                        <Typography.Text>—</Typography.Text>
+                    )}
                 </Flex>
                 <Flex justify="space-between" align="center" className="text-body-small">
                     <Typography.Text type="secondary">Ghi chú & Hình ảnh</Typography.Text>

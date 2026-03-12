@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { Table, Button, Space, message, Row, Col, Form, Typography, List, } from 'antd';
+import { Table, Button, Space, message, Row, Col, Form, Typography, List, Tabs } from 'antd';
 import { PlusOutlined, ReloadOutlined, } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import type { Lead } from '@/lib/services/lead.service';
@@ -23,6 +23,7 @@ import { useIsMobile } from '@/lib/hooks/use-mobile';
 import dynamic from 'next/dynamic';
 import { LeadFilters } from '@/app/lead/components/LeadFilters';
 import { LeadMobileCard } from '@/app/lead/components/LeadMobileCard';
+import { LeadStatistics } from '@/app/lead/components/LeadStatistics';
 
 const LeadModal = dynamic(
   () => import('@/app/lead/components/LeadModal').then((m) => m.LeadModal),
@@ -45,6 +46,11 @@ const LeadImagesModal = dynamic(
   { ssr: false }
 );
 
+const AttendanceModal = dynamic(
+  () => import('@/app/lead/components/AttendanceModal').then((m) => m.AttendanceModal),
+  { ssr: false }
+);
+
 export default function LeadPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
@@ -59,6 +65,10 @@ export default function LeadPage() {
 
   const [isImagesModalOpen, setIsImagesModalOpen] = useState(false);
   const [imagesLead, setImagesLead] = useState<Lead | null>(null);
+
+  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
+  const [attendanceLead, setAttendanceLead] = useState<Lead | null>(null);
+
 
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus | undefined>(undefined);
@@ -243,6 +253,16 @@ export default function LeadPage() {
     setImagesLead(null);
   }, []);
 
+  const handleOpenAttendanceModal = useCallback((lead: Lead) => {
+    setAttendanceLead(lead);
+    setIsAttendanceModalOpen(true);
+  }, []);
+
+  const handleCloseAttendanceModal = useCallback(() => {
+    setIsAttendanceModalOpen(false);
+    setAttendanceLead(null);
+  }, []);
+
   const columns = useMemo(
     () =>
       getLeadTableColumns({
@@ -252,6 +272,7 @@ export default function LeadPage() {
         handleOpenNoteAddModal,
         handleOpenNoteHistoryModal,
         handleOpenImagesModal,
+        handleOpenAttendanceModal,
         courses,
       }).map((col: any) => ({
         ...col,
@@ -259,7 +280,7 @@ export default function LeadPage() {
           'data-label': typeof col.title === 'string' ? col.title : '',
         } as any),
       })),
-    [handleOpenModal, handleDelete, handleOpenDetailModal, handleOpenNoteAddModal, handleOpenNoteHistoryModal, handleOpenImagesModal, courses]
+    [handleOpenModal, handleDelete, handleOpenDetailModal, handleOpenNoteAddModal, handleOpenNoteHistoryModal, handleOpenImagesModal, handleOpenAttendanceModal, courses]
   );
 
   const isSubmitting = createLeadMutation.isPending || updateLeadMutation.isPending;
@@ -290,74 +311,93 @@ export default function LeadPage() {
         </Col>
       </Row>
 
-      <LeadFilters
-        onSearch={setSearchKeyword}
-        statusFilter={statusFilter}
-        onStatusChange={setStatusFilter}
-        sourceFilter={sourceFilter}
-        onSourceChange={setSourceFilter}
-        courseFilter={courseFilter}
-        onCourseChange={setCourseFilter}
-        createdAtRange={createdAtRange}
-        onCreatedAtRangeChange={setCreatedAtRange}
-        courses={courses || []}
-      />
+      <Tabs
+        defaultActiveKey="list"
+        items={[
+          {
+            key: 'list',
+            label: 'Danh sách khách hàng',
+            children: (
+              <>
+                <LeadFilters
+                  onSearch={setSearchKeyword}
+                  statusFilter={statusFilter}
+                  onStatusChange={setStatusFilter}
+                  sourceFilter={sourceFilter}
+                  onSourceChange={setSourceFilter}
+                  courseFilter={courseFilter}
+                  onCourseChange={setCourseFilter}
+                  createdAtRange={createdAtRange}
+                  onCreatedAtRangeChange={setCreatedAtRange}
+                  courses={courses || []}
+                />
 
-      <Row>
-        <Col span={24}>
-          {!isMobile ? (
-            <Table<Lead>
-              scroll={{ x: 'max-content' }}
-              columns={columns}
-              dataSource={leads}
-              loading={isLoading}
-              rowKey="id"
-              pagination={{
-                current: currentPage,
-                pageSize: pageSize,
-                total: total,
-                showSizeChanger: true,
-                onChange: (page, size) => {
-                  setCurrentPage(page);
-                  setPageSize(size);
-                },
-              }}
-              bordered
-            />
-          ) : (
-            <List
-              grid={{ gutter: 16, column: 1 }}
-              dataSource={leads}
-              loading={isLoading}
-              pagination={{
-                current: currentPage,
-                pageSize: pageSize,
-                total: total,
-                size: 'small',
-                align: 'center',
-                onChange: (page, size) => {
-                  setCurrentPage(page);
-                  setPageSize(size);
-                },
-              }}
-              renderItem={(lead) => (
-                <List.Item>
-                  <LeadMobileCard
-                    lead={lead}
-                    courses={courses || []}
-                    onOpenDetail={handleOpenDetailModal}
-                    onOpenModal={handleOpenModal}
-                    onOpenNoteAdd={handleOpenNoteAddModal}
-                    onOpenNoteHistory={handleOpenNoteHistoryModal}
-                    onOpenImages={handleOpenImagesModal}
-                    onDelete={handleDelete}
-                  />
-                </List.Item>
-              )}
-            />
-          )}
-        </Col>
-      </Row>
+                <Row>
+                  <Col span={24}>
+                    {!isMobile ? (
+                      <Table<Lead>
+                        scroll={{ x: 'max-content' }}
+                        columns={columns}
+                        dataSource={leads}
+                        loading={isLoading}
+                        rowKey="id"
+                        pagination={{
+                          current: currentPage,
+                          pageSize: pageSize,
+                          total: total,
+                          showSizeChanger: true,
+                          onChange: (page, size) => {
+                            setCurrentPage(page);
+                            setPageSize(size);
+                          },
+                        }}
+                        bordered
+                      />
+                    ) : (
+                      <List
+                        grid={{ gutter: 16, column: 1 }}
+                        dataSource={leads}
+                        loading={isLoading}
+                        pagination={{
+                          current: currentPage,
+                          pageSize: pageSize,
+                          total: total,
+                          size: 'small',
+                          align: 'center',
+                          onChange: (page, size) => {
+                            setCurrentPage(page);
+                            setPageSize(size);
+                          },
+                        }}
+                        renderItem={(lead) => (
+                          <List.Item>
+                            <LeadMobileCard
+                              lead={lead}
+                              courses={courses || []}
+                              onOpenDetail={handleOpenDetailModal}
+                              onOpenModal={handleOpenModal}
+                              onOpenNoteAdd={handleOpenNoteAddModal}
+                              onOpenNoteHistory={handleOpenNoteHistoryModal}
+                              onOpenImages={handleOpenImagesModal}
+                              onOpenAttendance={handleOpenAttendanceModal}
+                              onDelete={handleDelete}
+                            />
+                          </List.Item>
+                        )}
+                      />
+                    )}
+                  </Col>
+                </Row>
+              </>
+            ),
+          },
+          {
+            key: 'stats',
+            label: 'Thống kê',
+            children: <LeadStatistics />
+          }
+        ]}
+      />
 
       <LeadModal
         open={isModalOpen}
@@ -390,6 +430,12 @@ export default function LeadPage() {
         open={isImagesModalOpen}
         lead={imagesLead}
         onClose={handleCloseImagesModal}
+      />
+
+      <AttendanceModal
+        open={isAttendanceModalOpen}
+        lead={attendanceLead}
+        onClose={handleCloseAttendanceModal}
       />
     </div>
   );

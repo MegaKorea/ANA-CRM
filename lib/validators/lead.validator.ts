@@ -1,5 +1,5 @@
 import { AppError } from '@/errors';
-import { HttpStatusCode, LeadErrorCode, LeadStatus, ValidationPattern } from '@/constants/enums';
+import { HttpStatusCode, LeadErrorCode, LeadStatus, AttendanceStatus, ValidationPattern } from '@/constants/enums';
 import { validateEmailField } from '@/lib/utils/validation';
 import { formatPhoneToE164, validateE164Format } from '@/lib/utils/phone';
 import type { LocationValue } from '@/components/common';
@@ -26,6 +26,7 @@ export interface CreateLeadInput {
   deposit?: number | null;
   outstanding_balance?: number | null;
   appointment_date?: string | null;
+  attendance_status?: AttendanceStatus;
   images?: string[];
 }
 
@@ -50,6 +51,7 @@ export interface UpdateLeadInput {
   deposit?: number | null;
   outstanding_balance?: number | null;
   appointment_date?: string | null;
+  attendance_status?: AttendanceStatus;
   images?: string[];
 }
 
@@ -270,6 +272,22 @@ function validateStatusField(value: unknown): LeadStatus | undefined {
   throw new AppError(LeadErrorCode.STATUS_INVALID, HttpStatusCode.BAD_REQUEST);
 }
 
+function validateAttendanceStatusField(value: unknown): AttendanceStatus | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (typeof value !== 'string') {
+    throw new AppError(LeadErrorCode.STATUS_INVALID, HttpStatusCode.BAD_REQUEST);
+  }
+
+  if (Object.values(AttendanceStatus).includes(value as AttendanceStatus)) {
+    return value as AttendanceStatus;
+  }
+
+  throw new AppError(LeadErrorCode.STATUS_INVALID, HttpStatusCode.BAD_REQUEST);
+}
+
 function validateFullNameField(value: unknown, isRequired: boolean): string | undefined {
   if (value === undefined || value === null) {
     if (isRequired) {
@@ -359,6 +377,7 @@ export function validateCreateLeadInput(input: unknown): CreateLeadInput {
     deposit: validateOptionalNumberField(data.deposit),
     outstanding_balance: validateOptionalNumberField(data.outstanding_balance),
     appointment_date: validateOptionalDateField(data.appointment_date),
+    attendance_status: validateAttendanceStatusField(data.attendance_status),
     images: validateOptionalStringArrayField(data.images),
   };
 }
@@ -410,6 +429,7 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
   const deposit = validateOptionalNumberField(data.deposit);
   const outstandingBalance = validateOptionalNumberField(data.outstanding_balance);
   const appointmentDate = validateOptionalDateField(data.appointment_date);
+  const attendanceStatus = validateAttendanceStatusField(data.attendance_status);
   const images = validateOptionalStringArrayField(data.images);
 
   if (dateOfBirth !== undefined) {
@@ -478,6 +498,10 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
 
   if (appointmentDate !== undefined) {
     result.appointment_date = appointmentDate;
+  }
+
+  if (attendanceStatus !== undefined) {
+    result.attendance_status = attendanceStatus;
   }
 
   if (images !== undefined) {

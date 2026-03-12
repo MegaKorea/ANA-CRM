@@ -1,9 +1,9 @@
 import { Button, Popconfirm, Space, Tooltip, Badge } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { HiOutlinePencilAlt, HiOutlineTrash, HiOutlineInformationCircle } from 'react-icons/hi';
-import { PlusOutlined, InfoCircleOutlined, PictureOutlined } from '@ant-design/icons';
-import { DateLocale, LeadSource, LeadStatus } from '@/constants/enums';
+import { PlusOutlined, InfoCircleOutlined, PictureOutlined, CheckCircleTwoTone, ClockCircleTwoTone, CloseCircleTwoTone } from '@ant-design/icons';
 import type { Lead } from '@/lib/services/lead.service';
+import { AttendanceStatus, DateLocale, LeadSource, LeadStatus } from '@/constants/enums';
 import type { Course } from '@/lib/services/course.service';
 import type { LocationValue } from '@/components/common/LocationSelect';
 import type { NoteItem } from '@/types/tables/leads';
@@ -144,6 +144,15 @@ export const LeadDateRangePlaceholder = [
   LeadPageText.FILTER_CREATED_AT_END,
 ] as const;
 
+export const AttendanceStatusLabel = {
+  [AttendanceStatus.ARRIVED]: 'Đã đến',
+  [AttendanceStatus.NOT_ARRIVED]: 'Chưa đến',
+  [AttendanceStatus.NO_SHOW]: 'Bom',
+} as const;
+
+export type HandleOpenAttendanceModal = (lead: Lead) => void;
+
+
 export type HandleOpenLeadModal = (lead?: Lead) => void;
 
 export type HandleDeleteLead = (id: number) => void;
@@ -155,6 +164,7 @@ export type HandleOpenNoteAddModal = (lead: Lead) => void;
 export type HandleOpenNoteHistoryModal = (lead: Lead) => void;
 
 export type HandleOpenImagesModal = (lead: Lead) => void;
+
 
 export function formatLocationValue(location: LocationValue | null | undefined): string {
   if (!location) {
@@ -180,6 +190,7 @@ export const getLeadTableColumns = ({
   handleOpenNoteAddModal,
   handleOpenNoteHistoryModal,
   handleOpenImagesModal,
+  handleOpenAttendanceModal,
   courses,
 }: {
   handleOpenModal: HandleOpenLeadModal;
@@ -188,6 +199,7 @@ export const getLeadTableColumns = ({
   handleOpenNoteAddModal: HandleOpenNoteAddModal;
   handleOpenNoteHistoryModal: HandleOpenNoteHistoryModal;
   handleOpenImagesModal: HandleOpenImagesModal;
+  handleOpenAttendanceModal: HandleOpenAttendanceModal;
   courses?: Course[] | null;
 }): ColumnsType<Lead> => [
     {
@@ -335,8 +347,29 @@ export const getLeadTableColumns = ({
       title: LeadPageText.COLUMN_APPOINTMENT_DATE,
       dataIndex: 'appointment_date',
       key: 'appointment_date',
-      render: (date: string | null) =>
-        date ? new Date(date).toLocaleString(DateLocale.VIET_NAM) : null,
+      render: (_: unknown, record: Lead) => {
+        if (!record.appointment_date) return null;
+
+        return (
+          <Space>
+            <span>{new Date(record.appointment_date).toLocaleString(DateLocale.VIET_NAM)}</span>
+            <Tooltip title="Cập nhật trạng thái điểm danh">
+              <Badge dot={record.attendance_status === AttendanceStatus.NOT_ARRIVED} offset={[-2, 2]}>
+                <Button
+                  size="small"
+                  type="text"
+                  icon={
+                    record.attendance_status === AttendanceStatus.ARRIVED ? <CheckCircleTwoTone twoToneColor="#52c41a" style={{ fontSize: 16 }} /> :
+                      record.attendance_status === AttendanceStatus.NO_SHOW ? <CloseCircleTwoTone twoToneColor="#ff4d4f" style={{ fontSize: 16 }} /> :
+                        <ClockCircleTwoTone twoToneColor="#faad14" style={{ fontSize: 16 }} />
+                  }
+                  onClick={() => handleOpenAttendanceModal(record)}
+                />
+              </Badge>
+            </Tooltip>
+          </Space>
+        );
+      },
     },
     {
       title: LeadPageText.COLUMN_IMAGES,

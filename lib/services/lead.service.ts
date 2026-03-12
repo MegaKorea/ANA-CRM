@@ -135,6 +135,7 @@ export async function createLead(input: CreateLeadInput): Promise<Lead> {
       deposit: input.deposit ?? null,
       outstanding_balance: input.outstanding_balance ?? null,
       appointment_date: input.appointment_date ?? null,
+      attendance_status: (input.attendance_status as never) ?? 'not_arrived',
       images: input.images ?? null,
     };
 
@@ -185,6 +186,7 @@ export async function updateLeadById(id: number, input: UpdateLeadInput): Promis
       deposit: 'nullable',
       outstanding_balance: 'nullable',
       appointment_date: 'nullable',
+      attendance_status: 'direct',
       images: 'nullable',
     });
 

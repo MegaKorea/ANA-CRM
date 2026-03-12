@@ -1,5 +1,5 @@
 import { LocationValue } from '@/components/common';
-import { LeadStatus } from '@/constants/enums';
+import { LeadStatus, AttendanceStatus } from '@/constants/enums';
 
 export interface NoteItem {
   content: string;
@@ -29,6 +29,7 @@ export interface LeadsTable {
     deposit: number | null;
     outstanding_balance: number | null;
     appointment_date: string | null;
+    attendance_status: AttendanceStatus | null;
     images: string[] | null;
     created_at: string | null;
     updated_at: string | null;
@@ -55,6 +56,7 @@ export interface LeadsTable {
     deposit?: number | null;
     outstanding_balance?: number | null;
     appointment_date?: string | null;
+    attendance_status?: AttendanceStatus | null;
     images?: string[] | null;
     created_at?: string | null;
     updated_at?: string | null;
@@ -81,6 +83,7 @@ export interface LeadsTable {
     deposit?: number | null;
     outstanding_balance?: number | null;
     appointment_date?: string | null;
+    attendance_status?: AttendanceStatus | null;
     images?: string[] | null;
     created_at?: string | null;
     updated_at?: string | null;

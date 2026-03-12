@@ -33,3 +33,9 @@ export enum LeadSource {
   OTHER = 'other',
 }
 
+export enum AttendanceStatus {
+  ARRIVED = 'arrived',
+  NOT_ARRIVED = 'not_arrived',
+  NO_SHOW = 'no_show',
+}
+
