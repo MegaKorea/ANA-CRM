@@ -263,24 +263,8 @@ function validateStatusField(value: unknown): LeadStatus | undefined {
     throw new AppError(LeadErrorCode.STATUS_INVALID, HttpStatusCode.BAD_REQUEST);
   }
 
-  if (value === LeadStatus.NEW) {
-    return LeadStatus.NEW;
-  }
-
-  if (value === LeadStatus.CONTACTED) {
-    return LeadStatus.CONTACTED;
-  }
-
-  if (value === LeadStatus.QUALIFIED) {
-    return LeadStatus.QUALIFIED;
-  }
-
-  if (value === LeadStatus.CONVERTED) {
-    return LeadStatus.CONVERTED;
-  }
-
-  if (value === LeadStatus.NOT_CONTACTED) {
-    return LeadStatus.NOT_CONTACTED;
+  if (Object.values(LeadStatus).includes(value as LeadStatus)) {
+    return value as LeadStatus;
   }
 
   throw new AppError(LeadErrorCode.STATUS_INVALID, HttpStatusCode.BAD_REQUEST);

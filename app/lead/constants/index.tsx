@@ -115,11 +115,12 @@ export const LeadPageText = {
 
 export const LeadStatusLabel = {
   [LeadStatus.NEW]: 'MỚI',
-  [LeadStatus.CONTACTED]: 'ĐÃ LIÊN HỆ',
-  [LeadStatus.QUALIFIED]: 'ĐÃ ĐỦ ĐIỀU KIỆN',
-  [LeadStatus.NURTURING]: 'ĐANG CHĂM SÓC',
-  [LeadStatus.CONVERTED]: 'ĐÃ CHUYỂN ĐỔI',
+  [LeadStatus.CONVERTED]: 'ĐÃ ĐĂNG KÍ',
   [LeadStatus.NOT_CONTACTED]: 'CHƯA TIẾP CẬN',
+  [LeadStatus.REJECT]: 'TỪ CHỐI',
+  [LeadStatus.INTERESTED]: 'QUAN TÂM',
+  [LeadStatus.NOT_INTERESTED]: 'KHÔNG QUAN TÂM',
+  [LeadStatus.OTHER]: 'KHÁC',
 } as const;
 
 export const LeadSourceLabel = {
