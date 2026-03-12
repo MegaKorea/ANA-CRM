@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
-import { Button, Card, Col, Row, Typography, Space, Spin, Tag, Popconfirm, message } from 'antd';
+import { Button, Card, Col, Row, Typography, Space, Spin, Tag, Popconfirm, message, Table } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import { PlusOutlined, BookOutlined } from '@ant-design/icons';
 import { useCourses, useDeleteCourse } from '@/lib/hooks/use-courses';
 import type { Course } from '@/lib/services/course.service';
@@ -57,6 +58,89 @@ export default function CoursePage() {
 
   const courseCards = useMemo(() => courses ?? [], [courses]);
 
+  const columns: ColumnsType<Course> = useMemo(
+    () => [
+      {
+        title: 'Mã',
+        dataIndex: 'code',
+        key: 'code',
+        render: (text) => (
+          <Space>
+            <BookOutlined />
+            {text || 'Chưa định danh'}
+          </Space>
+        ),
+      },
+      {
+        title: 'Tên khóa học',
+        dataIndex: 'name',
+        key: 'name',
+        render: (text) => <Text strong>{text}</Text>,
+      },
+      {
+        title: 'Mô tả',
+        dataIndex: 'description',
+        key: 'description',
+        ellipsis: true,
+      },
+      {
+        title: 'Học phí',
+        dataIndex: 'fee',
+        key: 'fee',
+        render: (fee) => <Text strong>{formatNumberVi(fee)} đ</Text>,
+      },
+      {
+        title: 'Thời gian',
+        dataIndex: 'expected_duration',
+        key: 'expected_duration',
+      },
+      {
+        title: 'Cấp độ',
+        dataIndex: 'level',
+        key: 'level',
+      },
+      {
+        title: 'Sĩ số',
+        dataIndex: 'expected_students',
+        key: 'expected_students',
+      },
+      {
+        title: 'Trạng thái',
+        dataIndex: 'status',
+        key: 'status',
+        render: (status) => (
+          <Tag color={status === 'active' ? 'green' : 'red'}>
+            {status === 'active' ? 'Hoạt động' : 'Tạm ẩn'}
+          </Tag>
+        ),
+      },
+      {
+        title: 'Hành động',
+        key: 'action',
+        fixed: 'right',
+        render: (_, record) => (
+          <Space size="middle">
+            <Button type="link" onClick={() => handleOpenUpdateModal(record)} style={{ padding: 0 }}>
+              Chỉnh sửa
+            </Button>
+            <Popconfirm
+              title="Xóa khóa học"
+              description="Bạn có chắc chắn muốn xóa khóa học này không?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="Xóa"
+              cancelText="Hủy"
+            >
+              <Button type="link" danger style={{ padding: 0 }}>
+                Xóa
+              </Button>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ],
+    [handleDelete, handleOpenUpdateModal],
+  );
+
   if (isLoading) {
     return (
       <div className={styles.loadingContainer}>
@@ -85,81 +169,17 @@ export default function CoursePage() {
         </Col>
       </Row>
 
-      <Row gutter={[16, 16]}>
-        {courseCards.length === 0 && (
-          <Col span={24}>
-            <div className={styles.emptyState}>
-              <Text type="secondary">Chưa có khóa học nào. Hãy tạo mới một khóa học.</Text>
-            </div>
-          </Col>
-        )}
-        {courseCards.map((course) => (
-          <Col xs={24} sm={12} md={8} lg={6} key={course.id}>
-            <Card
-              hoverable
-              title={
-                <Space>
-                  <BookOutlined />
-                  {course.code || 'Chưa định danh'}
-                </Space>
-              }
-              extra={
-                <Tag color={course.status === 'active' ? 'green' : 'red'}>
-                  {course.status === 'active' ? 'Hoạt động' : 'Tạm ẩn'}
-                </Tag>
-              }
-              actions={[
-                <Button key="edit" type="link" onClick={() => handleOpenUpdateModal(course)}>
-                  Chỉnh sửa
-                </Button>,
-                <Popconfirm
-                  key="delete"
-                  title="Xóa khóa học"
-                  description="Bạn có chắc chắn muốn xóa khóa học này không?"
-                  onConfirm={() => handleDelete(course.id)}
-                  okText="Xóa"
-                  cancelText="Hủy"
-                >
-                  <Button type="link" danger>
-                    Xóa
-                  </Button>
-                </Popconfirm>,
-              ]}
-              style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-              bodyStyle={{ flex: 1 }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <Text strong style={{ fontSize: '16px' }}>
-                  {course.name}
-                </Text>
-                {course.description && (
-                  <Text type="secondary" ellipsis={{ tooltip: course.description }}>
-                    {course.description}
-                  </Text>
-                )}
-                <div style={{ marginTop: 'auto', paddingTop: '12px' }}>
-                  <Text strong>Học phí: {formatNumberVi(course.fee)} đ</Text>
-                </div>
-                {course.expected_duration && (
-                  <div>
-                    <Text type="secondary">Thời gian: {course.expected_duration}</Text>
-                  </div>
-                )}
-                {course.level && (
-                  <div>
-                    <Text type="secondary">Cấp độ: {course.level}</Text>
-                  </div>
-                )}
-                {course.expected_students && (
-                  <div>
-                    <Text type="secondary">Sĩ số: {course.expected_students}</Text>
-                  </div>
-                )}
-              </div>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+      <Table
+        columns={columns}
+        dataSource={courseCards}
+        rowKey="id"
+        pagination={{
+          defaultPageSize: 10,
+          showSizeChanger: true,
+          showTotal: (total) => `Tổng số ${total} khóa học`,
+        }}
+        scroll={{ x: 'max-content' }}
+      />
 
       <CreateCourseModal open={isCreateModalOpen} onClose={handleCloseCreateModal} />
       <UpdateCourseModal

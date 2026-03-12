@@ -13,7 +13,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         }
 
         const endOfDay = endDate.includes('T') ? endDate : `${endDate}T23:59:59.999Z`;
-        // We want leads where created_at is in range OR appointment_date is in range
         const supabase = createAdminClient();
         const { data: leads, error } = await supabase
             .from('leads')
@@ -23,9 +22,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         if (error) {
             throw error;
         }
-
-        // Now aggregate by date
-        // 1. Array of dates between startDate and endDate
         const start = new Date(startDate);
         const end = new Date(endDate);
         const dateMap = new Map<string, any>();
@@ -43,19 +39,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
                 outstandingBalance: 0,
             });
         }
-
-        // Assign leads to their respective dates
         (leads || []).forEach((lead: any) => {
-            // For created_at stats (Total leads, registered, revenue)
+
             if (lead.created_at) {
                 const createdDate = new Date(lead.created_at).toISOString().split('T')[0];
                 if (dateMap.has(createdDate)) {
                     const stats = dateMap.get(createdDate);
                     stats.totalLeads += 1;
-                    if (lead.status === 'converted' || lead.status === 'interested') {
+                    if (lead.status === 'converted') {
                         stats.registeredLeads += 1;
                     }
-                    // Sum up revenue
                     stats.salesAmount += lead.sales_amount || 0;
                     stats.deposit += lead.deposit || 0;
                     stats.outstandingBalance += lead.outstanding_balance || 0;
