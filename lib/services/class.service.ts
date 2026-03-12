@@ -18,6 +18,7 @@ export interface Class {
     courses?: {
         name: string;
         code: string;
+        fee: number;
     };
     class_students?: { id: string }[];
 }
@@ -30,7 +31,8 @@ export async function fetchAllClasses(): Promise<Class[]> {
             *,
             courses (
                 name,
-                code
+                code,
+                fee
             ),
             class_students (
                 id
@@ -53,7 +55,8 @@ export async function getClass(id: string): Promise<Class> {
             *,
             courses (
                 name,
-                code
+                code,
+                fee
             )
         `)
         .eq('id', id)
@@ -75,7 +78,8 @@ export async function createClass(input: CreateClassInput): Promise<Class> {
             *,
             courses (
                 name,
-                code
+                code,
+                fee
             )
         `)
         .single();
@@ -97,7 +101,8 @@ export async function updateClass(id: string, input: UpdateClassInput): Promise<
             *,
             courses (
                 name,
-                code
+                code,
+                fee
             )
         `)
         .single();

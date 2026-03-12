@@ -2,7 +2,7 @@ import { AppError } from '@/errors';
 import { HttpStatusCode, UserErrorCode, UserStatusDb, ValidationPattern } from '@/constants/enums';
 import { generateStrongPassword } from '@/lib/utils/password';
 import { PasswordPolicyNumber } from '@/constants/password';
-import { formatPhoneToE164, validateE164Format } from '@/lib/utils/phone';
+import { formatPhoneToE164, validateE164Format, formatPhoneToLocal } from '@/lib/utils/phone';
 import { validateEmailField, validatePasswordField } from '@/lib/utils/validation';
 
 export interface CreateUserInput {
@@ -193,7 +193,7 @@ function validatePhoneField(value: unknown, isRequired: boolean): string | undef
     throw new AppError(UserErrorCode.PHONE_INVALID, HttpStatusCode.BAD_REQUEST);
   }
 
-  return formattedPhone;
+  return formatPhoneToLocal(formattedPhone);
 }
 
 export function validateCreateUserInput(input: unknown): CreateUserInput {

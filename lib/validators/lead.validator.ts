@@ -1,7 +1,7 @@
 import { AppError } from '@/errors';
 import { HttpStatusCode, LeadErrorCode, LeadStatus, AttendanceStatus, ValidationPattern } from '@/constants/enums';
 import { validateEmailField } from '@/lib/utils/validation';
-import { formatPhoneToE164, validateE164Format } from '@/lib/utils/phone';
+import { formatPhoneToE164, validateE164Format, formatPhoneToLocal } from '@/lib/utils/phone';
 import type { LocationValue } from '@/components/common';
 import type { NoteItem } from '@/types/tables/leads';
 
@@ -333,7 +333,7 @@ function validatePhoneField(value: unknown): string | undefined {
     throw new AppError(LeadErrorCode.PHONE_INVALID, HttpStatusCode.BAD_REQUEST);
   }
 
-  return formattedPhone;
+  return formatPhoneToLocal(formattedPhone);
 }
 
 export function validateCreateLeadInput(input: unknown): CreateLeadInput {

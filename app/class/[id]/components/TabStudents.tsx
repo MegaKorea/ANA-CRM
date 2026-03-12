@@ -1,10 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Button, Table, Space, Tag, Popconfirm, message, Select, Row, Col, Typography } from 'antd';
-import { DeleteOutlined, UserAddOutlined } from '@ant-design/icons';
+import { Button, Table, Space, Tag, Popconfirm, message, Select, Row, Col, Typography, Badge } from 'antd';
+import { DeleteOutlined, UserAddOutlined, EditOutlined, PictureOutlined } from '@ant-design/icons';
 import { useClassStudents, useAddClassStudent, useRemoveClassStudent } from '@/lib/hooks/use-classes';
 import { useLeads } from '@/lib/hooks/use-leads';
 import type { Class } from '@/lib/services/class.service';
 import dayjs from 'dayjs';
+import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
+import { StudentFinanceModal } from './StudentFinanceModal';
 
 const { Text } = Typography;
 
@@ -14,7 +16,12 @@ const studentStatusMeta: Record<string, { label: string; color: string }> = {
     completed: { label: 'Hoàn thành', color: 'blue' },
 };
 
+const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+};
+
 export function TabStudents({ classData }: { classData: Class }) {
+    const { hasPermission: isManager } = useAuthPermission(['ADMIN', 'AO']);
     const { data: students, isLoading } = useClassStudents(classData.id);
     const { data: leadsData, isLoading: isLeadsLoading } = useLeads({ limit: 100, page: 1 });
 
@@ -22,6 +29,8 @@ export function TabStudents({ classData }: { classData: Class }) {
     const removeStudentMutation = useRemoveClassStudent(classData.id);
 
     const [selectedLeadId, setSelectedLeadId] = useState<number | undefined>(undefined);
+    const [financeModalOpen, setFinanceModalOpen] = useState(false);
+    const [financeStudent, setFinanceStudent] = useState<any>(null);
 
     const handleAddStudent = useCallback(() => {
         if (!selectedLeadId) return;
@@ -57,8 +66,8 @@ export function TabStudents({ classData }: { classData: Class }) {
         [removeStudentMutation]
     );
 
-    const columns = useMemo(
-        () => [
+    const columns = useMemo(() => {
+        const baseCols = [
             {
                 title: 'Họ tên',
                 dataIndex: ['leads', 'full_name'],
@@ -90,11 +99,57 @@ export function TabStudents({ classData }: { classData: Class }) {
                     return <Tag color={meta.color}>{meta.label}</Tag>;
                 },
             },
-            {
+        ];
+
+        if (isManager) {
+            baseCols.push({
+                title: 'Đã nộp',
+                dataIndex: 'paid_amount',
+                key: 'paid_amount',
+                render: (val: number) => <Text type="success">{formatCurrency(val || 0)}</Text>
+            } as any);
+
+            baseCols.push({
+                title: 'Công nợ',
+                dataIndex: 'debt_amount',
+                key: 'debt_amount',
+                render: (val: number) => <Text type="danger">{formatCurrency(val || 0)}</Text>
+            } as any);
+
+            baseCols.push({
+                title: 'Hóa đơn',
+                key: 'images',
+                align: 'center',
+                width: 100,
+                render: (_: unknown, record: any) => (
+                    <Badge count={record.images?.length || 0} size="small" offset={[-2, 0]}>
+                        <Button
+                            size="small"
+                            icon={<PictureOutlined />}
+                            onClick={() => {
+                                setFinanceStudent(record);
+                                setFinanceModalOpen(true);
+                            }}
+                        />
+                    </Badge>
+                ),
+            } as any);
+
+            baseCols.push({
                 title: 'Hành động',
                 key: 'action',
                 render: (_: any, record: any) => (
                     <Space size="middle">
+                        <Button
+                            type="primary"
+                            icon={<EditOutlined />}
+                            shape="circle"
+                            ghost
+                            onClick={() => {
+                                setFinanceStudent(record);
+                                setFinanceModalOpen(true);
+                            }}
+                        />
                         <Popconfirm
                             title="Xóa khỏi lớp"
                             description="Bạn có muốn xóa học viên này khỏi lớp không?"
@@ -103,21 +158,20 @@ export function TabStudents({ classData }: { classData: Class }) {
                             cancelText="Hủy"
                             okButtonProps={{ danger: true }}
                         >
-                            <Button type="link" danger icon={<DeleteOutlined />}>
-                                Xóa
-                            </Button>
+                            <Button type="primary" danger icon={<DeleteOutlined />} shape="circle" ghost />
                         </Popconfirm>
                     </Space>
                 ),
-            },
-        ].map(col => ({
+            } as any);
+        }
+
+        return baseCols.map(col => ({
             ...col,
             onCell: () => ({
                 'data-label': typeof col.title === 'string' ? col.title : '',
             } as any),
-        })),
-        [handleRemoveStudent]
-    );
+        }));
+    }, [handleRemoveStudent, isManager]);
 
     // Lọc leads chưa có trong lớp
     const availableLeadOptions = useMemo(() => {
@@ -135,40 +189,55 @@ export function TabStudents({ classData }: { classData: Class }) {
 
     return (
         <div style={{ padding: '20px 0' }}>
-            <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-                <Col>
-                    <Space>
-                        <Text strong>Sĩ số hiện tại:</Text>
-                        <Tag color={isFull ? 'red' : 'green'}>
-                            {students?.length || 0} {classData.capacity ? `/ ${classData.capacity}` : ''}
-                        </Tag>
-                        {isFull && <Text type="danger">(Đã đầy)</Text>}
-                    </Space>
-                </Col>
-                <Col>
-                    <Space>
-                        <Select
-                            showSearch
-                            style={{ width: 250 }}
-                            placeholder="Chọn học viên từ Leads"
-                            loading={isLeadsLoading}
-                            value={selectedLeadId}
-                            onChange={setSelectedLeadId}
-                            optionFilterProp="label"
-                            options={availableLeadOptions}
-                        />
-                        <Button
-                            type="primary"
-                            icon={<UserAddOutlined />}
-                            onClick={handleAddStudent}
-                            loading={addStudentMutation.isPending}
-                            disabled={!selectedLeadId || !!isFull}
-                        >
-                            Thêm vào lớp
-                        </Button>
-                    </Space>
-                </Col>
-            </Row>
+            {isManager && (
+                <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
+                    <Col>
+                        <Space>
+                            <Text strong>Sĩ số hiện tại:</Text>
+                            <Tag color={isFull ? 'red' : 'green'}>
+                                {students?.length || 0} {classData.capacity ? `/ ${classData.capacity}` : ''}
+                            </Tag>
+                            {isFull && <Text type="danger">(Đã đầy)</Text>}
+                        </Space>
+                    </Col>
+                    <Col>
+                        <Space>
+                            <Select
+                                showSearch
+                                style={{ width: 250 }}
+                                placeholder="Chọn học viên từ Leads"
+                                loading={isLeadsLoading}
+                                value={selectedLeadId}
+                                onChange={setSelectedLeadId}
+                                optionFilterProp="label"
+                                options={availableLeadOptions}
+                            />
+                            <Button
+                                type="primary"
+                                icon={<UserAddOutlined />}
+                                onClick={handleAddStudent}
+                                loading={addStudentMutation.isPending}
+                                disabled={!selectedLeadId || !!isFull}
+                            >
+                                Thêm vào lớp
+                            </Button>
+                        </Space>
+                    </Col>
+                </Row>
+            )}
+
+            {!isManager && (
+                <Row justify="start" align="middle" style={{ marginBottom: 16 }}>
+                    <Col>
+                        <Space>
+                            <Text strong>Sĩ số hiện tại:</Text>
+                            <Tag color={isFull ? 'red' : 'green'}>
+                                {students?.length || 0} {classData.capacity ? `/ ${classData.capacity}` : ''}
+                            </Tag>
+                        </Space>
+                    </Col>
+                </Row>
+            )}
 
             <Table
                 className="mobile-card-table"
@@ -177,6 +246,18 @@ export function TabStudents({ classData }: { classData: Class }) {
                 rowKey="id"
                 loading={isLoading}
                 pagination={{ pageSize: 10 }}
+                scroll={{ x: 'max-content' }}
+            />
+
+            <StudentFinanceModal
+                open={financeModalOpen}
+                onClose={() => {
+                    setFinanceModalOpen(false);
+                    setFinanceStudent(null);
+                }}
+                student={financeStudent}
+                classId={classData.id}
+                courseFee={classData.courses?.fee || 0}
             />
         </div>
     );

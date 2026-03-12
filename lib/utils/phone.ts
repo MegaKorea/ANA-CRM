@@ -25,6 +25,14 @@ export function formatPhoneToE164(phone: string): string {
   return `${PhoneCountryCode.VIETNAM}${cleanedPhone}`;
 }
 
+export function formatPhoneToLocal(phone: string): string {
+  const e164Phone = formatPhoneToE164(phone);
+  if (e164Phone.startsWith(PhoneCountryCode.VIETNAM)) {
+    return `${PhonePrefix.ZERO}${e164Phone.substring(PhoneCountryCode.VIETNAM.length)}`;
+  }
+  return e164Phone;
+}
+
 export function validateE164Format(phone: string): boolean {
   return PhoneFormat.E164_PATTERN.test(phone);
 }

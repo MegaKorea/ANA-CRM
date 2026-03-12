@@ -126,3 +126,23 @@ export function useRemoveClassStudent(classId: string) {
         },
     });
 }
+
+async function updateClassStudentReq({ studentId, data }: { studentId: string; data: Partial<any> }) {
+    return fetchJson(`/api/classes/students/${studentId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+}
+
+export function useUpdateClassStudent(classId: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: updateClassStudentReq,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [CLASS_STUDENT_QUERY_KEY, classId] });
+            queryClient.invalidateQueries({ queryKey: [CLASS_QUERY_KEY] });
+        },
+    });
+}
+

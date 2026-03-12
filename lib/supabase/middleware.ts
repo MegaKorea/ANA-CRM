@@ -41,23 +41,58 @@ export async function updateSession(request: NextRequest) {
   );
 
   const {
-    data: { user },
+    data: { user: adminUser },
   } = await supabase.auth.getUser();
 
-  const isAuthenticated = !!user;
+  // 1. Check for Student Authentication
+  const studentToken = request.cookies.get('ana_student_session')?.value;
+  let isStudentAuthenticated = false;
+
+  if (studentToken) {
+    try {
+      const { jwtVerify } = await import('jose');
+      const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_for_development_only';
+      const secret = new TextEncoder().encode(JWT_SECRET);
+      await jwtVerify(studentToken, secret);
+      isStudentAuthenticated = true;
+    } catch (e) {
+      console.error('Invalid student session', e);
+    }
+  }
+
+  const isAdminAuthenticated = !!adminUser;
   const isPublic = isPublicRoute(pathname);
   const isAuth = isAuthRoute(pathname);
   const isApiRoute = pathname.startsWith('/api');
+  const isStudentRoute = pathname.startsWith('/student');
 
-  if (isAuthenticated && isAuth) {
-    const url = request.nextUrl.clone();
-    url.pathname = DEFAULT_AUTHENTICATED_ROUTE;
-    return NextResponse.redirect(url);
+  // Handle Login Routes
+  if (isAuth) {
+    if (isAdminAuthenticated) {
+      const url = request.nextUrl.clone();
+      url.pathname = DEFAULT_AUTHENTICATED_ROUTE;
+      return NextResponse.redirect(url);
+    }
+    if (isStudentAuthenticated) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/student'; // Default student landing page
+      return NextResponse.redirect(url);
+    }
   }
 
-  if (!isAuthenticated && !isPublic && !isApiRoute) {
+  // Handle Protected Student Routes
+  if (isStudentRoute && !isStudentAuthenticated) {
+    if (!isPublic && !isApiRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // Handle Protected Admin Routes
+  if (!isStudentRoute && !isAdminAuthenticated && !isPublic && !isApiRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = '/404';
+    url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
