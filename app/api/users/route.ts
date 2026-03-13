@@ -8,9 +8,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') ?? undefined;
+    const roleCode = searchParams.get('roleCode') ?? undefined;
 
     const users = await fetchAllUsers({
       search: search || undefined,
+      roleCode: roleCode || undefined,
     });
     return NextResponse.json(users, { status: HttpStatusCode.OK });
   } catch (error) {

@@ -11,6 +11,7 @@ export interface CreateClassInput {
     end_date?: string | null;
     schedule?: string | null;
     timetable?: 'Sáng' | 'Chiều' | 'Tối' | null;
+    homeroom_teacher_id?: string | null;
 }
 
 export function validateCreateClassInput(input: unknown): CreateClassInput {
@@ -40,6 +41,7 @@ export function validateCreateClassInput(input: unknown): CreateClassInput {
         end_date: typeof data.end_date === 'string' ? data.end_date.trim() : null,
         schedule: typeof data.schedule === 'string' ? data.schedule.trim() : null,
         timetable: ['Sáng', 'Chiều', 'Tối'].includes(data.timetable as string) ? (data.timetable as any) : null,
+        homeroom_teacher_id: typeof data.homeroom_teacher_id === 'string' ? data.homeroom_teacher_id.trim() : null,
     };
 }
 
@@ -95,6 +97,10 @@ export function validateUpdateClassInput(input: unknown): UpdateClassInput {
 
     if (data.timetable !== undefined) {
         updateData.timetable = ['Sáng', 'Chiều', 'Tối'].includes(data.timetable as string) ? (data.timetable as any) : null;
+    }
+
+    if (data.homeroom_teacher_id !== undefined) {
+        updateData.homeroom_teacher_id = typeof data.homeroom_teacher_id === 'string' ? data.homeroom_teacher_id.trim() : null;
     }
 
     return updateData;

@@ -53,6 +53,18 @@ export async function updateSession(request: NextRequest) {
   const isApiRoute = pathname.startsWith('/api');
   const isStudentRoute = pathname.startsWith('/student');
 
+  // Handle API Routes Security
+  if (isApiRoute && !isPublic) {
+    if (!isAuthenticated) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Student trying to access admin API routes (unless it's /api/student or /api/auth)
+    if (isStudentAuthenticated && !pathname.startsWith('/api/student') && !pathname.startsWith('/api/auth')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  }
+
   // Handle Login Routes
   if (isAuth) {
     if (isAdminAuthenticated) {

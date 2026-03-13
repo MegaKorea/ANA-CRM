@@ -1,10 +1,10 @@
 import type { MenuProps } from 'antd';
 import { UserOutlined, TeamOutlined, SafetyOutlined, ContactsOutlined, BookOutlined, ReadOutlined } from '@ant-design/icons';
 
-// Base Ant Design menu item type
+
 export type MenuItem = Required<MenuProps>['items'][number];
 
-// Our custom app menu item type with roles
+
 export type AppMenuItem = {
   key: string;
   icon?: React.ReactNode;
@@ -18,7 +18,7 @@ export const menuItems: AppMenuItem[] = [
     key: '/admin',
     icon: <UserOutlined />,
     label: 'QUẢN TRỊ',
-    roles: ['ADMIN'], // Hide menu if not admin
+    roles: ['ADMIN'],
     children: [
       {
         key: '/admin/user',
@@ -36,6 +36,7 @@ export const menuItems: AppMenuItem[] = [
     key: '/lead',
     icon: <ContactsOutlined />,
     label: 'DATA',
+    roles: ['ADMIN', 'SALE', 'MKT', 'TEA', 'AO'],
   },
   {
     key: '/lms',
@@ -46,6 +47,7 @@ export const menuItems: AppMenuItem[] = [
         key: '/course',
         icon: <BookOutlined />,
         label: 'KHÓA HỌC',
+        roles: ['ADMIN', 'SALE', 'MKT', 'TEA', 'AO'],
       },
       {
         key: '/class',

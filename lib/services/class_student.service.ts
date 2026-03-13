@@ -16,6 +16,7 @@ export interface ClassStudent {
         email: string;
         phone_number: string;
     };
+    login_email?: string;
 }
 
 export async function getClassStudents(classId: string): Promise<ClassStudent[]> {
@@ -46,14 +47,43 @@ export async function getClassStudents(classId: string): Promise<ClassStudent[]>
         throw new Error(error.message);
     }
 
-    return (data as unknown as ClassStudent[]) || [];
+    const students = (data as unknown as ClassStudent[]) || [];
+
+    // Fetch login emails from users table
+    const phoneNumbers = students
+        .map(s => s.leads?.phone_number)
+        .filter((phone): phone is string => Boolean(phone));
+
+    if (phoneNumbers.length > 0) {
+        const { data: usersData, error: usersError } = await supabase
+            .from('users')
+            .select('phone, email')
+            .in('phone', phoneNumbers);
+
+        if (!usersError && usersData) {
+            const phoneToEmailMap = new Map<string, string>();
+            (usersData as any[]).forEach(u => {
+                if (u.phone && u.email) {
+                    phoneToEmailMap.set(u.phone, u.email);
+                }
+            });
+
+            students.forEach(s => {
+                if (s.leads?.phone_number) {
+                    s.login_email = phoneToEmailMap.get(s.leads.phone_number);
+                }
+            });
+        }
+    }
+
+    return students;
 }
 
 export async function addClassStudent(classId: string, studentId: number): Promise<ClassStudent> {
     const supabase = createAdminClient();
     const { data: leadRaw, error: leadError } = await supabase
         .from('leads')
-        .select('phone_number, full_name')
+        .select('phone_number, full_name, email')
         .eq('id', studentId)
         .single();
 
@@ -64,9 +94,12 @@ export async function addClassStudent(classId: string, studentId: number): Promi
     }
 
     if (lead && lead.phone_number) {
-        // TODO: Re-implement student account creation using user.service.ts
-        // const { createStudentAccountIfNotExists } = await import('./student_account.service');
-        // await createStudentAccountIfNotExists(studentId, lead.phone_number, lead.full_name);
+        try {
+            const { createStudentAccountIfNotExists } = await import('./user.service');
+            await createStudentAccountIfNotExists(lead.phone_number, lead.full_name, lead.email);
+        } catch (e) {
+            console.error('Failed to create student account during class enrollment:', e);
+        }
     }
     const { data, error } = await supabase
         .from('class_students')

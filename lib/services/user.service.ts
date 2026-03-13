@@ -11,6 +11,7 @@ export type User = Tables<'users'>;
 
 export interface UserQueryParams {
   search?: string;
+  roleCode?: string;
 }
 
 export async function fetchAllUsers(params?: UserQueryParams): Promise<User[]> {
@@ -22,6 +23,20 @@ export async function fetchAllUsers(params?: UserQueryParams): Promise<User[]> {
       const keyword = params.search.trim();
       if (keyword) {
         query = query.or(`full_name.ilike.*${keyword}*,email.ilike.*${keyword}*`);
+      }
+    }
+
+    if (params?.roleCode) {
+      const { data: role } = await supabase
+        .from('roles')
+        .select('id')
+        .eq('code', params.roleCode)
+        .single();
+
+      if (role) {
+        query = query.eq('role_id', (role as any).id);
+      } else {
+        return []; // If role not found, return empty array
       }
     }
 
@@ -136,19 +151,19 @@ export async function createUser(input: CreateUserInput): Promise<User> {
 export async function updateUserById(id: string, input: UpdateUserInput): Promise<User> {
   try {
     const supabase = createAdminClient();
-    
+
     if (input.password !== undefined || input.email !== undefined) {
       const authUpdateData: { password?: string; email?: string; email_confirm?: boolean } = {};
-      
+
       if (input.password !== undefined) {
         authUpdateData.password = input.password;
       }
-      
+
       if (input.email !== undefined) {
         authUpdateData.email = input.email;
         authUpdateData.email_confirm = true;
       }
-      
+
       const { error: authError } = await supabase.auth.admin.updateUserById(id, authUpdateData);
 
       if (authError) {
@@ -225,3 +240,105 @@ export async function deleteUserById(id: string): Promise<void> {
   }
 }
 
+export async function createStudentAccountIfNotExists(
+  phone: string,
+  fullName: string,
+  email?: string | null
+): Promise<void> {
+  try {
+    const supabase = createAdminClient();
+
+    // Check if user with this phone already exists in our table
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('phone', phone)
+      .maybeSingle();
+
+    if (existingUser) {
+      return; // Account already exists
+    }
+
+    // Get STU role id
+    const { data: role } = await supabase
+      .from('roles')
+      .select('id')
+      .eq('code', 'STU')
+      .single();
+
+    if (!role) {
+      console.warn('Student role STU not found. Cannot create account.');
+      return;
+    }
+
+    const defaultEmail = email || `${phone}@student.ana.edu.vn`;
+    const defaultPassword = phone;
+
+    // Check if auth user with email exists
+    const { data: authUsersResponse, error: authListError } = await supabase.auth.admin.listUsers();
+
+    if (authListError) {
+      console.error('Failed to list auth users:', authListError);
+      return;
+    }
+
+    const existingAuthUser = authUsersResponse.users.find(u => u.email === defaultEmail);
+
+    if (existingAuthUser) {
+      // If auth user exists but not in our users table, we should still insert the user record
+      const insertData: InsertTables<'users'> = {
+        id: existingAuthUser.id,
+        email: defaultEmail,
+        full_name: fullName,
+        phone: phone,
+        status: UserStatusDb.ACTIVE,
+        role_id: (role as any).id,
+      };
+
+      const { error: insertError } = await supabase
+        .from('users')
+        .insert(insertData as never);
+
+      if (insertError) {
+        console.error('Failed to insert user record for existing auth student:', insertError);
+      }
+      return;
+    }
+
+    // Create auth user
+    const { data: authUser, error: authError } =
+      await supabase.auth.admin.createUser({
+        email: defaultEmail,
+        password: defaultPassword,
+        email_confirm: true,
+        user_metadata: {
+          full_name: fullName,
+        },
+      });
+
+    if (authError || !authUser.user) {
+      console.error('Failed to create student auth user:', authError);
+      return;
+    }
+
+    const insertData: InsertTables<'users'> = {
+      id: authUser.user.id,
+      email: defaultEmail,
+      full_name: fullName,
+      phone: phone,
+      status: UserStatusDb.ACTIVE,
+      role_id: (role as any).id,
+    };
+
+    const { error: insertError } = await supabase
+      .from('users')
+      .insert(insertData as never);
+
+    if (insertError) {
+      await supabase.auth.admin.deleteUser(authUser.user.id);
+      console.error('Failed to insert user record for student:', insertError);
+    }
+  } catch (error) {
+    console.error('Error creating student account:', error);
+  }
+}

@@ -146,3 +146,49 @@ export function useUpdateClassStudent(classId: string) {
     });
 }
 
+export const SUBJECT_TEACHER_QUERY_KEY = 'subject-teachers';
+
+async function fetchSubjectTeachers(classId: string) {
+    return fetchJson<any[]>(`/api/classes/${classId}/subject-teachers`);
+}
+
+export function useSubjectTeachers(classId: string) {
+    return useQuery({
+        queryKey: [SUBJECT_TEACHER_QUERY_KEY, classId],
+        queryFn: () => fetchSubjectTeachers(classId),
+        enabled: !!classId,
+    });
+}
+
+async function addSubjectTeacherReq({ classId, teacherId, subject }: { classId: string; teacherId: string; subject?: string }) {
+    return fetchJson(`/api/classes/${classId}/subject-teachers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teacher_id: teacherId, subject }),
+    });
+}
+
+export function useAddSubjectTeacher(classId: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: addSubjectTeacherReq,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [SUBJECT_TEACHER_QUERY_KEY, classId] });
+        },
+    });
+}
+
+async function removeSubjectTeacherReq(id: string) {
+    await fetchJson<void>(`/api/classes/subject-teachers/${id}`, { method: 'DELETE' });
+}
+
+export function useRemoveSubjectTeacher(classId: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: removeSubjectTeacherReq,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [SUBJECT_TEACHER_QUERY_KEY, classId] });
+        },
+    });
+}
+

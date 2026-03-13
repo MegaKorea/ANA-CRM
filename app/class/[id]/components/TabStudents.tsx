@@ -129,7 +129,12 @@ export function TabStudents({ classData }: { classData: Class }) {
         render: (text: string) => <Text strong>{text || 'N/A'}</Text>,
       },
       { title: 'SĐT', dataIndex: ['leads', 'phone_number'], key: 'phone_number' },
-      { title: 'Email', dataIndex: ['leads', 'email'], key: 'email' },
+      {
+        title: 'Email',
+        dataIndex: 'login_email',
+        key: 'login_email',
+        render: (text: string) => <Text>{text || 'Chưa thiết lập'}</Text>
+      },
       {
         title: 'Ngày tham gia',
         dataIndex: 'enrollment_date',
@@ -252,7 +257,7 @@ export function TabStudents({ classData }: { classData: Class }) {
   const renderMobileCard = (record: any) => {
     const name = record.leads?.full_name || 'N/A';
     const phone = record.leads?.phone_number;
-    const email = record.leads?.email;
+    const email = record.login_email;
     const date = record.enrollment_date ? dayjs(record.enrollment_date).format('DD/MM/YYYY') : '';
     const status = studentStatusMeta[record.status] ?? {
       label: record.status || '—',

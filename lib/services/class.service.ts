@@ -12,7 +12,7 @@ export interface Class {
     timetable: 'Sáng' | 'Chiều' | 'Tối' | null;
     capacity: number | null;
     status: string | null;
-    teacher_id: string | null;
+    homeroom_teacher_id: string | null;
     created_at: string;
     updated_at: string;
     courses?: {
@@ -20,12 +20,19 @@ export interface Class {
         code: string;
         fee: number;
     };
+    teacher?: {
+        id: string;
+        full_name: string;
+        email: string;
+        phone: string | null;
+    };
     class_students?: { id: string }[];
 }
 
-export async function fetchAllClasses(): Promise<Class[]> {
+export async function fetchAllClasses(studentPhone?: string): Promise<Class[]> {
     const supabase = createAdminClient();
-    const { data, error } = await supabase
+
+    let query = supabase
         .from('classes')
         .select(`
             *,
@@ -36,9 +43,43 @@ export async function fetchAllClasses(): Promise<Class[]> {
             ),
             class_students (
                 id
+            ),
+            teacher:users!classes_teacher_id_fkey(
+                id,
+                full_name,
+                email,
+                phone
             )
         `)
         .order('created_at', { ascending: false });
+
+    if (studentPhone) {
+        const { data: leadData } = await supabase
+            .from('leads')
+            .select('id')
+            .eq('phone_number', studentPhone)
+            .maybeSingle();
+
+        if (leadData) {
+            const { data: classStudentsData } = await supabase
+                .from('class_students')
+                .select('class_id')
+                .eq('student_id', (leadData as any).id);
+
+            const enrolledClassIds = classStudentsData?.map((cs: any) => cs.class_id) || [];
+
+            if (enrolledClassIds.length > 0) {
+                query = query.in('id', enrolledClassIds);
+            } else {
+
+                return [];
+            }
+        } else {
+            return [];
+        }
+    }
+
+    const { data, error } = await query;
 
     if (error) {
         throw new Error(error.message);
@@ -57,6 +98,12 @@ export async function getClass(id: string): Promise<Class> {
                 name,
                 code,
                 fee
+            ),
+            teacher:users!classes_teacher_id_fkey(
+                id,
+                full_name,
+                email,
+                phone
             )
         `)
         .eq('id', id)
@@ -80,6 +127,12 @@ export async function createClass(input: CreateClassInput): Promise<Class> {
                 name,
                 code,
                 fee
+            ),
+            teacher:users!classes_teacher_id_fkey(
+                id,
+                full_name,
+                email,
+                phone
             )
         `)
         .single();
@@ -103,6 +156,12 @@ export async function updateClass(id: string, input: UpdateClassInput): Promise<
                 name,
                 code,
                 fee
+            ),
+            teacher:users!classes_teacher_id_fkey(
+                id,
+                full_name,
+                email,
+                phone
             )
         `)
         .single();

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 import { HttpStatusCode } from '@/constants/enums';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         }
 
         const endOfDay = endDate.includes('T') ? endDate : `${endDate}T23:59:59.999Z`;
-        const supabase = createAdminClient();
+        const supabase = await createClient();
         const { data: leads, error } = await supabase
             .from('leads')
             .select('id, created_at, appointment_date, status, attendance_status, sales_amount, deposit, outstanding_balance')
