@@ -25,7 +25,9 @@ import { useSubjectTeachers, useClassStudents } from '@/lib/hooks/use-classes';
 import { EditSessionModal, type EditSessionValues } from './modals/EditSessionModal';
 import { AttendanceModal, type AttendanceRecord } from './modals/AttendanceModal';
 import { QrCodeModal } from './modals/QrCodeModal';
+import { StudentScannerModal } from './modals/StudentScannerModal';
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
+import { ScanOutlined } from '@ant-design/icons';
 import styles from './tab-schedule.module.scss';
 import { useState, useMemo, useCallback } from 'react';
 
@@ -90,6 +92,9 @@ export function TabSchedule({ classData }: { classData: Class }) {
   const [qrModal, setQrModal] = useState<{ open: boolean; token: string; expiresAt: string }>({
     open: false, token: '', expiresAt: '',
   });
+
+  // ─── Student Scanner state
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const hasSessions = sessions && sessions.length > 0;
   const hasRequiredDates = classData.start_date && classData.end_date;
@@ -223,6 +228,16 @@ export function TabSchedule({ classData }: { classData: Class }) {
             style={{ marginTop: 16 }}
           >
             Tạo lịch học tự động
+          </Button>
+        )}
+        {!notStudent && (
+          <Button
+            type="primary"
+            icon={<ScanOutlined />}
+            onClick={() => setScannerOpen(true)}
+            style={{ marginTop: 16 }}
+          >
+            Quét mã điểm danh
           </Button>
         )}
       </div>
@@ -393,9 +408,13 @@ export function TabSchedule({ classData }: { classData: Class }) {
             Tổng: {totalSessions} buổi
           </Typography.Text>
         </div>
-        {notStudent && (
+        {notStudent ? (
           <Button icon={<SyncOutlined />} onClick={handleGenerateSessions} loading={generateSessions.isPending} size="small">
             {isMobile ? 'Tạo lại' : 'Tạo lại lịch'}
+          </Button>
+        ) : (
+          <Button type="primary" icon={<ScanOutlined />} onClick={() => setScannerOpen(true)} size="small">
+            Quét mã
           </Button>
         )}
       </div>
@@ -502,6 +521,11 @@ export function TabSchedule({ classData }: { classData: Class }) {
         token={qrModal.token}
         expiresAt={qrModal.expiresAt}
         onClose={() => setQrModal({ open: false, token: '', expiresAt: '' })}
+      />
+
+      <StudentScannerModal
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
       />
     </div>
   );
