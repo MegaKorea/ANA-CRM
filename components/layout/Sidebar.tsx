@@ -108,7 +108,6 @@ export function Sidebar({ collapsed, isMobile, onClose }: SidebarProps) {
   );
 
   if (isMobile) {
-    // Keep it minimal and avoid an additional Layout if not needed
     return (
       <Sider
         trigger={null}

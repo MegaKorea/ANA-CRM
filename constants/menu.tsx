@@ -36,7 +36,7 @@ export const menuItems: AppMenuItem[] = [
     key: '/lead',
     icon: <ContactsOutlined />,
     label: 'DATA',
-    roles: ['ADMIN', 'SALE', 'MKT', 'TEA', 'AO'],
+    roles: ['ADMIN', 'TELESALES', 'AO', 'PC'],
   },
   {
     key: '/lms',
@@ -47,7 +47,7 @@ export const menuItems: AppMenuItem[] = [
         key: '/course',
         icon: <BookOutlined />,
         label: 'KHÓA HỌC',
-        roles: ['ADMIN', 'SALE', 'MKT', 'TEA', 'AO'],
+        roles: ['ADMIN', 'TELESALES', 'AO', 'PC', 'STU'],
       },
       {
         key: '/class',
