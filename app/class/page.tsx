@@ -36,6 +36,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { CLASS_STATUS_OPTIONS, getClassStatusMeta } from '@/lib/constants/classStatus';
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
 import { useIsMobile } from '@/lib/hooks/use-mobile';
+import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import dynamic from 'next/dynamic';
 import styles from './page.module.scss';
 
@@ -54,6 +55,8 @@ export default function ClassPage() {
   const isMobile = useIsMobile();
 
   const router = useRouter();
+
+  const { hasPermission: notStudent } = useAuthPermission(['ADMIN', 'AO', 'TEA']);
 
   const { data: classes, isLoading: isClassesLoading, refetch } = useClasses();
   const { data: courses, isLoading: isCoursesLoading } = useCourses();
@@ -84,7 +87,7 @@ export default function ClassPage() {
     return classes.filter((cls) => {
       const matchName = term
         ? cls.name.toLowerCase().includes(term) ||
-          (cls.code && cls.code.toLowerCase().includes(term))
+        (cls.code && cls.code.toLowerCase().includes(term))
         : true;
       const matchStatus = statusFilter ? cls.status === statusFilter : true;
       const matchCourse = courseFilter ? cls.course_id === courseFilter : true;
@@ -186,15 +189,17 @@ export default function ClassPage() {
                 title="Xem chi tiết"
                 onClick={() => router.push(`/class/${record.id}`)}
               />
-              <Popconfirm
-                title="Xóa lớp học"
-                description="Bạn có chắc chắn muốn xóa lớp học này không?"
-                onConfirm={() => handleDelete(record.id)}
-                okText="Xóa"
-                cancelText="Hủy"
-              >
-                <Button type="link" danger icon={<DeleteOutlined />} title="Xóa" />
-              </Popconfirm>
+              {notStudent && (
+                <Popconfirm
+                  title="Xóa lớp học"
+                  description="Bạn có chắc chắn muốn xóa lớp học này không?"
+                  onConfirm={() => handleDelete(record.id)}
+                  okText="Xóa"
+                  cancelText="Hủy"
+                >
+                  <Button type="link" danger icon={<DeleteOutlined />} title="Xóa" />
+                </Popconfirm>
+              )}
             </Space>
           ),
         },
@@ -224,16 +229,18 @@ export default function ClassPage() {
             Danh sách Lớp học
           </Title>
         </Col>
-        <Col>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleOpenCreateModal}
-            size="large"
-          >
-            Tạo mới Lớp học
-          </Button>
-        </Col>
+        {notStudent && (
+          <Col>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleOpenCreateModal}
+              size="large"
+            >
+              Tạo mới Lớp học
+            </Button>
+          </Col>
+        )}
       </Row>
 
       <Row gutter={[16, 12]} align="middle" style={{ marginBottom: 16 }}>
@@ -363,28 +370,30 @@ export default function ClassPage() {
                         <EyeOutlined style={{ fontSize: '16px' }} />
                       </div>
                     </Tooltip>,
-                    <Popconfirm
-                      key="delete"
-                      title="Xóa lớp học"
-                      description="Bạn có chắc chắn muốn xóa lớp học này không?"
-                      onConfirm={() => handleDelete(cls.id)}
-                      okText="Xóa"
-                      cancelText="Hủy"
-                    >
-                      <Tooltip title="Xóa">
-                        <div
-                          style={{
-                            width: '100%',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            color: '#ff4d4f',
-                          }}
-                        >
-                          <DeleteOutlined style={{ fontSize: '16px' }} />
-                        </div>
-                      </Tooltip>
-                    </Popconfirm>,
+                    ...(notStudent ? [
+                      <Popconfirm
+                        key="delete"
+                        title="Xóa lớp học"
+                        description="Bạn có chắc chắn muốn xóa lớp học này không?"
+                        onConfirm={() => handleDelete(cls.id)}
+                        okText="Xóa"
+                        cancelText="Hủy"
+                      >
+                        <Tooltip title="Xóa">
+                          <div
+                            style={{
+                              width: '100%',
+                              display: 'flex',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              color: '#ff4d4f',
+                            }}
+                          >
+                            <DeleteOutlined style={{ fontSize: '16px' }} />
+                          </div>
+                        </Tooltip>
+                      </Popconfirm>
+                    ] : []),
                   ]}
                 >
                   <Flex vertical gap="small">

@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { CLASS_STATUS_OPTIONS } from '@/lib/constants/classStatus';
+import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import styles from './components.module.scss';
 
 type ClassBasicInfoFormValues = Omit<UpdateClassInput, 'start_date' | 'end_date' | 'schedule'> & {
@@ -17,6 +18,7 @@ type ClassBasicInfoFormValues = Omit<UpdateClassInput, 'start_date' | 'end_date'
 };
 
 export function TabBasicInfo({ classData }: { classData: Class }) {
+  const { hasPermission: notStudent } = useAuthPermission(['ADMIN', 'AO', 'TEA']);
   const [form] = Form.useForm<ClassBasicInfoFormValues>();
   const updateClassMutation = useUpdateClass();
   const { data: courses, isLoading: isCoursesLoading } = useCourses();
@@ -144,24 +146,26 @@ export function TabBasicInfo({ classData }: { classData: Class }) {
           </Form.Item>
         </div>
       </Form>
-      <div className={styles.actionFooter}>
-        {isEditing ? (
-          <Space>
-            <Button onClick={handleCancel}>Hủy bỏ</Button>
-            <Button
-              type="primary"
-              onClick={() => form.submit()}
-              loading={updateClassMutation.isPending}
-            >
-              Lưu thay đổi
+      {notStudent && (
+        <div className={styles.actionFooter}>
+          {isEditing ? (
+            <Space>
+              <Button onClick={handleCancel}>Hủy bỏ</Button>
+              <Button
+                type="primary"
+                onClick={() => form.submit()}
+                loading={updateClassMutation.isPending}
+              >
+                Lưu thay đổi
+              </Button>
+            </Space>
+          ) : (
+            <Button type="primary" onClick={() => setIsEditing(true)}>
+              Sửa thông tin
             </Button>
-          </Space>
-        ) : (
-          <Button type="primary" onClick={() => setIsEditing(true)}>
-            Sửa thông tin
-          </Button>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -25,6 +25,7 @@ import { useSubjectTeachers, useClassStudents } from '@/lib/hooks/use-classes';
 import { EditSessionModal, type EditSessionValues } from './modals/EditSessionModal';
 import { AttendanceModal, type AttendanceRecord } from './modals/AttendanceModal';
 import { QrCodeModal } from './modals/QrCodeModal';
+import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import styles from './tab-schedule.module.scss';
 import { useState, useMemo, useCallback } from 'react';
 
@@ -60,6 +61,7 @@ const STATUS_DOT: Record<string, string> = {
 // ─── TabSchedule ──────────────────────────────────────────────────────────────
 
 export function TabSchedule({ classData }: { classData: Class }) {
+  const { hasPermission: notStudent } = useAuthPermission(['ADMIN', 'AO', 'TEA']);
   const { token } = theme.useToken();
   const isMobile = useIsMobile();
 
@@ -212,15 +214,17 @@ export function TabSchedule({ classData }: { classData: Class }) {
           image={Empty.PRESENTED_IMAGE_SIMPLE}
           description={<Typography.Text type="secondary">Chưa có lịch học. Hãy tạo lịch tự động.</Typography.Text>}
         />
-        <Button
-          type="primary"
-          icon={<SyncOutlined />}
-          onClick={handleGenerateSessions}
-          loading={generateSessions.isPending}
-          style={{ marginTop: 16 }}
-        >
-          Tạo lịch học tự động
-        </Button>
+        {notStudent && (
+          <Button
+            type="primary"
+            icon={<SyncOutlined />}
+            onClick={handleGenerateSessions}
+            loading={generateSessions.isPending}
+            style={{ marginTop: 16 }}
+          >
+            Tạo lịch học tự động
+          </Button>
+        )}
       </div>
     );
   }
@@ -337,7 +341,7 @@ export function TabSchedule({ classData }: { classData: Class }) {
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>—</Typography.Text>
         ),
     },
-    {
+    ...(notStudent ? [{
       title: 'Hành động',
       key: 'actions',
       width: 110,
@@ -359,7 +363,7 @@ export function TabSchedule({ classData }: { classData: Class }) {
           </Tooltip>
         </Space>
       ),
-    },
+    }] : []),
   ];
 
   const totalSessions = tableData.length;
@@ -389,9 +393,11 @@ export function TabSchedule({ classData }: { classData: Class }) {
             Tổng: {totalSessions} buổi
           </Typography.Text>
         </div>
-        <Button icon={<SyncOutlined />} onClick={handleGenerateSessions} loading={generateSessions.isPending} size="small">
-          {isMobile ? 'Tạo lại' : 'Tạo lại lịch'}
-        </Button>
+        {notStudent && (
+          <Button icon={<SyncOutlined />} onClick={handleGenerateSessions} loading={generateSessions.isPending} size="small">
+            {isMobile ? 'Tạo lại' : 'Tạo lại lịch'}
+          </Button>
+        )}
       </div>
       {isMobile ? (
         <List
@@ -436,17 +442,19 @@ export function TabSchedule({ classData }: { classData: Class }) {
                     </div>
                   )}
                 </div>
-                <div className={styles.cardActions}>
-                  <button className={styles.cardActionBtn} onClick={() => setEditModal({ open: true, session: item.session })}>
-                    <EditOutlined /> Sửa
-                  </button>
-                  <button className={styles.cardActionBtn} onClick={() => setAttendanceSession(item.session)}>
-                    <TeamOutlined /> Điểm danh
-                  </button>
-                  <button className={styles.cardActionBtn} onClick={() => handleGenerateQr(item.session)}>
-                    {item.hasQr ? <Badge dot color="green"><QrcodeOutlined /></Badge> : <QrcodeOutlined />} QR
-                  </button>
-                </div>
+                {notStudent && (
+                  <div className={styles.cardActions}>
+                    <button className={styles.cardActionBtn} onClick={() => setEditModal({ open: true, session: item.session })}>
+                      <EditOutlined /> Sửa
+                    </button>
+                    <button className={styles.cardActionBtn} onClick={() => setAttendanceSession(item.session)}>
+                      <TeamOutlined /> Điểm danh
+                    </button>
+                    <button className={styles.cardActionBtn} onClick={() => handleGenerateQr(item.session)}>
+                      {item.hasQr ? <Badge dot color="green"><QrcodeOutlined /></Badge> : <QrcodeOutlined />} QR
+                    </button>
+                  </div>
+                )}
               </div>
             </List.Item>
           )}
