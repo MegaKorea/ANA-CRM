@@ -54,10 +54,16 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
+      try {
+        await api.post(AuthApiPath.LOGOUT);
+      } catch (error) {
+        console.error('Logout API failed:', error);
+      }
+
       const supabase = getSupabaseClient();
       await supabase.auth.signOut();
 
-      return api.post(AuthApiPath.LOGOUT);
+      return true;
     },
     onSuccess: () => {
       // Clear React Query cache
