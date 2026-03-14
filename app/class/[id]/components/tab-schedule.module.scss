@@ -1,0 +1,174 @@
+/* ╔══════════════════════════════════════════════════╗
+   ║       tab-schedule.module.scss — ANA-CRM        ║
+   ║  Styles riêng cho TabSchedule.tsx               ║
+   ╚══════════════════════════════════════════════════╝ */
+
+/* ─── Wrapper ─── */
+.container {
+    padding-top: 0.5rem;
+
+    @media (min-width: 640px) {
+        padding-top: 1.25rem;
+    }
+}
+
+/* ─── Header bar (stats + action button) ─── */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+    border-radius: 10px;
+    border: 1px solid var(--ant-color-border-secondary);
+
+    @media (max-width: 639px) {
+        padding: 8px 12px;
+    }
+}
+
+.summary {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+
+    @media (max-width: 639px) {
+        gap: 10px;
+    }
+}
+
+.summaryItem {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--ant-color-text-secondary);
+    white-space: nowrap;
+}
+
+.dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* ─── Mobile Session Card ─── */
+.card {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--ant-color-border-secondary);
+    background: var(--ant-color-bg-container);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+
+    &:active {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+}
+
+.cardToday {
+    border-color: #1677ff;
+    box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.12);
+}
+
+.cardPast {
+    opacity: 0.68;
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px 8px;
+    border-bottom: 1px solid var(--ant-color-border-secondary);
+    background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+
+    @media (max-width: 360px) {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+.cardBody {
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cardRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    min-height: 22px;
+}
+
+.cardIcon {
+    font-size: 13px;
+    color: var(--ant-color-text-quaternary);
+    flex-shrink: 0;
+    width: 16px;
+    text-align: center;
+}
+
+/* ─── Action strip (3 buttons) ─── */
+.cardActions {
+    display: flex;
+    align-items: stretch;
+    border-top: 1px solid var(--ant-color-border-secondary);
+}
+
+.cardActionBtn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    height: 38px;
+    font-size: 13px;
+    border: none;
+    border-right: 1px solid var(--ant-color-border-secondary);
+    background: transparent;
+    cursor: pointer;
+    color: var(--ant-color-text);
+    transition: background 0.15s ease;
+
+    &:last-child {
+        border-right: none;
+    }
+
+    &:hover,
+    &:active {
+        background: var(--ant-color-fill-secondary);
+    }
+
+    svg {
+        font-size: 14px;
+        color: var(--ant-color-text-secondary);
+    }
+}
+
+/* ─── QR code wrapper (dark-mode-safe) ─── */
+.qrWrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 24px 0 8px;
+}
+
+.qrBox {
+    padding: 16px;
+    border-radius: 12px;
+    /* Use Ant Design token-based bg — adapts light/dark automatically */
+    background: var(--ant-color-bg-elevated);
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--ant-color-border-secondary);
+}

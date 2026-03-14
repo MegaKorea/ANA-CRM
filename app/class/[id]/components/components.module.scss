@@ -1,3 +1,12 @@
+/* ╔══════════════════════════════════════════════════════╗
+   ║          ANA-CRM — components.module.scss           ║
+   ║  Shared styles cho các component trong /class/[id]  ║
+   ╚══════════════════════════════════════════════════════╝ */
+
+/* ─────────────────────────────────────────────────────────
+   GRID LAYOUT
+   ───────────────────────────────────────────────────────── */
+
 .gridContainer {
   display: grid;
   grid-template-columns: repeat(1, minmax(0, 1fr));
@@ -12,9 +21,13 @@
   }
 }
 
+/* ─────────────────────────────────────────────────────────
+   ACTION FOOTER (sticky on mobile)
+   ───────────────────────────────────────────────────────── */
+
 .actionFooter {
   position: sticky;
-  bottom: 0px;
+  bottom: 0;
   z-index: 10;
   display: flex;
   justify-content: flex-end;
@@ -31,7 +44,7 @@
     background-color: transparent;
     border: none;
     padding-bottom: 1.5rem;
-    padding-top: 0px;
+    padding-top: 0;
 
     @media (prefers-color-scheme: dark) {
       background-color: transparent;
@@ -39,13 +52,9 @@
   }
 }
 
-.scheduleContainer {
-  padding-top: 0.5rem;
-
-  @media (min-width: 640px) {
-    padding-top: 1.25rem;
-  }
-}
+/* ─────────────────────────────────────────────────────────
+   UTILITIES
+   ───────────────────────────────────────────────────────── */
 
 .fullWidth {
   width: 100%;
