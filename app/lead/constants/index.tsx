@@ -13,6 +13,7 @@ import type { Lead } from '@/lib/services/lead.service';
 import { AttendanceStatus, DateLocale, LeadSource, LeadStatus } from '@/constants/enums';
 import type { Course } from '@/lib/services/course.service';
 import type { LocationValue } from '@/components/common/LocationSelect';
+import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
 import type { NoteItem } from '@/lib/supabase/types/tables/leads';
 import { FiGlobe, FiMail, FiPhone, FiFacebook, FiMoreHorizontal } from 'react-icons/fi';
 import { formatNumberVi } from '@/lib/utils/numberFormat';
@@ -188,6 +189,27 @@ export function formatLocationValue(location: LocationValue | null | undefined):
   return parts.join(', ') || '';
 }
 
+/**
+ * Render a location selected from the NEW provinces.open-api.vn API (LocationValueV2).
+ * Falls back gracefully so existing data using the old structure still works.
+ */
+export function formatLocationValueV2(location: LocationValueV2 | null | undefined): string {
+  if (!location) {
+    return '';
+  }
+  const parts: string[] = [];
+  if (location.ward?.name) {
+    parts.push(location.ward.name);
+  }
+  if (location.district?.name) {
+    parts.push(location.district.name);
+  }
+  if (location.province?.name) {
+    parts.push(location.province.name);
+  }
+  return parts.join(', ') || '';
+}
+
 export const getLeadTableColumns = ({
   handleOpenModal,
   handleDelete,
@@ -236,10 +258,13 @@ export const getLeadTableColumns = ({
   },
   {
     title: LeadPageText.COLUMN_CURRENT_ADDRESS,
-    dataIndex: 'current_address',
-    key: 'current_address',
-    render: (address: LocationValue | null | undefined) => {
-      const formatted = formatLocationValue(address);
+    dataIndex: 'current_address_temp',
+    key: 'current_address_temp',
+    render: (_: unknown, record: Lead) => {
+      // Ưu tiên field mới current_address_temp (new API), fallback sang current_address cũ
+      const newAddr = record.current_address_temp as LocationValueV2 | null | undefined;
+      const oldAddr = record.current_address as LocationValue | null | undefined;
+      const formatted = formatLocationValueV2(newAddr) || formatLocationValue(oldAddr);
       return formatted || null;
     },
   },

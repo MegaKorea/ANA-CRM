@@ -18,6 +18,7 @@ import {
 import type { LeadFormValues } from '@/app/lead/components/LeadModal';
 import { LeadStatus, DateFormat, LeadSource, DateLocale } from '@/constants/enums';
 import { type LocationValue } from '@/components/common/LocationSelect';
+import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
 import { useCourses } from '@/lib/hooks/use-courses';
 import { useIsMobile } from '@/lib/hooks/use-mobile';
 import dynamic from 'next/dynamic';
@@ -110,6 +111,7 @@ export default function LeadPage() {
           place_of_birth: (lead.place_of_birth ?? undefined) as LocationValue | undefined,
           place_of_origin: (lead.place_of_origin ?? undefined) as LocationValue | undefined,
           current_address: (lead.current_address ?? undefined) as LocationValue | undefined,
+          current_address_temp: (lead.current_address_temp ?? undefined) as LocationValueV2 | undefined,
           citizen_id: lead.citizen_id || undefined,
           nationality: lead.nationality || undefined,
           ethnicity: lead.ethnicity || undefined,
@@ -151,6 +153,7 @@ export default function LeadPage() {
         place_of_birth: values.place_of_birth,
         place_of_origin: values.place_of_origin,
         current_address: values.current_address,
+        current_address_temp: values.current_address_temp,
         citizen_id: values.citizen_id,
         nationality: 'Việt Nam',
         ethnicity: values.ethnicity,

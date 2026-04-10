@@ -2,8 +2,9 @@
 
 import { Modal, Descriptions, Timeline, Tag, Typography, Empty } from 'antd';
 import type { Lead } from '@/lib/services/lead.service';
-import { LeadPageText, formatLocationValue } from '@/app/lead/constants';
+import { LeadPageText, formatLocationValue, formatLocationValueV2 } from '@/app/lead/constants';
 import type { LocationValue } from '@/components/common/LocationSelect';
+import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
 import type { NoteItem } from '@/lib/supabase/types/tables/leads';
 import { ClockCircleOutlined } from '@ant-design/icons';
 import { JSX } from 'react';
@@ -22,6 +23,7 @@ export function LeadDetailModal({ open, lead, onClose }: LeadDetailModalProps): 
   const placeOfBirth = lead.place_of_birth as LocationValue | null | undefined;
   const placeOfOrigin = lead.place_of_origin as LocationValue | null | undefined;
   const currentAddress = lead.current_address as LocationValue | null | undefined;
+  const currentAddressTemp = lead.current_address_temp as LocationValueV2 | null | undefined;
   const notes: NoteItem[] = Array.isArray(lead.note) ? lead.note : [];
   const sortedNotes = [...notes].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -44,7 +46,8 @@ export function LeadDetailModal({ open, lead, onClose }: LeadDetailModalProps): 
           {formatLocationValue(placeOfOrigin) || '-'}
         </Descriptions.Item>
         <Descriptions.Item label={LeadPageText.COLUMN_CURRENT_ADDRESS}>
-          {formatLocationValue(currentAddress) || '-'}
+          {/* Ưu tiên field mới (new API), fallback về field cũ */}
+          {formatLocationValueV2(currentAddressTemp) || formatLocationValue(currentAddress) || '-'}
         </Descriptions.Item>
         <Descriptions.Item label={LeadPageText.COLUMN_CITIZEN_ID}>
           {lead.citizen_id || '-'}

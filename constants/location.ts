@@ -5,10 +5,24 @@ export const OpenOapiLocationApi = {
   WARDS_PATH_SEGMENT: 'wards',
 } as const;
 
+/** New API: provinces.open-api.vn (v1) */
+export const ProvincesOpenApi = {
+  BASE_URL: 'https://provinces.open-api.vn/api/v1',
+  PROVINCES_PATH: '/p/',
+  DISTRICTS_PATH_PREFIX: '/d/',
+  WARDS_PATH_PREFIX: '/w/',
+} as const;
+
 export const LocationApiQueryParam = {
   PAGE: 'page',
   SIZE: 'size',
   QUERY: 'query',
+} as const;
+
+/** Query params for provinces.open-api.vn */
+export const ProvincesApiQueryParam = {
+  DEPTH: 'depth',
+  Q: 'q',
 } as const;
 
 export const LocationPaginationDefault = {
@@ -28,6 +42,10 @@ export const LocationQueryKey = {
   PROVINCES: 'location-provinces',
   DISTRICTS: 'location-districts',
   WARDS: 'location-wards',
+  // New API keys
+  PROVINCES_V2: 'location-provinces-v2',
+  DISTRICTS_V2: 'location-districts-v2',
+  WARDS_V2: 'location-wards-v2',
 } as const;
 
 export const LocationSelectText = {
@@ -35,4 +53,3 @@ export const LocationSelectText = {
   DISTRICT_PLACEHOLDER: 'Chọn quận/huyện',
   WARD_PLACEHOLDER: 'Chọn phường/xã',
 } as const;
-

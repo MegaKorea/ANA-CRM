@@ -1,4 +1,5 @@
 import { LocationValue } from '@/components/common';
+import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
 import { LeadStatus, AttendanceStatus } from '@/constants/enums';
 
 export interface NoteItem {
@@ -16,6 +17,8 @@ export interface LeadsTable {
     place_of_birth: LocationValue | null;
     place_of_origin: LocationValue | null;
     current_address: LocationValue | null;
+    /** New field using provinces.open-api.vn (numeric codes). Replaces current_address for new data. */
+    current_address_temp: LocationValueV2 | null;
     citizen_id: string | null;
     nationality: string | null;
     ethnicity: string | null;
@@ -43,6 +46,7 @@ export interface LeadsTable {
     place_of_birth?: LocationValue | null;
     place_of_origin?: LocationValue | null;
     current_address?: LocationValue | null;
+    current_address_temp?: LocationValueV2 | null;
     citizen_id?: string | null;
     nationality?: string | null;
     ethnicity?: string | null;
@@ -70,6 +74,7 @@ export interface LeadsTable {
     place_of_birth?: LocationValue | null;
     place_of_origin?: LocationValue | null;
     current_address?: LocationValue | null;
+    current_address_temp?: LocationValueV2 | null;
     citizen_id?: string | null;
     nationality?: string | null;
     ethnicity?: string | null;

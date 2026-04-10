@@ -3,6 +3,7 @@ import { HttpStatusCode, LeadErrorCode, LeadStatus, AttendanceStatus, Validation
 import { validateEmailField } from '@/lib/utils/validation';
 import { formatPhoneToE164, validateE164Format, formatPhoneToLocal } from '@/lib/utils/phone';
 import type { LocationValue } from '@/components/common';
+import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
 import type { NoteItem } from '@/lib/supabase/types/tables/leads';
 
 export interface CreateLeadInput {
@@ -13,6 +14,8 @@ export interface CreateLeadInput {
   place_of_birth?: LocationValue;
   place_of_origin?: LocationValue;
   current_address?: LocationValue;
+  /** New field – uses provinces.open-api.vn numeric codes */
+  current_address_temp?: LocationValueV2;
   citizen_id?: string;
   nationality?: string;
   ethnicity?: string;
@@ -38,6 +41,7 @@ export interface UpdateLeadInput {
   place_of_birth?: LocationValue;
   place_of_origin?: LocationValue;
   current_address?: LocationValue;
+  current_address_temp?: LocationValueV2;
   citizen_id?: string;
   nationality?: string;
   ethnicity?: string;
@@ -364,6 +368,7 @@ export function validateCreateLeadInput(input: unknown): CreateLeadInput {
     place_of_birth: validateOptionalLocationField(data.place_of_birth),
     place_of_origin: validateOptionalLocationField(data.place_of_origin),
     current_address: validateOptionalLocationField(data.current_address),
+    current_address_temp: validateOptionalLocationField(data.current_address_temp) as LocationValueV2 | undefined,
     citizen_id: validateOptionalStringField(data.citizen_id),
     nationality: validateOptionalStringField(data.nationality),
     ethnicity: validateOptionalStringField(data.ethnicity),
@@ -416,6 +421,7 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
   const placeOfBirth = validateOptionalLocationField(data.place_of_birth);
   const placeOfOrigin = validateOptionalLocationField(data.place_of_origin);
   const currentAddress = validateOptionalLocationField(data.current_address);
+  const currentAddressTemp = validateOptionalLocationField(data.current_address_temp) as LocationValueV2 | undefined;
   const citizenId = validateOptionalStringField(data.citizen_id);
   const nationality = validateOptionalStringField(data.nationality);
   const ethnicity = validateOptionalStringField(data.ethnicity);
@@ -446,6 +452,10 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
 
   if (currentAddress !== undefined) {
     result.current_address = currentAddress;
+  }
+
+  if (currentAddressTemp !== undefined) {
+    result.current_address_temp = currentAddressTemp;
   }
 
   if (citizenId !== undefined) {

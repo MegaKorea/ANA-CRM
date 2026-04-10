@@ -17,6 +17,7 @@ import { LeadSourceLabel, LeadStatusLabel, LeadPageText, Ethnicity } from '@/app
 import { LeadSource, LeadStatus } from '@/constants/enums';
 import type { Dayjs } from 'dayjs';
 import { LocationSelect, type LocationValue } from '@/components/common/LocationSelect';
+import { LocationSelectV2, type LocationValueV2 } from '@/components/common/LocationSelectV2';
 import { useCourses } from '@/lib/hooks/use-courses';
 import { formatIntegerInput, parseIntegerInput } from '@/lib/utils/numberFormat';
 
@@ -33,6 +34,8 @@ export interface LeadFormValues {
   place_of_birth?: LocationValue;
   place_of_origin?: LocationValue;
   current_address?: LocationValue;
+  /** Replaces current_address – uses new provinces.open-api.vn API */
+  current_address_temp?: LocationValueV2;
   citizen_id?: string;
   nationality?: string;
   ethnicity?: string;
@@ -159,8 +162,8 @@ export function LeadModal({
           </Col>
 
           <Col span={24}>
-            <Form.Item name="current_address" label={LeadPageText.FIELD_CURRENT_ADDRESS_LABEL}>
-              <LocationSelect disabled={Boolean(isSubmitting)} />
+            <Form.Item name="current_address_temp" label={LeadPageText.FIELD_CURRENT_ADDRESS_LABEL}>
+              <LocationSelectV2 disabled={Boolean(isSubmitting)} />
             </Form.Item>
           </Col>
 
