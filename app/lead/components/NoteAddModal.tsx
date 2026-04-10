@@ -70,8 +70,14 @@ export function NoteAddModal({ open, lead, onClose }: NoteAddModalProps) {
         rows={4}
         value={noteContent}
         onChange={(e) => setNoteContent(e.target.value)}
-        placeholder="Nhập nội dung ghi chú..."
+        placeholder="Nhập nội dung ghi chú... (Enter để lưu, Shift+Enter để xuống dòng)"
         style={{ marginTop: 16 }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSubmit();
+          }
+        }}
       />
     </Modal>
   );
