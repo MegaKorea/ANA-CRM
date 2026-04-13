@@ -49,7 +49,7 @@ export interface UpdateLeadInput {
   ethnicity?: string;
   meta_data?: Record<string, unknown>;
   source?: string;
-  telesales_id?: string;
+  telesales_id?: string | null;
   status?: LeadStatus;
   note?: NoteItem[];
   course_ids?: string[];

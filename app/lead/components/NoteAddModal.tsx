@@ -57,7 +57,11 @@ export function NoteAddModal({ open, lead, onClose }: NoteAddModalProps) {
   return (
     <Modal
       open={open}
-      title={`Thêm ghi chú - ${lead?.full_name || ''}`}
+      title={
+        <div style={{ fontSize: '18px', fontWeight: 600, color: '#111827' }}>
+          Thêm ghi chú <span style={{ color: '#6b7280', fontWeight: 400 }}>- {lead?.full_name || ''}</span>
+        </div>
+      }
       onCancel={handleClose}
       onOk={handleSubmit}
       okText="Lưu"
@@ -65,13 +69,28 @@ export function NoteAddModal({ open, lead, onClose }: NoteAddModalProps) {
       confirmLoading={updateLeadMutation.isPending}
       centered
       destroyOnClose
+      width={600}
+      styles={{
+        body: { padding: '24px' },
+        header: { marginBottom: '16px' }
+      }}
     >
       <Input.TextArea
-        rows={4}
+        rows={5}
         value={noteContent}
         onChange={(e) => setNoteContent(e.target.value)}
-        placeholder="Nhập nội dung ghi chú... (Enter để lưu, Shift+Enter để xuống dòng)"
-        style={{ marginTop: 16 }}
+        placeholder="Nhập nội dung ghi chú... (Nhấn phím Enter để lưu, Shift + Enter để xuống dòng)"
+        style={{
+          marginTop: 8,
+          padding: '16px',
+          borderRadius: '12px',
+          fontSize: '15px',
+          color: '#374151',
+          lineHeight: 1.6,
+          backgroundColor: '#f9fafb',
+          border: '1px solid #e5e7eb',
+          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
+        }}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();

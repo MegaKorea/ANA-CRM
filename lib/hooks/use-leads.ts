@@ -55,3 +55,15 @@ export function useDeleteLead() {
     },
   });
 }
+
+export function useAssignTelesales() {
+  const queryClient = useQueryClient();
+
+  return useMutation<Lead, unknown, { leadId: number; telesales_id: string | null }>({
+    mutationFn: ({ leadId, telesales_id }) =>
+      api.patch<Lead>(`${LeadApiPath.BASE}/${leadId}/telesales`, { telesales_id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [LeadQueryKey.LIST] });
+    },
+  });
+}

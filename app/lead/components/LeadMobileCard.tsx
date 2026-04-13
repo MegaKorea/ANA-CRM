@@ -17,6 +17,7 @@ import {
   LeadSourceIcon,
   LeadSourceLabel,
 } from '@/app/lead/constants';
+import { AssignTelesales } from '@/app/lead/components/AssignTelesales';
 import { memo } from 'react';
 
 interface LeadMobileCardProps {
@@ -135,6 +136,12 @@ export const LeadMobileCard = memo(function LeadMobileCard({
       ]}
     >
       <Flex vertical gap={4}>
+        <Flex justify="space-between" align="center" className="text-body-small">
+          <Typography.Text type="secondary">Telesales</Typography.Text>
+          <div onClick={(e) => e.stopPropagation()}>
+            <AssignTelesales lead={lead} />
+          </div>
+        </Flex>
         <Flex justify="space-between" align="center" className="text-body-small">
           <Typography.Text type="secondary">Số điện thoại</Typography.Text>
           <Typography.Text strong>{lead.phone_number || '—'}</Typography.Text>

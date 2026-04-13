@@ -136,6 +136,12 @@ export async function fetchInsights({
 
 
 
+export interface FacebookFullConversationResult {
+    messages: FacebookMessage[];
+    avatarPage: string;
+    pageToken: string;
+}
+
 export const facebookService = {
     getPageToken: async (
         pageId: string
@@ -165,4 +171,38 @@ export const facebookService = {
         const json: FacebookConversationMessagesResponse = await rest.json()
         return json
     },
+
+    getFullConversation: async (cid: string | null): Promise<FacebookFullConversationResult | null> => {
+        if (!cid) return null;
+        try {
+            const pageId = cid.split("_")[0];
+            const userId = cid.split("_")[1];
+
+            // 1. Get Page Token & Avatar
+            const pageTokenResult = await facebookService.getPageToken(pageId);
+            const pageToken = pageTokenResult?.access_token;
+            const avatarPage = pageTokenResult?.picture?.data?.url ?? "";
+
+            if (!pageToken) return null;
+
+            // 2. Get Thread/Conversation ID
+            const conversationIds = await facebookService.getConversationIds(userId, pageToken);
+            const threadId = conversationIds[0]?.id;
+            if (!threadId) {
+                return { messages: [], avatarPage, pageToken };
+            }
+
+            // 3. Get Messages
+            const conversationData = await facebookService.getConversationMessages(threadId, pageToken);
+            const messages = conversationData.data ?? [];
+            return {
+                messages: [...messages].reverse(),
+                avatarPage,
+                pageToken
+            };
+        } catch (error) {
+            console.error("Error fetching full conversation:", error);
+            throw error;
+        }
+    }
 };

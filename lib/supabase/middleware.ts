@@ -11,7 +11,13 @@ function isAuthRoute(pathname: string): boolean {
 }
 
 export async function updateSession(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, searchParams } = request.nextUrl;
+
+  // Block extraneous Socket.IO polling from browser extensions or local apps 
+  // (e.g. Kaspersky/Zalo) that floods the Next.js dev server with SSR requests.
+  if (searchParams.has('EIO') || searchParams.has('transport')) {
+    return new NextResponse('Bad Request: Socket.IO polling not supported', { status: 400 });
+  }
 
   let supabaseResponse = NextResponse.next({
     request,

@@ -378,7 +378,7 @@ export default function LeadPage() {
                 <Row>
                   <Col span={24}>
                     {!isMobile ? (
-                      <Table<Lead>
+                        <Table<Lead>
                         scroll={{ x: 'max-content' }}
                         columns={columns}
                         dataSource={leads}
@@ -394,7 +394,8 @@ export default function LeadPage() {
                             setPageSize(size);
                           },
                         }}
-                        bordered
+                        bordered={false}
+                        className="minimal-table"
                       />
                     ) : (
                       <List

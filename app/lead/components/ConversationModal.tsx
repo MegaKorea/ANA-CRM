@@ -1,5 +1,5 @@
-import { Modal, Avatar, Spin, Empty } from "antd";
-import { useEffect, useState } from "react";
+import { Modal, Avatar, Spin, Empty, Skeleton } from "antd";
+import { useState } from "react";
 import {
     UserOutlined,
     RobotOutlined,
@@ -49,65 +49,25 @@ interface ConversationMessagesType {
     created_time?: string;
 }
 
+import { useQuery } from "@tanstack/react-query";
+
 const ModalConversations = ({
     conversation,
     open,
     onCancel,
 }: ModalViewConversationsProps) => {
-    const [pageToken, setPageToken] = useState<string | undefined>();
-    const [avatarPage, setAvatarPage] = useState<string>("");
-    const [conversationMessages, setConversationMessages] = useState<
-        ConversationMessagesType[]
-    >([]);
-    const [loading, setLoading] = useState(false);
     const cid = getCidFromUrl(conversation);
 
-    useEffect(() => {
-        if (cid) {
-            const fetchPageToken = async () => {
-                try {
-                    setLoading(true);
-                    const result = await facebookService.getPageToken(cid.split("_")[0]);
-                    setPageToken(result?.access_token);
-                    setAvatarPage(result?.picture?.data?.url ?? "");
-                } catch (error) {
-                    console.error("Error fetching page token:", error);
-                }
-            };
-            fetchPageToken();
-        }
-    }, [cid]);
+    const { data: conversationData, isLoading: loading } = useQuery({
+        queryKey: ['facebook-conversation', cid],
+        queryFn: () => facebookService.getFullConversation(cid),
+        enabled: !!cid && open,
+        staleTime: 1000 * 60 * 5, // 5 minutes
+    });
 
-    useEffect(() => {
-        if (pageToken && cid) {
-            const fetchIdConversation = async () => {
-                try {
-                    const conversationIds = await facebookService.getConversationIds(
-                        cid.split("_")[1],
-                        pageToken
-                    );
-                    const idConversation = conversationIds[0]?.id;
-                    if (!idConversation) {
-                        setLoading(false);
-                        return;
-                    }
-                    const conversationData: FacebookConversationMessagesResponse =
-                        await facebookService.getConversationMessages(
-                            idConversation,
-                            pageToken
-                        );
-                    // FB API returns { data: [...messages], paging: {...} }
-                    const messages = conversationData.data ?? [];
-                    setConversationMessages([...messages].reverse());
-                } catch (error) {
-                    console.error("Error fetching conversation:", error);
-                } finally {
-                    setLoading(false);
-                }
-            };
-            fetchIdConversation();
-        }
-    }, [cid, pageToken]);
+    const pageToken = conversationData?.pageToken;
+    const avatarPage = conversationData?.avatarPage ?? "";
+    const conversationMessages = conversationData?.messages ?? [];
 
     const formatFileSize = (bytes: number): string => {
         if (bytes === 0) return "0 Bytes";
@@ -270,12 +230,13 @@ const ModalConversations = ({
                 <div className="modal-header">
                     <div className="conversation-title">
                         <span className="conversation-title-icon">
-                            <MessageOutlined />
+                            <MessageOutlined style={{ color: "var(--primary-color, #1877f2)" }} />
                         </span>
                         <span>Cuộc trò chuyện</span>
                     </div>
                     <div className="conversation-subtitle">
-                        {conversationMessages.length > 0 &&
+                        {loading && <Skeleton.Input active size="small" style={{ width: 150 }} />}
+                        {!loading && conversationMessages.length > 0 &&
                             conversationMessages[0]?.from?.name}
                     </div>
                 </div>
@@ -284,9 +245,12 @@ const ModalConversations = ({
         >
             <div className="chat-container">
                 {loading ? (
-                    <div className="loading-container">
-                        <Spin size="large" />
-                        <p>Đang tải cuộc trò chuyện...</p>
+                    <div className="loading-skeleton-container" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        <Skeleton avatar active paragraph={{ rows: 1 }} />
+                        <div style={{ display: 'flex', flexDirection: 'row-reverse' }}>
+                            <Skeleton avatar active paragraph={{ rows: 2 }} style={{ width: '60%' }} />
+                        </div>
+                        <Skeleton avatar active paragraph={{ rows: 1 }} />
                     </div>
                 ) : conversationMessages.length === 0 ? (
                     <Empty
