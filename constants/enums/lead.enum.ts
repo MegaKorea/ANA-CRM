@@ -39,3 +39,27 @@ export enum AttendanceStatus {
   NO_SHOW = 'no_show',
 }
 
+export enum PaymentType {
+  CASH = 'cash',
+  BANK_TRANSFER = 'bank_transfer',
+  MOMO = 'momo',
+  OTHER = 'other',
+}
+
+export enum TicketStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+}
+
+export enum PaymentTicketErrorCode {
+  NOT_FOUND = 'PAYMENT_TICKET_NOT_FOUND',
+  INVALID_ID = 'PAYMENT_TICKET_INVALID_ID',
+  CREATE_FAILED = 'PAYMENT_TICKET_CREATE_FAILED',
+  UPDATE_FAILED = 'PAYMENT_TICKET_UPDATE_FAILED',
+  FETCH_FAILED = 'PAYMENT_TICKET_FETCH_FAILED',
+  BAD_REQUEST = 'PAYMENT_TICKET_BAD_REQUEST',
+  ALREADY_REVIEWED = 'PAYMENT_TICKET_ALREADY_REVIEWED',
+  INTERNAL_SERVER_ERROR = 'PAYMENT_TICKET_INTERNAL_SERVER_ERROR',
+}
+

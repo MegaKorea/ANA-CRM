@@ -57,6 +57,16 @@ const ConversationModal = dynamic(
   { ssr: false },
 );
 
+const PaymentTicketModal = dynamic(
+  () => import('@/app/lead/components/PaymentTicketModal').then((m) => m.PaymentTicketModal),
+  { ssr: false },
+);
+
+const PaymentHistoryModal = dynamic(
+  () => import('@/app/lead/components/PaymentHistoryModal').then((m) => m.PaymentHistoryModal),
+  { ssr: false },
+);
+
 export default function LeadPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
@@ -77,6 +87,11 @@ export default function LeadPage() {
 
   const [isConversationModalOpen, setIsConversationModalOpen] = useState(false);
   const [conversationLead, setConversationLead] = useState<Lead | null>(null);
+
+  const [isPaymentTicketModalOpen, setIsPaymentTicketModalOpen] = useState(false);
+  const [paymentTicketLead, setPaymentTicketLead] = useState<Lead | null>(null);
+  const [isPaymentHistoryModalOpen, setIsPaymentHistoryModalOpen] = useState(false);
+  const [paymentHistoryLead, setPaymentHistoryLead] = useState<Lead | null>(null);
 
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus | undefined>(undefined);
@@ -126,12 +141,11 @@ export default function LeadPage() {
           source: lead.source || undefined,
           status: lead.status || undefined,
           course_ids: lead.course_ids || undefined,
-          sales_amount: lead.sales_amount ?? undefined,
-          deposit: lead.deposit ?? undefined,
-          outstanding_balance: lead.outstanding_balance ?? undefined,
+
           appointment_date: lead.appointment_date ? dayjs(lead.appointment_date) : undefined,
           facebook_url: lead.facebook_url || undefined,
           conversation: lead.conversation || undefined,
+          tuition_fee: lead.tuition_fee ?? undefined,
         });
       } else {
         setEditingLead(null);
@@ -170,10 +184,7 @@ export default function LeadPage() {
         source: values.source,
         status: values.status,
         course_ids: values.course_ids,
-        sales_amount: values.sales_amount === null ? null : values.sales_amount,
-        deposit: values.deposit === null ? null : values.deposit,
-        outstanding_balance:
-          values.outstanding_balance === null ? null : values.outstanding_balance,
+
         appointment_date:
           values.appointment_date === null
             ? null
@@ -182,6 +193,7 @@ export default function LeadPage() {
               : undefined,
         facebook_url: values.facebook_url,
         conversation: values.conversation,
+        tuition_fee: values.tuition_fee,
       };
 
       if (editingLead) {
@@ -293,6 +305,26 @@ export default function LeadPage() {
     setConversationLead(null);
   }, []);
 
+  const handleOpenPaymentTicketModal = useCallback((lead: Lead) => {
+    setPaymentTicketLead(lead);
+    setIsPaymentTicketModalOpen(true);
+  }, []);
+
+  const handleClosePaymentTicketModal = useCallback(() => {
+    setIsPaymentTicketModalOpen(false);
+    setPaymentTicketLead(null);
+  }, []);
+
+  const handleOpenPaymentHistoryModal = useCallback((lead: Lead) => {
+    setPaymentHistoryLead(lead);
+    setIsPaymentHistoryModalOpen(true);
+  }, []);
+
+  const handleClosePaymentHistoryModal = useCallback(() => {
+    setIsPaymentHistoryModalOpen(false);
+    setPaymentHistoryLead(null);
+  }, []);
+
   const columns = useMemo(
     () =>
       getLeadTableColumns({
@@ -304,6 +336,8 @@ export default function LeadPage() {
         handleOpenImagesModal,
         handleOpenAttendanceModal,
         handleOpenConversationModal,
+        handleOpenPaymentTicketModal,
+        handleOpenPaymentHistoryModal,
         courses,
       }).map((col: any) => ({
         ...col,
@@ -321,6 +355,8 @@ export default function LeadPage() {
       handleOpenImagesModal,
       handleOpenAttendanceModal,
       handleOpenConversationModal,
+      handleOpenPaymentTicketModal,
+      handleOpenPaymentHistoryModal,
       courses,
     ],
   );
@@ -489,6 +525,18 @@ export default function LeadPage() {
           onCancel={handleCloseConversationModal}
         />
       )}
+
+      <PaymentTicketModal
+        open={isPaymentTicketModalOpen}
+        lead={paymentTicketLead}
+        onClose={handleClosePaymentTicketModal}
+      />
+
+      <PaymentHistoryModal
+        open={isPaymentHistoryModalOpen}
+        lead={paymentHistoryLead}
+        onClose={handleClosePaymentHistoryModal}
+      />
     </div>
   );
 }

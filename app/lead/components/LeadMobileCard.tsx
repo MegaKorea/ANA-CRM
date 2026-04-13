@@ -170,12 +170,7 @@ export const LeadMobileCard = memo(function LeadMobileCard({
               : '—'}
           </Typography.Text>
         </Flex>
-        <Flex justify="space-between" align="center" className="text-body-small">
-          <Typography.Text type="secondary">Doanh thu</Typography.Text>
-          <Typography.Text>
-            {lead.sales_amount ? formatNumberVi(lead.sales_amount) : '—'}
-          </Typography.Text>
-        </Flex>
+
         <Flex justify="space-between" align="center" className="text-body-small">
           <Typography.Text type="secondary">Lịch hẹn</Typography.Text>
           {lead.appointment_date ? (

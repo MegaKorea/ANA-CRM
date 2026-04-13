@@ -42,12 +42,11 @@ export interface LeadFormValues {
   source?: string;
   status?: LeadStatus;
   course_ids?: string[];
-  sales_amount?: number;
-  deposit?: number;
-  outstanding_balance?: number;
+
   appointment_date?: Dayjs | null;
   facebook_url?: string;
   conversation?: string;
+  tuition_fee?: number;
 }
 
 interface LeadModalProps {
@@ -206,35 +205,7 @@ export function LeadModal({
             </Form.Item>
           </Col>
 
-          {/* <Col span={8}>
-            <Form.Item name="sales_amount" label="Doanh thu">
-              <InputNumber
-                style={{ width: '100%' }}
-                formatter={formatIntegerInput}
-                parser={parseIntegerInput}
-              />
-            </Form.Item>
-          </Col>
 
-          <Col span={8}>
-            <Form.Item name="deposit" label="Cọc">
-              <InputNumber
-                style={{ width: '100%' }}
-                formatter={formatIntegerInput}
-                parser={parseIntegerInput}
-              />
-            </Form.Item>
-          </Col>
-
-          <Col span={8}>
-            <Form.Item name="outstanding_balance" label="Công nợ">
-              <InputNumber
-                style={{ width: '100%' }}
-                formatter={formatIntegerInput}
-                parser={parseIntegerInput}
-              />
-            </Form.Item>
-          </Col> */}
 
           <Col span={8}>
             <Form.Item name="appointment_date" label="Lịch hẹn">
@@ -251,6 +222,18 @@ export function LeadModal({
           <Col span={8}>
             <Form.Item name="conversation" label="Link hội thoại">
               <Input placeholder="https://..." />
+            </Form.Item>
+          </Col>
+
+          <Col span={8}>
+            <Form.Item name="tuition_fee" label="Học phí (VND)">
+              <InputNumber
+                style={{ width: '100%' }}
+                min={0}
+                placeholder="Nhập học phí"
+                formatter={formatIntegerInput}
+                parser={parseIntegerInput as never}
+              />
             </Form.Item>
           </Col>
         </Row>

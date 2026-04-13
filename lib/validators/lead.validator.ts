@@ -25,14 +25,12 @@ export interface CreateLeadInput {
   status?: LeadStatus;
   note?: NoteItem[];
   course_ids?: string[];
-  sales_amount?: number | null;
-  deposit?: number | null;
-  outstanding_balance?: number | null;
   appointment_date?: string | null;
   attendance_status?: AttendanceStatus;
   images?: string[];
   facebook_url?: string;
   conversation?: string;
+  tuition_fee?: number;
 }
 
 export interface UpdateLeadInput {
@@ -53,14 +51,12 @@ export interface UpdateLeadInput {
   status?: LeadStatus;
   note?: NoteItem[];
   course_ids?: string[];
-  sales_amount?: number | null;
-  deposit?: number | null;
-  outstanding_balance?: number | null;
   appointment_date?: string | null;
   attendance_status?: AttendanceStatus;
   images?: string[];
   facebook_url?: string;
   conversation?: string;
+  tuition_fee?: number;
 }
 
 export function validateLeadId(id: unknown): number {
@@ -382,14 +378,12 @@ export function validateCreateLeadInput(input: unknown): CreateLeadInput {
     status: validateStatusField(data.status),
     note: validateOptionalNoteArrayField(data.note),
     course_ids: validateOptionalUuidArrayField(data.course_ids),
-    sales_amount: validateOptionalNumberField(data.sales_amount),
-    deposit: validateOptionalNumberField(data.deposit),
-    outstanding_balance: validateOptionalNumberField(data.outstanding_balance),
     appointment_date: validateOptionalDateField(data.appointment_date),
     attendance_status: validateAttendanceStatusField(data.attendance_status),
     images: validateOptionalStringArrayField(data.images),
     facebook_url: validateOptionalStringField(data.facebook_url),
     conversation: validateOptionalStringField(data.conversation),
+    tuition_fee: validateOptionalNumberField(data.tuition_fee) as number | undefined,
   };
 }
 
@@ -437,9 +431,6 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
   const status = validateStatusField(data.status);
   const note = validateOptionalNoteArrayField(data.note);
   const courseIds = validateOptionalUuidArrayField(data.course_ids);
-  const salesAmount = validateOptionalNumberField(data.sales_amount);
-  const deposit = validateOptionalNumberField(data.deposit);
-  const outstandingBalance = validateOptionalNumberField(data.outstanding_balance);
   const appointmentDate = validateOptionalDateField(data.appointment_date);
   const attendanceStatus = validateAttendanceStatusField(data.attendance_status);
   const images = validateOptionalStringArrayField(data.images);
@@ -502,17 +493,6 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
     result.course_ids = courseIds;
   }
 
-  if (salesAmount !== undefined) {
-    result.sales_amount = salesAmount;
-  }
-
-  if (deposit !== undefined) {
-    result.deposit = deposit;
-  }
-
-  if (outstandingBalance !== undefined) {
-    result.outstanding_balance = outstandingBalance;
-  }
 
   if (appointmentDate !== undefined) {
     result.appointment_date = appointmentDate;
@@ -532,6 +512,11 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
 
   if (conversationText !== undefined) {
     result.conversation = conversationText;
+  }
+
+  const tuitionFee = validateOptionalNumberField(data.tuition_fee);
+  if (tuitionFee !== undefined) {
+    result.tuition_fee = tuitionFee as number | undefined;
   }
 
   return result;

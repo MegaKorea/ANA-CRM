@@ -31,9 +31,6 @@ const { RangePicker } = DatePicker;
 const { Title } = Typography;
 
 interface StatisticSummary {
-    totalSales: number;
-    totalDeposit: number;
-    totalDebt: number;
 }
 
 interface ChartDataRow {
@@ -42,9 +39,6 @@ interface ChartDataRow {
     registeredLeads: number;
     totalAppointments: number;
     arrivedAppointments: number;
-    salesAmount: number;
-    deposit: number;
-    outstandingBalance: number;
     fbSpend?: number;
     fbMessages?: number;
 }
@@ -139,7 +133,7 @@ export function LeadStatistics() {
     }
 
     const { summary, chartData, fbTotalSpend, fbTotalMessages } = data || {
-        summary: { totalSales: 0, totalDeposit: 0, totalDebt: 0 },
+        summary: {},
         chartData: [],
         fbTotalSpend: 0,
         fbTotalMessages: 0,
@@ -164,24 +158,7 @@ export function LeadStatistics() {
         { title: 'Đăng ký', dataIndex: 'registeredLeads', key: 'registeredLeads' },
         { title: 'Lịch hẹn', dataIndex: 'totalAppointments', key: 'totalAppointments' },
         { title: 'Đến tư vấn', dataIndex: 'arrivedAppointments', key: 'arrivedAppointments' },
-        {
-            title: 'Doanh số',
-            dataIndex: 'salesAmount',
-            key: 'salesAmount',
-            render: (val: number) => formatCurrency(val),
-        },
-        {
-            title: 'Doanh thu',
-            dataIndex: 'deposit',
-            key: 'deposit',
-            render: (val: number) => formatCurrency(val),
-        },
-        {
-            title: 'Công nợ',
-            dataIndex: 'outstandingBalance',
-            key: 'outstandingBalance',
-            render: (val: number) => formatCurrency(val),
-        },
+
         ...(isAdmin
             ? [
                 {
@@ -248,62 +225,7 @@ export function LeadStatistics() {
                 </Col>
             </Row>
 
-            <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-                <Col xs={24} sm={12} md={8}>
-                    <Card
-                        size="small"
-                        style={{
-                            borderColor: token.colorSuccessBorder,
-                            backgroundColor: token.colorSuccessBg,
-                            borderRadius: 12,
-                        }}
-                    >
-                        <Statistic
-                            title="Tổng Doanh Số"
-                            value={summary.totalSales}
-                            formatter={(v) => formatCurrency(Number(v))}
-                            prefix={<DollarOutlined />}
-                            valueStyle={{ color: token.colorSuccessText, fontWeight: 'bold' }}
-                        />
-                    </Card>
-                </Col>
-                <Col xs={24} sm={12} md={8}>
-                    <Card
-                        size="small"
-                        style={{
-                            borderColor: token.colorInfoBorder,
-                            backgroundColor: token.colorInfoBg,
-                            borderRadius: 12,
-                        }}
-                    >
-                        <Statistic
-                            title="Tổng Doanh Thu (Cọc)"
-                            value={summary.totalDeposit}
-                            formatter={(v) => formatCurrency(Number(v))}
-                            prefix={<WalletOutlined />}
-                            valueStyle={{ color: token.colorInfoText, fontWeight: 'bold' }}
-                        />
-                    </Card>
-                </Col>
-                <Col xs={24} sm={12} md={8}>
-                    <Card
-                        size="small"
-                        style={{
-                            borderColor: token.colorErrorBorder,
-                            backgroundColor: token.colorErrorBg,
-                            borderRadius: 12,
-                        }}
-                    >
-                        <Statistic
-                            title="Tổng Công Nợ"
-                            value={summary.totalDebt}
-                            formatter={(v) => formatCurrency(Number(v))}
-                            prefix={<CreditCardOutlined />}
-                            valueStyle={{ color: token.colorErrorText, fontWeight: 'bold' }}
-                        />
-                    </Card>
-                </Col>
-            </Row>
+
 
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                 {isAdmin && (
@@ -380,9 +302,7 @@ export function LeadStatistics() {
                             let tRegLeads = 0;
                             let tAppts = 0;
                             let tArrAppts = 0;
-                            let tSales = 0;
-                            let tDep = 0;
-                            let tDebt = 0;
+
                             let tFbSpend = 0;
                             let tFbMsgs = 0;
 
@@ -392,9 +312,7 @@ export function LeadStatistics() {
                                     registeredLeads,
                                     totalAppointments,
                                     arrivedAppointments,
-                                    salesAmount,
-                                    deposit,
-                                    outstandingBalance,
+
                                     fbSpend,
                                     fbMessages,
                                 }) => {
@@ -402,9 +320,7 @@ export function LeadStatistics() {
                                     tRegLeads += registeredLeads;
                                     tAppts += totalAppointments;
                                     tArrAppts += arrivedAppointments;
-                                    tSales += salesAmount;
-                                    tDep += deposit;
-                                    tDebt += outstandingBalance;
+
                                     tFbSpend += fbSpend || 0;
                                     tFbMsgs += fbMessages || 0;
                                 },
@@ -420,11 +336,8 @@ export function LeadStatistics() {
                                     <Table.Summary.Cell index={3}>{tRegLeads}</Table.Summary.Cell>
                                     <Table.Summary.Cell index={4}>{tAppts}</Table.Summary.Cell>
                                     <Table.Summary.Cell index={5}>{tArrAppts}</Table.Summary.Cell>
-                                    <Table.Summary.Cell index={6}>{formatCurrency(tSales)}</Table.Summary.Cell>
-                                    <Table.Summary.Cell index={7}>{formatCurrency(tDep)}</Table.Summary.Cell>
-                                    <Table.Summary.Cell index={8}>{formatCurrency(tDebt)}</Table.Summary.Cell>
                                     {isAdmin && (
-                                        <Table.Summary.Cell index={9}>{formatCurrency(tFbSpend)}</Table.Summary.Cell>
+                                        <Table.Summary.Cell index={6}>{formatCurrency(tFbSpend)}</Table.Summary.Cell>
                                     )}
                                 </Table.Summary.Row>
                             );
@@ -492,22 +405,7 @@ export function LeadStatistics() {
                                         </Col>
                                     </Row>
 
-                                    <Divider style={{ margin: '8px 0' }} />
 
-                                    <Row gutter={[8, 8]}>
-                                        <Col span={12}>
-                                            <div style={{ color: token.colorTextSecondary, fontSize: 12 }}>Doanh số</div>
-                                            <div style={{ fontWeight: 500, color: token.colorSuccessText }}>
-                                                {formatCurrency(item.salesAmount)}
-                                            </div>
-                                        </Col>
-                                        <Col span={12}>
-                                            <div style={{ color: token.colorTextSecondary, fontSize: 12 }}>Công nợ</div>
-                                            <div style={{ fontWeight: 500, color: token.colorErrorText }}>
-                                                {formatCurrency(item.outstandingBalance)}
-                                            </div>
-                                        </Col>
-                                    </Row>
                                 </Card>
                             </List.Item>
                         )}

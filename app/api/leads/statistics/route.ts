@@ -16,7 +16,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         const supabase = await createClient();
         const { data: leads, error } = await supabase
             .from('leads')
-            .select('id, created_at, appointment_date, status, attendance_status, sales_amount, deposit, outstanding_balance')
+            .select('id, created_at, appointment_date, status, attendance_status')
             .or(`and(created_at.gte.${startDate},created_at.lte.${endOfDay}),and(appointment_date.gte.${startDate},appointment_date.lte.${endOfDay})`);
 
         if (error) {
@@ -34,9 +34,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
                 registeredLeads: 0,
                 totalAppointments: 0,
                 arrivedAppointments: 0,
-                salesAmount: 0,
-                deposit: 0,
-                outstandingBalance: 0,
             });
         }
         (leads || []).forEach((lead: any) => {
@@ -49,9 +46,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
                     if (lead.status === 'converted') {
                         stats.registeredLeads += 1;
                     }
-                    stats.salesAmount += lead.sales_amount || 0;
-                    stats.deposit += lead.deposit || 0;
-                    stats.outstandingBalance += lead.outstanding_balance || 0;
                 }
             }
 
@@ -71,11 +65,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         const chartData = Array.from(dateMap.values());
 
         // Overall Summary
-        const summary = chartData.reduce((acc, curr) => ({
-            totalSales: acc.totalSales + curr.salesAmount,
-            totalDeposit: acc.totalDeposit + curr.deposit,
-            totalDebt: acc.totalDebt + curr.outstandingBalance,
-        }), { totalSales: 0, totalDeposit: 0, totalDebt: 0 });
+        const summary = {};
 
         return NextResponse.json({ summary, chartData }, { status: HttpStatusCode.OK });
     } catch (error: any) {

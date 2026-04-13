@@ -130,14 +130,13 @@ export async function createLead(input: CreateLeadInput): Promise<Lead> {
       status: input.status ?? LeadStatus.NEW,
       note: input.note ?? ([] as never),
       course_ids: input.course_ids ?? null,
-      sales_amount: input.sales_amount ?? null,
-      deposit: input.deposit ?? null,
-      outstanding_balance: input.outstanding_balance ?? null,
+
       appointment_date: input.appointment_date ?? null,
       attendance_status: (input.attendance_status as never) ?? 'not_arrived',
       images: input.images ?? null,
       facebook_url: input.facebook_url ?? null,
       conversation: input.conversation ?? null,
+      tuition_fee: input.tuition_fee ?? 0,
     };
 
     const { data, error } = await supabase
@@ -184,14 +183,13 @@ export async function updateLeadById(id: number, input: UpdateLeadInput): Promis
       status: 'direct',
       note: 'nullable',
       course_ids: 'nullable',
-      sales_amount: 'nullable',
-      deposit: 'nullable',
-      outstanding_balance: 'nullable',
+
       appointment_date: 'nullable',
       attendance_status: 'direct',
       images: 'nullable',
       facebook_url: 'nullable',
       conversation: 'nullable',
+      tuition_fee: 'nullable',
     });
 
     if (Object.keys(updateData).length > 0) {

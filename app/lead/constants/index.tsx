@@ -10,6 +10,8 @@ import {
   CloseCircleTwoTone,
   MessageOutlined,
   FacebookOutlined,
+  DollarOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons';
 import type { Lead } from '@/lib/services/lead.service';
 import { AttendanceStatus, DateLocale, LeadSource, LeadStatus } from '@/constants/enums';
@@ -70,9 +72,7 @@ export const LeadPageText = {
   COLUMN_STATUS: 'Trạng thái',
   COLUMN_NOTE: 'Ghi chú',
   COLUMN_CREATED_AT: 'Ngày tạo',
-  COLUMN_SALES_AMOUNT: 'Doanh thu',
-  COLUMN_DEPOSIT: 'Cọc',
-  COLUMN_OUTSTANDING_BALANCE: 'Công nợ',
+
   COLUMN_APPOINTMENT_DATE: 'Lịch hẹn',
   COLUMN_ACTION: 'Thao tác',
   COLUMN_DETAIL: 'Thông tin thêm',
@@ -177,6 +177,10 @@ export type HandleOpenImagesModal = (lead: Lead) => void;
 
 export type HandleOpenConversationModal = (lead: Lead) => void;
 
+export type HandleOpenPaymentTicketModal = (lead: Lead) => void;
+
+export type HandleOpenPaymentHistoryModal = (lead: Lead) => void;
+
 export function formatLocationValue(location: LocationValue | null | undefined): string {
   if (!location) {
     return '';
@@ -224,6 +228,8 @@ export const getLeadTableColumns = ({
   handleOpenImagesModal,
   handleOpenAttendanceModal,
   handleOpenConversationModal,
+  handleOpenPaymentTicketModal,
+  handleOpenPaymentHistoryModal,
   courses,
 }: {
   handleOpenModal: HandleOpenLeadModal;
@@ -234,6 +240,8 @@ export const getLeadTableColumns = ({
   handleOpenImagesModal: HandleOpenImagesModal;
   handleOpenAttendanceModal: HandleOpenAttendanceModal;
   handleOpenConversationModal: HandleOpenConversationModal;
+  handleOpenPaymentTicketModal: HandleOpenPaymentTicketModal;
+  handleOpenPaymentHistoryModal: HandleOpenPaymentHistoryModal;
   courses?: Course[] | null;
 }): ColumnsType<Lead> => [
     {
@@ -395,24 +403,40 @@ export const getLeadTableColumns = ({
       render: (date: string | null) =>
         date ? new Date(date).toLocaleDateString(DateLocale.VIET_NAM) : null,
     },
-    // {
-    //   title: LeadPageText.COLUMN_SALES_AMOUNT,
-    //   dataIndex: 'sales_amount',
-    //   key: 'sales_amount',
-    //   render: (amount: number | null) => (amount ? formatNumberVi(amount) : null),
-    // },
-    // {
-    //   title: LeadPageText.COLUMN_DEPOSIT,
-    //   dataIndex: 'deposit',
-    //   key: 'deposit',
-    //   render: (amount: number | null) => (amount ? formatNumberVi(amount) : null),
-    // },
-    // {
-    //   title: LeadPageText.COLUMN_OUTSTANDING_BALANCE,
-    //   dataIndex: 'outstanding_balance',
-    //   key: 'outstanding_balance',
-    //   render: (amount: number | null) => (amount ? formatNumberVi(amount) : null),
-    // },
+    {
+      title: 'Học phí',
+      dataIndex: 'tuition_fee',
+      key: 'tuition_fee',
+      width: 140,
+      render: (value: number | null) =>
+        value ? formatNumberVi(value) + ' đ' : null,
+    },
+    {
+      title: 'Thanh toán',
+      key: 'payment',
+      align: 'center' as const,
+      width: 120,
+      render: (_: unknown, record: Lead) => (
+        <Space>
+          <Tooltip title="Tạo phiếu thu">
+            <Button
+              size="small"
+              type="primary"
+              icon={<DollarOutlined />}
+              onClick={() => handleOpenPaymentTicketModal(record)}
+            />
+          </Tooltip>
+          <Tooltip title="Lịch sử thanh toán">
+            <Button
+              size="small"
+              icon={<HistoryOutlined />}
+              onClick={() => handleOpenPaymentHistoryModal(record)}
+            />
+          </Tooltip>
+        </Space>
+      ),
+    },
+
     {
       title: LeadPageText.COLUMN_APPOINTMENT_DATE,
       dataIndex: 'appointment_date',

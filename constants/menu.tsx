@@ -1,5 +1,5 @@
 import type { MenuProps } from 'antd';
-import { UserOutlined, TeamOutlined, SafetyOutlined, ContactsOutlined, BookOutlined, ReadOutlined } from '@ant-design/icons';
+import { UserOutlined, TeamOutlined, SafetyOutlined, ContactsOutlined, BookOutlined, ReadOutlined, DollarOutlined } from '@ant-design/icons';
 
 
 export type MenuItem = Required<MenuProps>['items'][number];
@@ -37,6 +37,12 @@ export const menuItems: AppMenuItem[] = [
     icon: <ContactsOutlined />,
     label: 'DATA',
     roles: ['ADMIN', 'TELESALES', 'AO', 'PC'],
+  },
+  {
+    key: '/accounting',
+    icon: <DollarOutlined />,
+    label: 'KẾ TOÁN',
+    roles: ['ADMIN', 'ACCOUNTANT'],
   },
   {
     key: '/lms',
