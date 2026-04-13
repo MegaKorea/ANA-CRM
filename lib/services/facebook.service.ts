@@ -1,4 +1,4 @@
-import { AxiosResponse } from "axios"
+// facebook.service.ts – pure fetch-based, no Axios
 
 export interface InsightRow {
     spend: string
@@ -21,7 +21,7 @@ export interface FetchInsightsParams {
     endDate: string
 }
 
-interface FacebookPageTokenResponse {
+export interface FacebookPageTokenResponse {
     page_token: string;
     access_token: string;
     picture: {
@@ -31,24 +31,24 @@ interface FacebookPageTokenResponse {
     };
 }
 
-interface FacebookConversationIdResponseItem {
+export interface FacebookConversationIdResponseItem {
     id: string;
 }
 
-interface FacebookConversationIdResponse {
+export interface FacebookConversationIdResponse {
     data: FacebookConversationIdResponseItem[];
 }
 
-interface FacebookUserRef {
+export interface FacebookUserRef {
     id: string;
     name?: string;
 }
 
-interface FacebookMessageAttachmentPayload {
+export interface FacebookMessageAttachmentPayload {
     url?: string;
 }
 
-interface FacebookMessageAttachment {
+export interface FacebookMessageAttachment {
     id: string;
     mime_type?: string;
     name?: string;
@@ -60,7 +60,7 @@ interface FacebookMessageAttachment {
     payload?: FacebookMessageAttachmentPayload;
 }
 
-interface FacebookMessage {
+export interface FacebookMessage {
     id: string;
     created_time: string;
     message?: string;
@@ -74,11 +74,11 @@ interface FacebookMessage {
     };
 }
 
-interface FacebookConversationMessagesEdge {
+export interface FacebookConversationMessagesEdge {
     data: FacebookMessage[];
 }
 
-interface FacebookConversationMessagesResponse {
+export interface FacebookConversationMessagesResponse {
     messages: FacebookConversationMessagesEdge;
 }
 
@@ -133,32 +133,35 @@ export async function fetchInsights({
 
 
 export const facebookService = {
+    /** Returns the page token response object directly (not an Axios wrapper). */
     getPageToken: async (
         pageId: string
-    ): Promise<AxiosResponse<FacebookPageTokenResponse>> => {
+    ): Promise<FacebookPageTokenResponse> => {
         const url = `${baseUrl}/${pageId}?fields=page_token,access_token,picture&access_token=${access_token}`
         const rest = await fetch(url)
         const json: FacebookPageTokenResponse = await rest.json()
-        return json.data
+        return json
     },
 
+    /** Returns the raw array of conversation-id items. */
     getConversationIds: async (
         conversationId: string,
         pageAccessToken: string
-    ): Promise<AxiosResponse<FacebookConversationIdResponse>> => {
+    ): Promise<FacebookConversationIdResponseItem[]> => {
         const url = `${baseUrl}/me/conversations?user_id=${conversationId}&access_token=${pageAccessToken}`
         const rest = await fetch(url)
         const json: FacebookConversationIdResponse = await rest.json()
-        return json.data
+        return json.data ?? []
     },
 
+    /** Returns the conversation messages response object directly. */
     getConversationMessages: async (
         conversationId: string,
         pageAccessToken: string
-    ): Promise<AxiosResponse<FacebookConversationMessagesResponse>> => {
+    ): Promise<FacebookConversationMessagesResponse> => {
         const url = `${baseUrl}/${conversationId}/messages?fields=message,ai_generated,attachments,from,to,created_time&access_token=${pageAccessToken}`
         const rest = await fetch(url)
         const json: FacebookConversationMessagesResponse = await rest.json()
-        return json.data
+        return json
     },
 };

@@ -7,8 +7,7 @@ import {
     MessageOutlined,
 } from "@ant-design/icons";
 import "./ModalConversations.scss";
-import "./ModalConversations.scss";
-import { facebookService } from "@/lib/services/facebook.service";
+import { facebookService, type FacebookConversationMessagesResponse } from "@/lib/services/facebook.service";
 
 const getCidFromUrl = (url: string) => {
     if (!url || typeof url !== "string") {
@@ -21,7 +20,7 @@ const getCidFromUrl = (url: string) => {
 interface ModalViewConversationsProps {
     conversation: string;
     open: boolean;
-    onCancel: (value: number) => void;
+    onCancel: () => void;
 }
 
 interface AttachmentType {
@@ -69,8 +68,8 @@ const ModalConversations = ({
                 try {
                     setLoading(true);
                     const result = await facebookService.getPageToken(cid.split("_")[0]);
-                    setPageToken(result?.data.access_token);
-                    setAvatarPage(result?.data.picture.data.url);
+                    setPageToken(result?.access_token);
+                    setAvatarPage(result?.picture?.data?.url ?? "");
                 } catch (error) {
                     console.error("Error fetching page token:", error);
                 }
@@ -83,18 +82,22 @@ const ModalConversations = ({
         if (pageToken && cid) {
             const fetchIdConversation = async () => {
                 try {
-                    const result = await facebookService.getConversationIds(
+                    const conversationIds = await facebookService.getConversationIds(
                         cid.split("_")[1],
                         pageToken
                     );
-                    const idConversation = result?.data?.data?.[0]?.id;
-                    const conversationMessages =
+                    const idConversation = conversationIds[0]?.id;
+                    if (!idConversation) {
+                        setLoading(false);
+                        return;
+                    }
+                    const conversationData: FacebookConversationMessagesResponse =
                         await facebookService.getConversationMessages(
                             idConversation,
                             pageToken
                         );
-                    const messages = conversationMessages.data.messages.data;
-                    setConversationMessages(messages.reverse());
+                    const messages = conversationData.messages.data;
+                    setConversationMessages([...messages].reverse());
                 } catch (error) {
                     console.error("Error fetching conversation:", error);
                 } finally {
@@ -259,7 +262,7 @@ const ModalConversations = ({
             height={700}
             centered
             open={open}
-            onCancel={() => onCancel(0)}
+            onCancel={onCancel}
             maskClosable={false}
             footer={null}
             title={

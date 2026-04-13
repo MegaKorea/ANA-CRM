@@ -18,6 +18,8 @@ export function useLeads(params?: LeadQueryParams) {
       api.get<PaginatedLeads>(LeadApiPath.BASE, {
         params,
       }),
+    staleTime: 30 * 1000, // 30s – avoid refetch on every render
+    placeholderData: (prev) => prev, // keep previous data while fetching new page
   });
 }
 
