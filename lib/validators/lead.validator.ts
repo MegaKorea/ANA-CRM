@@ -31,6 +31,8 @@ export interface CreateLeadInput {
   appointment_date?: string | null;
   attendance_status?: AttendanceStatus;
   images?: string[];
+  facebook_url?: string;
+  conversation?: string;
 }
 
 export interface UpdateLeadInput {
@@ -57,6 +59,8 @@ export interface UpdateLeadInput {
   appointment_date?: string | null;
   attendance_status?: AttendanceStatus;
   images?: string[];
+  facebook_url?: string;
+  conversation?: string;
 }
 
 export function validateLeadId(id: unknown): number {
@@ -384,6 +388,8 @@ export function validateCreateLeadInput(input: unknown): CreateLeadInput {
     appointment_date: validateOptionalDateField(data.appointment_date),
     attendance_status: validateAttendanceStatusField(data.attendance_status),
     images: validateOptionalStringArrayField(data.images),
+    facebook_url: validateOptionalStringField(data.facebook_url),
+    conversation: validateOptionalStringField(data.conversation),
   };
 }
 
@@ -437,6 +443,8 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
   const appointmentDate = validateOptionalDateField(data.appointment_date);
   const attendanceStatus = validateAttendanceStatusField(data.attendance_status);
   const images = validateOptionalStringArrayField(data.images);
+  const facebookUrl = validateOptionalStringField(data.facebook_url);
+  const conversationText = validateOptionalStringField(data.conversation);
 
   if (dateOfBirth !== undefined) {
     result.date_of_birth = dateOfBirth;
@@ -516,6 +524,14 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
 
   if (images !== undefined) {
     result.images = images;
+  }
+
+  if (facebookUrl !== undefined) {
+    result.facebook_url = facebookUrl;
+  }
+
+  if (conversationText !== undefined) {
+    result.conversation = conversationText;
   }
 
   return result;

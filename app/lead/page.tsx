@@ -52,6 +52,11 @@ const AttendanceModal = dynamic(
   { ssr: false },
 );
 
+const ConversationModal = dynamic(
+  () => import('@/app/lead/components/ConversationModal'),
+  { ssr: false },
+);
+
 export default function LeadPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
@@ -69,6 +74,9 @@ export default function LeadPage() {
 
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [attendanceLead, setAttendanceLead] = useState<Lead | null>(null);
+
+  const [isConversationModalOpen, setIsConversationModalOpen] = useState(false);
+  const [conversationLead, setConversationLead] = useState<Lead | null>(null);
 
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus | undefined>(undefined);
@@ -122,6 +130,8 @@ export default function LeadPage() {
           deposit: lead.deposit ?? undefined,
           outstanding_balance: lead.outstanding_balance ?? undefined,
           appointment_date: lead.appointment_date ? dayjs(lead.appointment_date) : undefined,
+          facebook_url: lead.facebook_url || undefined,
+          conversation: lead.conversation || undefined,
         });
       } else {
         setEditingLead(null);
@@ -170,6 +180,8 @@ export default function LeadPage() {
             : values.appointment_date
               ? values.appointment_date.toISOString()
               : undefined,
+        facebook_url: values.facebook_url,
+        conversation: values.conversation,
       };
 
       if (editingLead) {
@@ -271,6 +283,16 @@ export default function LeadPage() {
     setAttendanceLead(null);
   }, []);
 
+  const handleOpenConversationModal = useCallback((lead: Lead) => {
+    setConversationLead(lead);
+    setIsConversationModalOpen(true);
+  }, []);
+
+  const handleCloseConversationModal = useCallback(() => {
+    setIsConversationModalOpen(false);
+    setConversationLead(null);
+  }, []);
+
   const columns = useMemo(
     () =>
       getLeadTableColumns({
@@ -281,6 +303,7 @@ export default function LeadPage() {
         handleOpenNoteHistoryModal,
         handleOpenImagesModal,
         handleOpenAttendanceModal,
+        handleOpenConversationModal,
         courses,
       }).map((col: any) => ({
         ...col,
@@ -297,6 +320,7 @@ export default function LeadPage() {
       handleOpenNoteHistoryModal,
       handleOpenImagesModal,
       handleOpenAttendanceModal,
+      handleOpenConversationModal,
       courses,
     ],
   );
@@ -456,6 +480,14 @@ export default function LeadPage() {
         lead={attendanceLead}
         onClose={handleCloseAttendanceModal}
       />
+
+      {conversationLead?.conversation && (
+        <ConversationModal
+          conversation={conversationLead.conversation}
+          open={isConversationModalOpen}
+          onCancel={handleCloseConversationModal}
+        />
+      )}
     </div>
   );
 }

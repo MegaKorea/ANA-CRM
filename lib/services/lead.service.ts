@@ -136,6 +136,8 @@ export async function createLead(input: CreateLeadInput): Promise<Lead> {
       appointment_date: input.appointment_date ?? null,
       attendance_status: (input.attendance_status as never) ?? 'not_arrived',
       images: input.images ?? null,
+      facebook_url: input.facebook_url ?? null,
+      conversation: input.conversation ?? null,
     };
 
     const { data, error } = await supabase
@@ -188,6 +190,8 @@ export async function updateLeadById(id: number, input: UpdateLeadInput): Promis
       appointment_date: 'nullable',
       attendance_status: 'direct',
       images: 'nullable',
+      facebook_url: 'nullable',
+      conversation: 'nullable',
     });
 
     if (Object.keys(updateData).length > 0) {

@@ -8,6 +8,8 @@ import {
   CheckCircleTwoTone,
   ClockCircleTwoTone,
   CloseCircleTwoTone,
+  MessageOutlined,
+  FacebookOutlined,
 } from '@ant-design/icons';
 import type { Lead } from '@/lib/services/lead.service';
 import { AttendanceStatus, DateLocale, LeadSource, LeadStatus } from '@/constants/enums';
@@ -172,6 +174,8 @@ export type HandleOpenNoteHistoryModal = (lead: Lead) => void;
 
 export type HandleOpenImagesModal = (lead: Lead) => void;
 
+export type HandleOpenConversationModal = (lead: Lead) => void;
+
 export function formatLocationValue(location: LocationValue | null | undefined): string {
   if (!location) {
     return '';
@@ -218,6 +222,7 @@ export const getLeadTableColumns = ({
   handleOpenNoteHistoryModal,
   handleOpenImagesModal,
   handleOpenAttendanceModal,
+  handleOpenConversationModal,
   courses,
 }: {
   handleOpenModal: HandleOpenLeadModal;
@@ -227,6 +232,7 @@ export const getLeadTableColumns = ({
   handleOpenNoteHistoryModal: HandleOpenNoteHistoryModal;
   handleOpenImagesModal: HandleOpenImagesModal;
   handleOpenAttendanceModal: HandleOpenAttendanceModal;
+  handleOpenConversationModal: HandleOpenConversationModal;
   courses?: Course[] | null;
 }): ColumnsType<Lead> => [
   {
@@ -249,6 +255,40 @@ export const getLeadTableColumns = ({
     title: LeadPageText.COLUMN_PHONE_NUMBER,
     dataIndex: 'phone_number',
     key: 'phone_number',
+  },
+  {
+    title: 'Facebook',
+    key: 'facebook_url',
+    align: 'center',
+    width: 72,
+    render: (_: unknown, record: Lead) => (
+      <Tooltip title={record.facebook_url ? 'Mở Facebook' : 'Không có link Facebook'}>
+        <Button
+          size="small"
+          type="text"
+          icon={<FacebookOutlined style={{ fontSize: 16, color: record.facebook_url ? '#1877f2' : undefined }} />}
+          disabled={!record.facebook_url}
+          onClick={() => record.facebook_url && window.open(record.facebook_url, '_blank')}
+        />
+      </Tooltip>
+    ),
+  },
+  {
+    title: 'Chat',
+    key: 'conversation',
+    align: 'center',
+    width: 72,
+    render: (_: unknown, record: Lead) => (
+      <Tooltip title={record.conversation ? 'Xem hội thoại' : 'Không có hội thoại'}>
+        <Button
+          size="small"
+          type="text"
+          icon={<MessageOutlined style={{ fontSize: 16, color: record.conversation ? '#52c41a' : undefined }} />}
+          disabled={!record.conversation}
+          onClick={() => record.conversation && handleOpenConversationModal(record)}
+        />
+      </Tooltip>
+    ),
   },
   {
     title: LeadPageText.COLUMN_DATE_OF_BIRTH,

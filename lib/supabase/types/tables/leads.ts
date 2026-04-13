@@ -34,6 +34,8 @@ export interface LeadsTable {
     appointment_date: string | null;
     attendance_status: AttendanceStatus | null;
     images: string[] | null;
+    facebook_url: string | null;
+    conversation: string | null;
     created_at: string | null;
     updated_at: string | null;
   };
@@ -62,6 +64,8 @@ export interface LeadsTable {
     appointment_date?: string | null;
     attendance_status?: AttendanceStatus | null;
     images?: string[] | null;
+    facebook_url?: string | null;
+    conversation?: string | null;
     created_at?: string | null;
     updated_at?: string | null;
   };
@@ -90,6 +94,8 @@ export interface LeadsTable {
     appointment_date?: string | null;
     attendance_status?: AttendanceStatus | null;
     images?: string[] | null;
+    facebook_url?: string | null;
+    conversation?: string | null;
     created_at?: string | null;
     updated_at?: string | null;
   };

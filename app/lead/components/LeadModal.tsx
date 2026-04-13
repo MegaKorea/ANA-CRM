@@ -46,6 +46,8 @@ export interface LeadFormValues {
   deposit?: number;
   outstanding_balance?: number;
   appointment_date?: Dayjs | null;
+  facebook_url?: string;
+  conversation?: string;
 }
 
 interface LeadModalProps {
@@ -155,11 +157,11 @@ export function LeadModal({
             </Form.Item>
           </Col>
 
-          <Col span={24}>
+          {/* <Col span={24}>
             <Form.Item name="place_of_origin" label={LeadPageText.FIELD_PLACE_OF_ORIGIN_LABEL}>
               <LocationSelect disabled={Boolean(isSubmitting)} />
             </Form.Item>
-          </Col>
+          </Col> */}
 
           <Col span={24}>
             <Form.Item name="current_address_temp" label={LeadPageText.FIELD_CURRENT_ADDRESS_LABEL}>
@@ -204,7 +206,7 @@ export function LeadModal({
             </Form.Item>
           </Col>
 
-          <Col span={8}>
+          {/* <Col span={8}>
             <Form.Item name="sales_amount" label="Doanh thu">
               <InputNumber
                 style={{ width: '100%' }}
@@ -232,11 +234,23 @@ export function LeadModal({
                 parser={parseIntegerInput}
               />
             </Form.Item>
-          </Col>
+          </Col> */}
 
           <Col span={8}>
             <Form.Item name="appointment_date" label="Lịch hẹn">
               <DatePicker showTime style={{ width: '100%' }} format="DD/MM/YYYY HH:mm" />
+            </Form.Item>
+          </Col>
+
+          <Col span={8}>
+            <Form.Item name="facebook_url" label="Facebook URL">
+              <Input placeholder="https://facebook.com/..." />
+            </Form.Item>
+          </Col>
+
+          <Col span={8}>
+            <Form.Item name="conversation" label="Link hội thoại">
+              <Input placeholder="https://..." />
             </Form.Item>
           </Col>
         </Row>

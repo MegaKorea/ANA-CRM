@@ -1,3 +1,5 @@
+import { AxiosResponse } from "axios"
+
 export interface InsightRow {
     spend: string
     campaign_id: string
@@ -19,17 +21,83 @@ export interface FetchInsightsParams {
     endDate: string
 }
 
+interface FacebookPageTokenResponse {
+    page_token: string;
+    access_token: string;
+    picture: {
+        data: {
+            url: string;
+        };
+    };
+}
+
+interface FacebookConversationIdResponseItem {
+    id: string;
+}
+
+interface FacebookConversationIdResponse {
+    data: FacebookConversationIdResponseItem[];
+}
+
+interface FacebookUserRef {
+    id: string;
+    name?: string;
+}
+
+interface FacebookMessageAttachmentPayload {
+    url?: string;
+}
+
+interface FacebookMessageAttachment {
+    id: string;
+    mime_type?: string;
+    name?: string;
+    size?: number;
+    file_url?: string;
+    image_data?: {
+        url: string;
+    };
+    payload?: FacebookMessageAttachmentPayload;
+}
+
+interface FacebookMessage {
+    id: string;
+    created_time: string;
+    message?: string;
+    ai_generated?: boolean;
+    from?: FacebookUserRef;
+    to?: {
+        data: FacebookUserRef[];
+    };
+    attachments?: {
+        data: FacebookMessageAttachment[];
+    };
+}
+
+interface FacebookConversationMessagesEdge {
+    data: FacebookMessage[];
+}
+
+interface FacebookConversationMessagesResponse {
+    messages: FacebookConversationMessagesEdge;
+}
+
 const AD_ACCOUNT_IDS = [
     "act_1175215059809297",
 ]
+
+const access_token = process.env.FB_ACCESS_TOKEN
+
+
+const baseUrl = "https://graph.facebook.com/v25.0"
 
 export async function fetchInsights({
     startDate,
     endDate,
 }: FetchInsightsParams): Promise<{ data: InsightRow[] | null; error: string | null }> {
-    const accessToken = process.env.FB_ACCESS_TOKEN
 
-    if (!accessToken) {
+
+    if (!access_token) {
         return { data: null, error: "FB_ACCESS_TOKEN chưa được cấu hình trong Environment Variables." }
     }
 
@@ -40,8 +108,8 @@ export async function fetchInsights({
         const results = await Promise.all(
             AD_ACCOUNT_IDS.map(async (accountId) => {
                 const url =
-                    `https://graph.facebook.com/v25.0/${accountId}/insights?fields=spend,campaign_id,account_name,campaign_name,actions` +
-                    `&level=campaign&${date}&filtering=${encodeURIComponent(filtering)}&limit=5000&time_increment=1&access_token=${accessToken}`
+                    `${baseUrl}/${accountId}/insights?fields=spend,campaign_id,account_name,campaign_name,actions` +
+                    `&level=campaign&${date}&filtering=${encodeURIComponent(filtering)}&limit=5000&time_increment=1&access_token=${access_token}`
 
                 const res = await fetch(url, { cache: "no-store" })
                 const json: FBApiResponse = await res.json()
@@ -61,3 +129,36 @@ export async function fetchInsights({
         return { data: null, error: msg }
     }
 }
+
+
+
+export const facebookService = {
+    getPageToken: async (
+        pageId: string
+    ): Promise<AxiosResponse<FacebookPageTokenResponse>> => {
+        const url = `${baseUrl}/${pageId}?fields=page_token,access_token,picture&access_token=${access_token}`
+        const rest = await fetch(url)
+        const json: FacebookPageTokenResponse = await rest.json()
+        return json.data
+    },
+
+    getConversationIds: async (
+        conversationId: string,
+        pageAccessToken: string
+    ): Promise<AxiosResponse<FacebookConversationIdResponse>> => {
+        const url = `${baseUrl}/me/conversations?user_id=${conversationId}&access_token=${pageAccessToken}`
+        const rest = await fetch(url)
+        const json: FacebookConversationIdResponse = await rest.json()
+        return json.data
+    },
+
+    getConversationMessages: async (
+        conversationId: string,
+        pageAccessToken: string
+    ): Promise<AxiosResponse<FacebookConversationMessagesResponse>> => {
+        const url = `${baseUrl}/${conversationId}/messages?fields=message,ai_generated,attachments,from,to,created_time&access_token=${pageAccessToken}`
+        const rest = await fetch(url)
+        const json: FacebookConversationMessagesResponse = await rest.json()
+        return json.data
+    },
+};
