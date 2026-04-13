@@ -16,9 +16,9 @@ export function QueryProvider({ children }: QueryProviderProps) {
           queries: {
             staleTime: 5 * 60 * 1000,
             gcTime: 10 * 60 * 1000,
-            retry: 3,
-            retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-            refetchOnWindowFocus: process.env.NODE_ENV === 'development',
+            retry: 1,
+            retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+            refetchOnWindowFocus: false, // true in dev causes re-renders every time DevTools/window is focused
           },
           mutations: {
             retry: 1,

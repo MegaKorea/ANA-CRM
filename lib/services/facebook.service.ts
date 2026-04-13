@@ -1,4 +1,4 @@
-// facebook.service.ts – pure fetch-based, no Axios
+
 
 export interface InsightRow {
     spend: string
@@ -79,14 +79,18 @@ export interface FacebookConversationMessagesEdge {
 }
 
 export interface FacebookConversationMessagesResponse {
-    messages: FacebookConversationMessagesEdge;
+    data: FacebookMessage[];
+    paging?: { cursors: { before: string; after: string }; next?: string };
+    messages?: FacebookConversationMessagesEdge;
 }
 
 const AD_ACCOUNT_IDS = [
     "act_1175215059809297",
 ]
 
-const access_token = process.env.FB_ACCESS_TOKEN
+const access_token = process.env.NEXT_PUBLIC_FB_ACCESS_TOKEN
+
+console.log(access_token)
 
 
 const baseUrl = "https://graph.facebook.com/v25.0"
@@ -133,7 +137,6 @@ export async function fetchInsights({
 
 
 export const facebookService = {
-    /** Returns the page token response object directly (not an Axios wrapper). */
     getPageToken: async (
         pageId: string
     ): Promise<FacebookPageTokenResponse> => {
@@ -142,8 +145,6 @@ export const facebookService = {
         const json: FacebookPageTokenResponse = await rest.json()
         return json
     },
-
-    /** Returns the raw array of conversation-id items. */
     getConversationIds: async (
         conversationId: string,
         pageAccessToken: string
@@ -154,13 +155,13 @@ export const facebookService = {
         return json.data ?? []
     },
 
-    /** Returns the conversation messages response object directly. */
     getConversationMessages: async (
         conversationId: string,
         pageAccessToken: string
     ): Promise<FacebookConversationMessagesResponse> => {
         const url = `${baseUrl}/${conversationId}/messages?fields=message,ai_generated,attachments,from,to,created_time&access_token=${pageAccessToken}`
         const rest = await fetch(url)
+        // FB returns { data: [...messages], paging: {...} }
         const json: FacebookConversationMessagesResponse = await rest.json()
         return json
     },

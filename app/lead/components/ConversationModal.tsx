@@ -96,7 +96,8 @@ const ModalConversations = ({
                             idConversation,
                             pageToken
                         );
-                    const messages = conversationData.messages.data;
+                    // FB API returns { data: [...messages], paging: {...} }
+                    const messages = conversationData.data ?? [];
                     setConversationMessages([...messages].reverse());
                 } catch (error) {
                     console.error("Error fetching conversation:", error);

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageTransitionDelay } from '@/constants/enums/common.enum';
 
@@ -54,14 +54,13 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
     setIsNavigating(false);
   }, []);
 
+  const contextValue = useMemo(
+    () => ({ isNavigating, navigateWithDelay, cancelNavigation }),
+    [isNavigating, navigateWithDelay, cancelNavigation]
+  );
+
   return (
-    <NavigationContext.Provider
-      value={{
-        isNavigating,
-        navigateWithDelay,
-        cancelNavigation,
-      }}
-    >
+    <NavigationContext.Provider value={contextValue}>
       {children}
     </NavigationContext.Provider>
   );

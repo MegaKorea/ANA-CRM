@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  sassOptions: {
+    // Suppress Dart Sass @import deprecation warnings (cosmetic only, not errors)
+    silenceDeprecations: ["import"],
+  },
 };
 
 export default nextConfig;
