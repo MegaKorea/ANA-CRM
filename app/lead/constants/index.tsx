@@ -247,11 +247,11 @@ export const getLeadTableColumns = ({
       dataIndex: 'full_name',
       key: 'full_name',
     },
-    {
-      title: LeadPageText.COLUMN_EMAIL,
-      dataIndex: 'email',
-      key: 'email',
-    },
+    // {
+    //   title: LeadPageText.COLUMN_EMAIL,
+    //   dataIndex: 'email',
+    //   key: 'email',
+    // },
     {
       title: LeadPageText.COLUMN_PHONE_NUMBER,
       dataIndex: 'phone_number',
