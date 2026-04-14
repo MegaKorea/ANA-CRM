@@ -25,6 +25,7 @@ import dynamic from 'next/dynamic';
 import { LeadFilters } from '@/app/lead/components/LeadFilters';
 import { LeadMobileCard } from '@/app/lead/components/LeadMobileCard';
 import { LeadStatistics } from '@/app/lead/components/LeadStatistics';
+import { usePaymentCounts } from '@/lib/hooks/use-payment-tickets';
 
 const LeadModal = dynamic(
   () => import('@/app/lead/components/LeadModal').then((m) => m.LeadModal),
@@ -118,6 +119,10 @@ export default function LeadPage() {
 
   const leads = data?.data || [];
   const total = data?.total || 0;
+
+  // Batch-fetch payment counts for visible leads
+  const leadIds = useMemo(() => leads.map((l) => l.id), [leads]);
+  const { data: paymentCounts } = usePaymentCounts(leadIds);
   const createLeadMutation = useCreateLead();
   const updateLeadMutation = useUpdateLead();
   const deleteLeadMutation = useDeleteLead();
@@ -339,6 +344,7 @@ export default function LeadPage() {
         handleOpenPaymentTicketModal,
         handleOpenPaymentHistoryModal,
         courses,
+        paymentCounts: paymentCounts ?? {},
       }).map((col: any) => ({
         ...col,
         onCell: () =>
@@ -358,6 +364,7 @@ export default function LeadPage() {
       handleOpenPaymentTicketModal,
       handleOpenPaymentHistoryModal,
       courses,
+      paymentCounts,
     ],
   );
 

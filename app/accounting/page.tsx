@@ -28,6 +28,8 @@ import {
   DollarOutlined,
   FileTextOutlined,
   ExclamationCircleOutlined,
+  UserOutlined,
+  PhoneOutlined,
 } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import {
@@ -173,10 +175,27 @@ export default function AccountingPage() {
       width: 70,
     },
     {
-      title: 'Lead ID',
-      dataIndex: 'lead_id',
-      key: 'lead_id',
-      width: 90,
+      title: 'Khách hàng',
+      key: 'customer',
+      width: 200,
+      render: (_: unknown, record: PaymentTicket) => (
+        <Space direction="vertical" size={2}>
+          <Space size={4}>
+            <UserOutlined style={{ color: '#1890ff', fontSize: 12 }} />
+            <Typography.Text strong style={{ fontSize: 13 }}>
+              {record.lead_full_name || `Lead #${record.lead_id}`}
+            </Typography.Text>
+          </Space>
+          {record.lead_phone_number && (
+            <Space size={4}>
+              <PhoneOutlined style={{ color: '#52c41a', fontSize: 12 }} />
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {record.lead_phone_number}
+              </Typography.Text>
+            </Space>
+          )}
+        </Space>
+      ),
     },
     {
       title: 'Số tiền',
@@ -190,7 +209,7 @@ export default function AccountingPage() {
       ),
     },
     {
-      title: 'Loại thanh toán',
+      title: 'Phương thức',
       dataIndex: 'payment_type',
       key: 'payment_type',
       width: 130,

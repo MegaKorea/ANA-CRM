@@ -181,6 +181,8 @@ export type HandleOpenPaymentTicketModal = (lead: Lead) => void;
 
 export type HandleOpenPaymentHistoryModal = (lead: Lead) => void;
 
+export type PaymentCountsMap = Record<string, number>;
+
 export function formatLocationValue(location: LocationValue | null | undefined): string {
   if (!location) {
     return '';
@@ -231,6 +233,7 @@ export const getLeadTableColumns = ({
   handleOpenPaymentTicketModal,
   handleOpenPaymentHistoryModal,
   courses,
+  paymentCounts,
 }: {
   handleOpenModal: HandleOpenLeadModal;
   handleDelete: HandleDeleteLead;
@@ -243,6 +246,7 @@ export const getLeadTableColumns = ({
   handleOpenPaymentTicketModal: HandleOpenPaymentTicketModal;
   handleOpenPaymentHistoryModal: HandleOpenPaymentHistoryModal;
   courses?: Course[] | null;
+  paymentCounts?: PaymentCountsMap;
 }): ColumnsType<Lead> => [
     {
       title: LeadPageText.COLUMN_ID,
@@ -416,25 +420,31 @@ export const getLeadTableColumns = ({
       key: 'payment',
       align: 'center' as const,
       width: 120,
-      render: (_: unknown, record: Lead) => (
-        <Space>
-          <Tooltip title="Tạo phiếu thu">
-            <Button
-              size="small"
-              type="primary"
-              icon={<DollarOutlined />}
-              onClick={() => handleOpenPaymentTicketModal(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Lịch sử thanh toán">
-            <Button
-              size="small"
-              icon={<HistoryOutlined />}
-              onClick={() => handleOpenPaymentHistoryModal(record)}
-            />
-          </Tooltip>
-        </Space>
-      ),
+      render: (_: unknown, record: Lead) => {
+        const paidCount = paymentCounts?.[String(record.id)] ?? 0;
+        return (
+          <Space>
+            <Tooltip title="Tạo phiếu thu">
+              <Button
+                size="small"
+                type="primary"
+                icon={<DollarOutlined />}
+                onClick={() => handleOpenPaymentTicketModal(record)}
+              />
+            </Tooltip>
+            <Tooltip title={paidCount > 0 ? `Đã nộp ${paidCount} lần` : 'Lịch sử thanh toán'}>
+              <Badge count={paidCount} size="small" offset={[-2, 0]}>
+                <Button
+                  size="small"
+                  icon={<HistoryOutlined />}
+                  onClick={() => handleOpenPaymentHistoryModal(record)}
+                  style={paidCount > 0 ? { borderColor: '#52c41a', color: '#52c41a' } : undefined}
+                />
+              </Badge>
+            </Tooltip>
+          </Space>
+        );
+      },
     },
 
     {

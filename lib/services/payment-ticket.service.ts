@@ -9,7 +9,10 @@ import type {
 import type { PaymentTicketsTable } from '@/lib/supabase/types/tables/payment_tickets';
 import type { InsertTables, UpdateTables } from '@/types/supabase';
 
-export type PaymentTicket = PaymentTicketsTable['Row'];
+export type PaymentTicket = PaymentTicketsTable['Row'] & {
+  lead_full_name?: string | null;
+  lead_phone_number?: string | null;
+};
 
 export interface PaginatedPaymentTickets {
   data: PaymentTicket[];
@@ -27,7 +30,9 @@ export async function fetchPaymentTickets(
 ): Promise<PaginatedPaymentTickets> {
   try {
     const supabase = createAdminClient();
-    let query = supabase.from('payment_tickets').select('*', { count: 'exact' });
+    let query = supabase
+      .from('payment_tickets')
+      .select('*', { count: 'exact' });
 
     if (params?.lead_id) {
       query = query.eq('lead_id', params.lead_id);
@@ -70,14 +75,45 @@ export async function fetchPaymentTickets(
       });
     }
 
+    const rawTickets = (data as unknown as PaymentTicketsTable['Row'][]) || [];
+
+    // Fetch lead info (full_name, phone) for all unique lead_ids
+    let leadMap: Map<number, { full_name: string | null; phone: string | null }> = new Map();
+    if (rawTickets.length > 0) {
+      const leadIds = [...new Set(rawTickets.map((t) => t.lead_id))];
+      const { data: leadsData } = await supabase
+        .from('leads')
+        .select('id, full_name, phone_number')
+        .in('id', leadIds);
+
+      if (leadsData) {
+        leadMap = new Map(
+          (leadsData as unknown as { id: number; full_name: string | null; phone_number: string | null }[]).map(
+            (l) => [l.id, { full_name: l.full_name, phone: l.phone_number }]
+          )
+        );
+      }
+    }
+
+    // Merge lead info into tickets
+    const flatData: PaymentTicket[] = rawTickets.map((ticket) => {
+      const lead = leadMap.get(ticket.lead_id);
+      return {
+        ...ticket,
+        lead_full_name: lead?.full_name ?? null,
+        lead_phone_number: lead?.phone ?? null,
+      };
+    });
+
     return {
-      data: (data as unknown as PaymentTicket[]) || [],
+      data: flatData,
       total: count ?? 0,
     };
   } catch (error) {
     handleServiceError(error, PaymentTicketErrorCode.FETCH_FAILED);
   }
 }
+
 
 export async function fetchPaymentTicketsByLeadId(
   leadId: number
