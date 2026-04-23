@@ -131,6 +131,7 @@ export const LeadStatusLabel = {
   [LeadStatus.REJECT]: 'TỪ CHỐI',
   [LeadStatus.INTERESTED]: 'QUAN TÂM',
   [LeadStatus.NOT_INTERESTED]: 'KHÔNG QUAN TÂM',
+  [LeadStatus.NURTURING]: 'ĐANG CHĂM SÓC',
   [LeadStatus.OTHER]: 'KHÁC',
 } as const;
 

@@ -21,6 +21,7 @@ export enum LeadStatus {
   REJECT = 'reject',
   INTERESTED = 'interested',
   NOT_INTERESTED = 'not_interested',
+  NURTURING = 'nurturing',
   OTHER = 'other',
 }
 
