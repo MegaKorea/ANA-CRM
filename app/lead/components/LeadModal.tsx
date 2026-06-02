@@ -45,6 +45,7 @@ export interface LeadFormValues {
 
   appointment_date?: Dayjs | null;
   facebook_url?: string;
+  pid_zalo?: string;
   conversation?: string;
   tuition_fee?: number;
 }
@@ -216,6 +217,12 @@ export function LeadModal({
           <Col span={8}>
             <Form.Item name="facebook_url" label="Facebook URL">
               <Input placeholder="https://facebook.com/..." />
+            </Form.Item>
+          </Col>
+
+          <Col span={8}>
+            <Form.Item name="pid_zalo" label="PID Zalo">
+              <Input placeholder="Nhập pid_zalo" />
             </Form.Item>
           </Col>
 

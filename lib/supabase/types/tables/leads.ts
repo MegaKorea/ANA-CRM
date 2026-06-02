@@ -33,6 +33,7 @@ export interface LeadsTable {
     attendance_status: AttendanceStatus | null;
     images: string[] | null;
     facebook_url: string | null;
+    pid_zalo: string | null;
     conversation: string | null;
     tuition_fee: number | null;
     created_at: string | null;
@@ -62,6 +63,7 @@ export interface LeadsTable {
     attendance_status?: AttendanceStatus | null;
     images?: string[] | null;
     facebook_url?: string | null;
+    pid_zalo?: string | null;
     conversation?: string | null;
     tuition_fee?: number | null;
     created_at?: string | null;
@@ -91,6 +93,7 @@ export interface LeadsTable {
     attendance_status?: AttendanceStatus | null;
     images?: string[] | null;
     facebook_url?: string | null;
+    pid_zalo?: string | null;
     conversation?: string | null;
     tuition_fee?: number | null;
     created_at?: string | null;

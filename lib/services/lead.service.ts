@@ -135,6 +135,7 @@ export async function createLead(input: CreateLeadInput): Promise<Lead> {
       attendance_status: (input.attendance_status as never) ?? 'not_arrived',
       images: input.images ?? null,
       facebook_url: input.facebook_url ?? null,
+      pid_zalo: input.pid_zalo ?? null,
       conversation: input.conversation ?? null,
       tuition_fee: input.tuition_fee ?? 0,
     };
@@ -188,6 +189,7 @@ export async function updateLeadById(id: number, input: UpdateLeadInput): Promis
       attendance_status: 'direct',
       images: 'nullable',
       facebook_url: 'nullable',
+      pid_zalo: 'nullable',
       conversation: 'nullable',
       tuition_fee: 'nullable',
     });

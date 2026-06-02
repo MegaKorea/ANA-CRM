@@ -149,6 +149,7 @@ export default function LeadPage() {
 
           appointment_date: lead.appointment_date ? dayjs(lead.appointment_date) : undefined,
           facebook_url: lead.facebook_url || undefined,
+          pid_zalo: lead.pid_zalo || undefined,
           conversation: lead.conversation || undefined,
           tuition_fee: lead.tuition_fee ?? undefined,
         });
@@ -197,6 +198,7 @@ export default function LeadPage() {
               ? values.appointment_date.toISOString()
               : undefined,
         facebook_url: values.facebook_url,
+        pid_zalo: values.pid_zalo,
         conversation: values.conversation,
         tuition_fee: values.tuition_fee,
       };

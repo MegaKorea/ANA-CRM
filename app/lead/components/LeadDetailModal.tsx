@@ -2,7 +2,12 @@
 
 import { Modal, Descriptions, Timeline, Tag, Typography, Empty } from 'antd';
 import type { Lead } from '@/lib/services/lead.service';
-import { LeadPageText, formatLocationValue, formatLocationValueV2 } from '@/app/lead/constants';
+import {
+  LeadPageText,
+  formatLocationValue,
+  formatLocationValueV2,
+  getZaloChatUrl,
+} from '@/app/lead/constants';
 import type { LocationValue } from '@/components/common/LocationSelect';
 import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
 import type { NoteItem } from '@/lib/supabase/types/tables/leads';
@@ -25,6 +30,7 @@ export function LeadDetailModal({ open, lead, onClose }: LeadDetailModalProps): 
   const currentAddress = lead.current_address as LocationValue | null | undefined;
   const currentAddressTemp = lead.current_address_temp as LocationValueV2 | null | undefined;
   const notes: NoteItem[] = Array.isArray(lead.note) ? lead.note : [];
+  const zaloChatUrl = getZaloChatUrl(lead.pid_zalo);
   const sortedNotes = [...notes].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );
@@ -51,6 +57,15 @@ export function LeadDetailModal({ open, lead, onClose }: LeadDetailModalProps): 
         </Descriptions.Item>
         <Descriptions.Item label={LeadPageText.COLUMN_CITIZEN_ID}>
           {lead.citizen_id || '-'}
+        </Descriptions.Item>
+        <Descriptions.Item label="PID Zalo">
+          {zaloChatUrl ? (
+            <Typography.Link href={zaloChatUrl} target="_blank" rel="noreferrer">
+              {lead.pid_zalo}
+            </Typography.Link>
+          ) : (
+            '-'
+          )}
         </Descriptions.Item>
         <Descriptions.Item label={LeadPageText.COLUMN_NATIONALITY}>
           {lead.nationality || '-'}

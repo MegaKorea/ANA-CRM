@@ -20,8 +20,12 @@ import type { LocationValue } from '@/components/common/LocationSelect';
 import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
 import type { NoteItem } from '@/lib/supabase/types/tables/leads';
 import { FiGlobe, FiMail, FiPhone, FiFacebook, FiMoreHorizontal } from 'react-icons/fi';
+import { SiZalo } from 'react-icons/si';
 import { formatNumberVi } from '@/lib/utils/numberFormat';
 import { AssignTelesales } from '@/app/lead/components/AssignTelesales';
+
+const ZALO_CHAT_URL_BASE =
+  'https://smax.ai/bizs/ana-beauty-academy/chats/zlw555884932030283040';
 
 export enum LeadPagePadding {
   CONTAINER = 24,
@@ -222,6 +226,16 @@ export function formatLocationValueV2(location: LocationValueV2 | null | undefin
   return parts.join(', ') || '';
 }
 
+export function getZaloChatUrl(pidZalo: string | null | undefined): string | undefined {
+  const trimmedPid = pidZalo?.trim();
+
+  if (!trimmedPid) {
+    return undefined;
+  }
+
+  return `${ZALO_CHAT_URL_BASE}?tid=${encodeURIComponent(trimmedPid)}`;
+}
+
 export const getLeadTableColumns = ({
   handleOpenModal,
   handleDelete,
@@ -319,6 +333,27 @@ export const getLeadTableColumns = ({
           />
         </Tooltip>
       ),
+    },
+    {
+      title: 'Zalo',
+      key: 'pid_zalo',
+      align: 'center',
+      width: 72,
+      render: (_: unknown, record: Lead) => {
+        const zaloChatUrl = getZaloChatUrl(record.pid_zalo);
+
+        return (
+          <Tooltip title={zaloChatUrl ? 'Mở Zalo' : 'Không có PID Zalo'}>
+            <Button
+              size="small"
+              type="text"
+              icon={<SiZalo size={16} color={zaloChatUrl ? '#0068ff' : undefined} />}
+              disabled={!zaloChatUrl}
+              onClick={() => zaloChatUrl && window.open(zaloChatUrl, '_blank')}
+            />
+          </Tooltip>
+        );
+      },
     },
     {
       title: 'Chat',

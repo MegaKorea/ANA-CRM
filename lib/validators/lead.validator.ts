@@ -29,6 +29,7 @@ export interface CreateLeadInput {
   attendance_status?: AttendanceStatus;
   images?: string[];
   facebook_url?: string;
+  pid_zalo?: string;
   conversation?: string;
   tuition_fee?: number;
 }
@@ -55,6 +56,7 @@ export interface UpdateLeadInput {
   attendance_status?: AttendanceStatus;
   images?: string[];
   facebook_url?: string;
+  pid_zalo?: string;
   conversation?: string;
   tuition_fee?: number;
 }
@@ -382,6 +384,7 @@ export function validateCreateLeadInput(input: unknown): CreateLeadInput {
     attendance_status: validateAttendanceStatusField(data.attendance_status),
     images: validateOptionalStringArrayField(data.images),
     facebook_url: validateOptionalStringField(data.facebook_url),
+    pid_zalo: validateOptionalStringField(data.pid_zalo),
     conversation: validateOptionalStringField(data.conversation),
     tuition_fee: validateOptionalNumberField(data.tuition_fee) as number | undefined,
   };
@@ -435,6 +438,7 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
   const attendanceStatus = validateAttendanceStatusField(data.attendance_status);
   const images = validateOptionalStringArrayField(data.images);
   const facebookUrl = validateOptionalStringField(data.facebook_url);
+  const pidZalo = validateOptionalStringField(data.pid_zalo);
   const conversationText = validateOptionalStringField(data.conversation);
 
   if (dateOfBirth !== undefined) {
@@ -508,6 +512,10 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
 
   if (facebookUrl !== undefined) {
     result.facebook_url = facebookUrl;
+  }
+
+  if (pidZalo !== undefined) {
+    result.pid_zalo = pidZalo;
   }
 
   if (conversationText !== undefined) {

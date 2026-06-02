@@ -8,10 +8,10 @@ import {
   CloseCircleTwoTone,
 } from '@ant-design/icons';
 import { HiOutlineInformationCircle, HiOutlinePencilAlt, HiOutlineTrash } from 'react-icons/hi';
-import { formatNumberVi } from '@/lib/utils/numberFormat';
 import { LeadStatus, DateLocale, AttendanceStatus } from '@/constants/enums';
 import type { Lead } from '@/lib/services/lead.service';
 import {
+  getZaloChatUrl,
   LeadPageText,
   LeadStatusLabel,
   LeadSourceIcon,
@@ -19,6 +19,7 @@ import {
 } from '@/app/lead/constants';
 import { AssignTelesales } from '@/app/lead/components/AssignTelesales';
 import { memo } from 'react';
+import { SiZalo } from 'react-icons/si';
 
 interface LeadMobileCardProps {
   lead: Lead;
@@ -46,6 +47,7 @@ export const LeadMobileCard = memo(function LeadMobileCard({
   const notes = Array.isArray(lead.note) ? lead.note : [];
   const noteCount = notes.length;
   const imageCount = lead.images?.length || 0;
+  const zaloChatUrl = getZaloChatUrl(lead.pid_zalo);
 
   return (
     <Card
@@ -156,6 +158,18 @@ export const LeadMobileCard = memo(function LeadMobileCard({
                 : '—'}
             </Typography.Text>
           </Flex>
+        </Flex>
+        <Flex justify="space-between" align="center" className="text-body-small">
+          <Typography.Text type="secondary">Zalo</Typography.Text>
+          <Tooltip title={zaloChatUrl ? 'Mở Zalo' : 'Không có PID Zalo'}>
+            <Button
+              size="small"
+              type="text"
+              icon={<SiZalo size={16} color={zaloChatUrl ? '#0068ff' : undefined} />}
+              disabled={!zaloChatUrl}
+              onClick={() => zaloChatUrl && window.open(zaloChatUrl, '_blank')}
+            />
+          </Tooltip>
         </Flex>
         <Flex justify="space-between" align="center" className="text-body-small">
           <Typography.Text type="secondary">Khóa học</Typography.Text>
