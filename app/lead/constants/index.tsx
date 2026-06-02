@@ -233,7 +233,7 @@ export function getZaloChatUrl(pidZalo: string | null | undefined): string | und
     return undefined;
   }
 
-  return `${ZALO_CHAT_URL_BASE}?tid=${encodeURIComponent(trimmedPid)}`;
+  return `${ZALO_CHAT_URL_BASE}?tid=zlw${encodeURIComponent(trimmedPid)}`;
 }
 
 export const getLeadTableColumns = ({
