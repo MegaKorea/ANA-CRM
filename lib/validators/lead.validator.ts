@@ -32,6 +32,7 @@ export interface CreateLeadInput {
   pid_zalo?: string;
   conversation?: string;
   tuition_fee?: number;
+  created_at?: string;
 }
 
 export interface UpdateLeadInput {
@@ -59,6 +60,7 @@ export interface UpdateLeadInput {
   pid_zalo?: string;
   conversation?: string;
   tuition_fee?: number;
+  created_at?: string;
 }
 
 export function validateLeadId(id: unknown): number {
@@ -387,6 +389,7 @@ export function validateCreateLeadInput(input: unknown): CreateLeadInput {
     pid_zalo: validateOptionalStringField(data.pid_zalo),
     conversation: validateOptionalStringField(data.conversation),
     tuition_fee: validateOptionalNumberField(data.tuition_fee) as number | undefined,
+    created_at: validateOptionalDateField(data.created_at) as string | undefined,
   };
 }
 
@@ -440,6 +443,7 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
   const facebookUrl = validateOptionalStringField(data.facebook_url);
   const pidZalo = validateOptionalStringField(data.pid_zalo);
   const conversationText = validateOptionalStringField(data.conversation);
+  const createdAt = validateOptionalDateField(data.created_at);
 
   if (dateOfBirth !== undefined) {
     result.date_of_birth = dateOfBirth;
@@ -520,6 +524,10 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
 
   if (conversationText !== undefined) {
     result.conversation = conversationText;
+  }
+
+  if (createdAt !== undefined) {
+    result.created_at = createdAt as string | undefined;
   }
 
   const tuitionFee = validateOptionalNumberField(data.tuition_fee);

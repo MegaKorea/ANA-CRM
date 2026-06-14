@@ -192,6 +192,7 @@ export async function updateLeadById(id: number, input: UpdateLeadInput): Promis
       pid_zalo: 'nullable',
       conversation: 'nullable',
       tuition_fee: 'nullable',
+      created_at: 'direct',
     });
 
     if (Object.keys(updateData).length > 0) {

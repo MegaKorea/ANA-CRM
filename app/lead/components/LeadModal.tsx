@@ -48,6 +48,7 @@ export interface LeadFormValues {
   pid_zalo?: string;
   conversation?: string;
   tuition_fee?: number;
+  created_at?: Dayjs | null;
 }
 
 interface LeadModalProps {
@@ -243,6 +244,14 @@ export function LeadModal({
               />
             </Form.Item>
           </Col>
+
+          {editingLead && (
+            <Col span={8}>
+              <Form.Item name="created_at" label="Ngày tạo">
+                <DatePicker showTime style={{ width: '100%' }} format="DD/MM/YYYY HH:mm" />
+              </Form.Item>
+            </Col>
+          )}
         </Row>
       </Form>
     </Drawer>
