@@ -108,6 +108,53 @@ export async function fetchLeadById(id: number): Promise<Lead> {
   }
 }
 
+/**
+ * Finds an existing lead that collides with the given name or phone number.
+ * Used by the staff lead-form to detect duplicates before creating a new lead.
+ * Phone (a strong identity signal) is matched first, then full name
+ * (case-insensitive). Returns the most recent match, or null when none exists.
+ */
+export async function findDuplicateLead(
+  fullName: string,
+  phoneNumber?: string | null
+): Promise<Lead | null> {
+  try {
+    const supabase = createAdminClient();
+
+    if (phoneNumber) {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('phone_number', phoneNumber)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        handleSupabaseError(error, { defaultErrorCode: LeadErrorCode.FETCH_FAILED });
+      }
+
+      if (data && data.length > 0) {
+        return data[0] as unknown as Lead;
+      }
+    }
+
+    const { data, error } = await supabase
+      .from('leads')
+      .select('*')
+      .ilike('full_name', fullName)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      handleSupabaseError(error, { defaultErrorCode: LeadErrorCode.FETCH_FAILED });
+    }
+
+    return data && data.length > 0 ? (data[0] as unknown as Lead) : null;
+  } catch (error) {
+    handleServiceError(error, LeadErrorCode.FETCH_FAILED);
+  }
+}
+
 export async function createLead(input: CreateLeadInput): Promise<Lead> {
   try {
     const supabase = createAdminClient();
@@ -138,6 +185,7 @@ export async function createLead(input: CreateLeadInput): Promise<Lead> {
       pid_zalo: input.pid_zalo ?? null,
       conversation: input.conversation ?? null,
       tuition_fee: input.tuition_fee ?? 0,
+      smax_log: input.smax_log ? (input.smax_log as never) : null,
     };
 
     const { data, error } = await supabase
@@ -192,6 +240,7 @@ export async function updateLeadById(id: number, input: UpdateLeadInput): Promis
       pid_zalo: 'nullable',
       conversation: 'nullable',
       tuition_fee: 'nullable',
+      smax_log: 'object',
       created_at: 'direct',
     });
 

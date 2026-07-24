@@ -19,7 +19,7 @@ import type { Course } from '@/lib/services/course.service';
 import type { LocationValue } from '@/components/common/LocationSelect';
 import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
 import type { NoteItem } from '@/lib/supabase/types/tables/leads';
-import { FiGlobe, FiMail, FiPhone, FiFacebook, FiMoreHorizontal } from 'react-icons/fi';
+import { FiGlobe, FiMail, FiPhone, FiFacebook, FiMessageSquare, FiMoreHorizontal } from 'react-icons/fi';
 import { SiZalo } from 'react-icons/si';
 import { formatNumberVi } from '@/lib/utils/numberFormat';
 import { AssignTelesales } from '@/app/lead/components/AssignTelesales';
@@ -144,6 +144,7 @@ export const LeadSourceLabel = {
   [LeadSource.EMAIL]: 'Email',
   [LeadSource.PHONE]: 'Số điện thoại',
   [LeadSource.FACEBOOK]: 'Facebook',
+  [LeadSource.SMAX]: 'Smax',
   [LeadSource.OTHER]: 'Khác',
 } as const;
 
@@ -152,6 +153,7 @@ export const LeadSourceIcon = {
   [LeadSource.EMAIL]: <FiMail size={LeadSourceIconSize.DEFAULT} />,
   [LeadSource.PHONE]: <FiPhone size={LeadSourceIconSize.DEFAULT} />,
   [LeadSource.FACEBOOK]: <FiFacebook size={LeadSourceIconSize.DEFAULT} />,
+  [LeadSource.SMAX]: <FiMessageSquare size={LeadSourceIconSize.DEFAULT} />,
   [LeadSource.OTHER]: <FiMoreHorizontal size={LeadSourceIconSize.DEFAULT} />,
 } as const;
 

@@ -1,0 +1,278 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, App, Button, Card, Form, Input, Result, Typography } from 'antd';
+
+const { Title, Paragraph } = Typography;
+
+/**
+ * Staff lead-entry form. Operated by the team (not customers) — typically inside
+ * an embedded Smax "Nhúng form" iframe: Smax loads this page and pushes the chat
+ * customer object via a `__SM_FORM_CUSTOMER` postMessage, which we prefill and
+ * store verbatim as `smax_log` on the lead.
+ *
+ * Duplicate handling (button morphs by result):
+ *  - "Lưu thông tin" checks the database first. If the name OR phone already
+ *    exists, we surface a notice and switch the button to "Cập nhật", so the
+ *    next click updates that existing lead with the entered values.
+ *  - If neither field matches (both new), the lead is created straight away.
+ *  - Editing either field invalidates the previous check and reverts the button
+ *    back to "Lưu thông tin".
+ *
+ * Docs: https://tailieu.smax.ai/module-cai-dat/tich-hop/nhung-form
+ */
+
+interface LeadFormValues {
+  full_name: string;
+  phone_number: string;
+}
+
+/** Shape of the customer object Smax returns (kept loose — we store it verbatim). */
+interface SmaxCustomer {
+  id?: string;
+  name?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  gender?: string;
+  gid?: string;
+  picture?: string;
+  [key: string]: unknown;
+}
+
+/** Existing lead returned by the API when a duplicate is detected (409). */
+interface DuplicateLead {
+  id: number;
+  full_name: string;
+  phone_number: string | null;
+}
+
+const SM_FORM_CUSTOMER = '__SM_FORM_CUSTOMER';
+
+function getIntegrationId(): string | undefined {
+  if (typeof window === 'undefined') return undefined;
+  const fromQuery = new URLSearchParams(window.location.search).get('integration_id');
+  if (fromQuery) return fromQuery;
+  // Fallback to the pattern shown in the Smax docs (`...?...=<id>`).
+  const parts = window.location.href.split('=');
+  return parts.length > 1 ? parts[parts.length - 1] : undefined;
+}
+
+export default function LeadFormPage() {
+  const { message } = App.useApp();
+  const [form] = Form.useForm<LeadFormValues>();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  // Whether the last successful submit updated an existing lead vs created one.
+  const [wasUpdate, setWasUpdate] = useState(false);
+  // Existing lead detected as a duplicate; when set the button becomes "Cập nhật".
+  const [duplicate, setDuplicate] = useState<DuplicateLead | null>(null);
+  // Raw object returned by Smax, stored verbatim as smax_log on submit.
+  const smaxLogRef = useRef<SmaxCustomer | null>(null);
+
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      const data = event.data;
+      if (typeof data !== 'object' || data === null) return;
+      if ((data as { name?: string }).name !== SM_FORM_CUSTOMER) return;
+
+      const customer = (data as { data?: { customer?: SmaxCustomer } }).data?.customer;
+      if (!customer) return;
+
+      smaxLogRef.current = customer;
+      form.setFieldsValue({
+        full_name: customer.name || undefined,
+        phone_number: customer.phone || undefined,
+      });
+    }
+
+    window.addEventListener('message', handleMessage, false);
+
+    // Ask the Smax parent frame for the current chat customer.
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage(
+        { name: SM_FORM_CUSTOMER, data: { integration_id: getIntegrationId() } },
+        '*'
+      );
+    }
+
+    return () => window.removeEventListener('message', handleMessage, false);
+  }, [form]);
+
+  // Sends the lead. When `leadId` is set the staff confirmed updating the
+  // detected duplicate; otherwise the server checks for a duplicate and either
+  // reports it (409) or creates a new lead.
+  const submitLead = useCallback(
+    async (values: LeadFormValues, leadId?: number) => {
+      setSubmitting(true);
+      try {
+        const response = await fetch('/api/lead-form', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            full_name: values.full_name,
+            phone_number: values.phone_number,
+            smax_log: smaxLogRef.current ?? undefined,
+            lead_id: leadId,
+          }),
+        });
+
+        const result = await response.json().catch(() => null);
+
+        // Duplicate detected — surface it and morph the button into "Cập nhật".
+        if (
+          response.status === 409 &&
+          result?.code === 'DUPLICATE_LEAD' &&
+          result?.existing
+        ) {
+          setDuplicate(result.existing as DuplicateLead);
+          message.warning('Thông tin đã tồn tại trong hệ thống.');
+          return;
+        }
+
+        if (!response.ok || !result?.success) {
+          throw new Error('REQUEST_FAILED');
+        }
+
+        setWasUpdate(Boolean(result.updated));
+        setSubmitted(true);
+        setDuplicate(null);
+        form.resetFields();
+        smaxLogRef.current = null;
+      } catch {
+        message.error('Lưu thông tin thất bại. Vui lòng thử lại.');
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [form, message]
+  );
+
+  const handleSubmit = useCallback(
+    (values: LeadFormValues) => {
+      // In "Cập nhật" state the button updates the detected duplicate; otherwise
+      // it runs a fresh check-or-create.
+      if (duplicate) {
+        void submitLead(values, duplicate.id);
+      } else {
+        void submitLead(values);
+      }
+    },
+    [duplicate, submitLead]
+  );
+
+  // Any edit invalidates the previous duplicate check → revert to "Lưu thông tin".
+  const handleValuesChange = useCallback(() => {
+    setDuplicate((prev) => (prev ? null : prev));
+  }, []);
+
+  const handleReset = useCallback(() => {
+    setSubmitted(false);
+    setDuplicate(null);
+  }, []);
+
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+        background: '#f5f5f5',
+      }}
+    >
+      <Card style={{ width: '100%', maxWidth: 420 }}>
+        {submitted ? (
+          <Result
+            status="success"
+            title={wasUpdate ? 'Cập nhật lead thành công!' : 'Tạo lead thành công!'}
+            subTitle={
+              wasUpdate
+                ? 'Thông tin lead đã được cập nhật trong hệ thống.'
+                : 'Lead mới đã được thêm vào hệ thống.'
+            }
+            extra={
+              <Button type="primary" onClick={handleReset}>
+                Nhập lead khác
+              </Button>
+            }
+          />
+        ) : (
+          <>
+            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+              <Title level={3} style={{ marginBottom: 8 }}>
+                Nhập thông tin Lead
+              </Title>
+              <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                Nhập họ tên và số điện thoại khách hàng để tạo lead trong hệ thống.
+              </Paragraph>
+            </div>
+
+            {duplicate && (
+              <Alert
+                type="warning"
+                showIcon
+                style={{ marginBottom: 16 }}
+                message="Thông tin đã tồn tại"
+                description={
+                  <span>
+                    Đã có lead trùng họ tên hoặc số điện thoại:{' '}
+                    <b>{duplicate.full_name}</b>
+                    {duplicate.phone_number ? ` — ${duplicate.phone_number}` : ''}.
+                    <br />
+                    Nhấn <b>Cập nhật</b> để cập nhật lead này bằng thông tin vừa nhập,
+                    hoặc sửa lại họ tên và số điện thoại để tạo lead mới.
+                  </span>
+                }
+              />
+            )}
+
+            <Form<LeadFormValues>
+              form={form}
+              layout="vertical"
+              onFinish={handleSubmit}
+              onValuesChange={handleValuesChange}
+              requiredMark={false}
+            >
+              <Form.Item
+                name="full_name"
+                label="Họ và tên"
+                rules={[{ required: true, message: 'Vui lòng nhập họ và tên' }]}
+              >
+                <Input placeholder="Nhập họ và tên khách hàng" size="large" allowClear />
+              </Form.Item>
+
+              <Form.Item
+                name="phone_number"
+                label="Số điện thoại"
+                rules={[
+                  { required: true, message: 'Vui lòng nhập số điện thoại' },
+                  {
+                    pattern: /^(0|\+84)\d{9,10}$/,
+                    message: 'Số điện thoại không hợp lệ',
+                  },
+                ]}
+              >
+                <Input placeholder="Nhập số điện thoại khách hàng" size="large" allowClear />
+              </Form.Item>
+
+              <Form.Item style={{ marginBottom: 0, marginTop: 8 }}>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  size="large"
+                  block
+                  loading={submitting}
+                  danger={Boolean(duplicate)}
+                >
+                  {duplicate ? 'Cập nhật' : 'Lưu thông tin'}
+                </Button>
+              </Form.Item>
+            </Form>
+          </>
+        )}
+      </Card>
+    </div>
+  );
+}

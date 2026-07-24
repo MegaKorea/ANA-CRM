@@ -32,6 +32,7 @@ export interface CreateLeadInput {
   pid_zalo?: string;
   conversation?: string;
   tuition_fee?: number;
+  smax_log?: Record<string, unknown>;
   created_at?: string;
 }
 
@@ -60,7 +61,15 @@ export interface UpdateLeadInput {
   pid_zalo?: string;
   conversation?: string;
   tuition_fee?: number;
+  smax_log?: Record<string, unknown>;
   created_at?: string;
+}
+
+/** Public lead-form payload — only the fields a visitor may submit (no auth). */
+export interface LeadFormInput {
+  full_name: string;
+  phone_number: string;
+  smax_log?: Record<string, unknown>;
 }
 
 export function validateLeadId(id: unknown): number {
@@ -389,7 +398,37 @@ export function validateCreateLeadInput(input: unknown): CreateLeadInput {
     pid_zalo: validateOptionalStringField(data.pid_zalo),
     conversation: validateOptionalStringField(data.conversation),
     tuition_fee: validateOptionalNumberField(data.tuition_fee) as number | undefined,
+    smax_log: validateOptionalJsonField(data.smax_log),
     created_at: validateOptionalDateField(data.created_at) as string | undefined,
+  };
+}
+
+/**
+ * Validates the public lead-form payload. Restricts input to full name, phone
+ * number and the Smax customer object so the unauthenticated endpoint cannot be
+ * used to set privileged lead fields (status, telesales_id, ...).
+ */
+export function validateLeadFormInput(input: unknown): LeadFormInput {
+  if (!input || typeof input !== 'object') {
+    throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+  }
+
+  const data = input as Record<string, unknown>;
+
+  const fullName = validateFullNameField(data.full_name, true);
+  if (!fullName) {
+    throw new AppError(LeadErrorCode.FULL_NAME_REQUIRED, HttpStatusCode.BAD_REQUEST);
+  }
+
+  const phoneNumber = validatePhoneField(data.phone_number);
+  if (!phoneNumber) {
+    throw new AppError(LeadErrorCode.PHONE_INVALID, HttpStatusCode.BAD_REQUEST);
+  }
+
+  return {
+    full_name: fullName,
+    phone_number: phoneNumber,
+    smax_log: validateOptionalJsonField(data.smax_log),
   };
 }
 
@@ -443,6 +482,7 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
   const facebookUrl = validateOptionalStringField(data.facebook_url);
   const pidZalo = validateOptionalStringField(data.pid_zalo);
   const conversationText = validateOptionalStringField(data.conversation);
+  const smaxLog = validateOptionalJsonField(data.smax_log);
   const createdAt = validateOptionalDateField(data.created_at);
 
   if (dateOfBirth !== undefined) {
@@ -524,6 +564,10 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
 
   if (conversationText !== undefined) {
     result.conversation = conversationText;
+  }
+
+  if (smaxLog !== undefined) {
+    result.smax_log = smaxLog;
   }
 
   if (createdAt !== undefined) {
