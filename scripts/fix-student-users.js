@@ -1,7 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 
-// Simple parse from .env since dotenv is a pain sometimes in barenode
 const envVars = fs.readFileSync('.env', 'utf8').split('\n').reduce((acc, line) => {
     const parts = line.split('=');
     if (parts.length >= 2) acc[parts[0]] = parts.slice(1).join('=').trim();
