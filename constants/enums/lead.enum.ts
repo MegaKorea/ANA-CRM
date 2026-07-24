@@ -31,6 +31,7 @@ export enum LeadSource {
   EMAIL = 'email',
   PHONE = 'phone',
   FACEBOOK = 'facebook',
+  SMAX = 'smax',
   OTHER = 'other',
 }
 
