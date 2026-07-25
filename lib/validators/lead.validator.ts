@@ -32,6 +32,7 @@ export interface CreateLeadInput {
   pid_zalo?: string;
   conversation?: string;
   tuition_fee?: number;
+  rate?: number;
   smax_log?: Record<string, unknown>;
   created_at?: string;
 }
@@ -61,6 +62,7 @@ export interface UpdateLeadInput {
   pid_zalo?: string;
   conversation?: string;
   tuition_fee?: number;
+  rate?: number;
   smax_log?: Record<string, unknown>;
   created_at?: string;
 }
@@ -214,6 +216,20 @@ function validateOptionalNumberField(value: unknown): number | null | undefined 
 
   const numericValue = Number(value);
   if (Number.isNaN(numericValue)) {
+    throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+  }
+
+  return numericValue;
+}
+
+/** Customer potential rating: an integer 0–5. Undefined when not provided. */
+function validateRateField(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+
+  const numericValue = Number(value);
+  if (!Number.isInteger(numericValue) || numericValue < 0 || numericValue > 5) {
     throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
   }
 
@@ -398,6 +414,7 @@ export function validateCreateLeadInput(input: unknown): CreateLeadInput {
     pid_zalo: validateOptionalStringField(data.pid_zalo),
     conversation: validateOptionalStringField(data.conversation),
     tuition_fee: validateOptionalNumberField(data.tuition_fee) as number | undefined,
+    rate: validateRateField(data.rate),
     smax_log: validateOptionalJsonField(data.smax_log),
     created_at: validateOptionalDateField(data.created_at) as string | undefined,
   };
@@ -577,6 +594,11 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
   const tuitionFee = validateOptionalNumberField(data.tuition_fee);
   if (tuitionFee !== undefined) {
     result.tuition_fee = tuitionFee as number | undefined;
+  }
+
+  const rate = validateRateField(data.rate);
+  if (rate !== undefined) {
+    result.rate = rate;
   }
 
   return result;

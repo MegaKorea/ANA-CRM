@@ -18,6 +18,7 @@ import {
   LeadSourceLabel,
 } from '@/app/lead/constants';
 import { AssignTelesales } from '@/app/lead/components/AssignTelesales';
+import { LeadRate } from '@/app/lead/components/LeadRate';
 import { memo } from 'react';
 import { SiZalo } from 'react-icons/si';
 
@@ -142,6 +143,12 @@ export const LeadMobileCard = memo(function LeadMobileCard({
           <Typography.Text type="secondary">Telesales</Typography.Text>
           <div onClick={(e) => e.stopPropagation()}>
             <AssignTelesales lead={lead} />
+          </div>
+        </Flex>
+        <Flex justify="space-between" align="center" className="text-body-small">
+          <Typography.Text type="secondary">Tiềm năng</Typography.Text>
+          <div onClick={(e) => e.stopPropagation()}>
+            <LeadRate lead={lead} />
           </div>
         </Flex>
         <Flex justify="space-between" align="center" className="text-body-small">

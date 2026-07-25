@@ -161,6 +161,7 @@ export default function LeadPage() {
           pid_zalo: lead.pid_zalo || undefined,
           conversation: lead.conversation || undefined,
           tuition_fee: lead.tuition_fee ?? undefined,
+          rate: lead.rate ?? 0,
           created_at: lead.created_at ? dayjs(lead.created_at) : undefined,
         });
       } else {
@@ -211,6 +212,7 @@ export default function LeadPage() {
         pid_zalo: values.pid_zalo,
         conversation: values.conversation,
         tuition_fee: values.tuition_fee,
+        rate: values.rate,
         created_at: values.created_at ? values.created_at.toISOString() : undefined,
       };
 

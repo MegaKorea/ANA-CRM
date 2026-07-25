@@ -24,6 +24,7 @@ import { FiGlobe, FiMail, FiPhone, FiFacebook, FiMessageSquare, FiMoreHorizontal
 import { SiZalo } from 'react-icons/si';
 import { formatNumberVi } from '@/lib/utils/numberFormat';
 import { AssignTelesales } from '@/app/lead/components/AssignTelesales';
+import { LeadRate } from '@/app/lead/components/LeadRate';
 
 const ZALO_CHAT_URL_BASE =
   'https://smax.ai/bizs/ana-beauty-academy/chats/zlw555884932030283040';
@@ -405,6 +406,13 @@ export const getLeadTableColumns = ({
         }
         return LeadStatusLabel[status as keyof typeof LeadStatusLabel] ?? status;
       },
+    },
+    {
+      title: 'Tiềm năng',
+      key: 'rate',
+      align: 'center',
+      width: 140,
+      render: (_: unknown, record: Lead) => <LeadRate lead={record} />,
     },
     {
       title: LeadPageText.COURSE_IDS_LABEL,

@@ -6,6 +6,7 @@ import {
   Form,
   Input,
   InputNumber,
+  Rate,
   Select,
   DatePicker,
   Row,
@@ -49,6 +50,7 @@ export interface LeadFormValues {
   pid_zalo?: string;
   conversation?: string;
   tuition_fee?: number;
+  rate?: number;
   created_at?: Dayjs | null;
 }
 
@@ -103,6 +105,7 @@ export function LeadModal({
           status: LeadStatus.NEW,
           source: LeadSource.FACEBOOK,
           ethnicity: Ethnicity[0],
+          rate: 0,
         }}
       >
         <Row gutter={[16, 16]}>
@@ -251,6 +254,12 @@ export function LeadModal({
                 formatter={formatIntegerInput}
                 parser={parseIntegerInput as never}
               />
+            </Form.Item>
+          </Col>
+
+          <Col span={8}>
+            <Form.Item name="rate" label="Mức độ tiềm năng">
+              <Rate allowClear />
             </Form.Item>
           </Col>
 
