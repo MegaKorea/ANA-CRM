@@ -56,7 +56,7 @@ export function CRMLayout({ children }: CRMLayoutProps) {
         onClose={handleClose}
         open={isMobile && !collapsed}
         styles={{ body: { padding: 0 } }}
-        width={260}
+        size={260}
         rootClassName={themeMode}
       >
         <Sidebar collapsed={collapsed} isMobile={true} onClose={handleClose} />

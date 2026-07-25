@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Col, Form, Input, InputNumber, message, Modal, Row, Select } from 'antd';
+import { App, Col, Form, Input, InputNumber, Modal, Row, Select } from 'antd';
 import { useUpdateCourse } from '@/lib/hooks/use-courses';
 import type { UpdateCourseInput } from '@/lib/validators/course.validator';
 import type { Course } from '@/lib/services/course.service';
@@ -12,6 +12,7 @@ interface UpdateCourseModalProps {
 }
 
 export function UpdateCourseModal({ open, onClose, courseData }: UpdateCourseModalProps) {
+  const { message } = App.useApp();
   const [form] = Form.useForm<UpdateCourseInput>();
   const updateCourseMutation = useUpdateCourse();
 

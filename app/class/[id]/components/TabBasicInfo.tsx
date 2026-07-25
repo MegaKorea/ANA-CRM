@@ -1,4 +1,4 @@
-import { Button, DatePicker, Form, Input, InputNumber, message, Row, Select, Space } from 'antd';
+import { App, Button, DatePicker, Form, Input, InputNumber, Row, Select, Space } from 'antd';
 import { useUpdateClass } from '@/lib/hooks/use-classes';
 import { useCourses } from '@/lib/hooks/use-courses';
 import type { Class } from '@/lib/services/class.service';
@@ -18,6 +18,7 @@ type ClassBasicInfoFormValues = Omit<UpdateClassInput, 'start_date' | 'end_date'
 };
 
 export function TabBasicInfo({ classData }: { classData: Class }) {
+  const { message } = App.useApp();
   const { hasPermission: notStudent } = useAuthPermission(['ADMIN', 'AO', 'TEA']);
   const [form] = Form.useForm<ClassBasicInfoFormValues>();
   const updateClassMutation = useUpdateClass();

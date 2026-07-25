@@ -86,7 +86,7 @@ export function StudentFinanceModal({
       confirmLoading={updateStudentMutation.isPending}
       okText="Lưu thông tin"
       cancelText="Hủy"
-      destroyOnClose
+      destroyOnHidden
       centered
       width={700}
     >

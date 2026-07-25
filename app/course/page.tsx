@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
-import { Button, Card, Col, Row, Typography, Space, Spin, Tag, Popconfirm, message, Table } from 'antd';
+import { App, Button, Card, Col, Row, Typography, Space, Spin, Tag, Popconfirm, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { PlusOutlined, BookOutlined } from '@ant-design/icons';
 import { useCourses, useDeleteCourse } from '@/lib/hooks/use-courses';
@@ -22,6 +22,7 @@ const UpdateCourseModal = dynamic(
 );
 
 export default function CoursePage() {
+  const { message } = App.useApp();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -53,7 +54,7 @@ export default function CoursePage() {
         },
       });
     },
-    [deleteCourse],
+    [deleteCourse, message],
   );
 
   const courseCards = useMemo(() => courses ?? [], [courses]);

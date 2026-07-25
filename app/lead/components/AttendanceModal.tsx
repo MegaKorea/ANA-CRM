@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Radio, message, Space } from 'antd';
+import { App, Modal, Radio, Space } from 'antd';
 import { CheckCircleTwoTone, ClockCircleTwoTone, CloseCircleTwoTone } from '@ant-design/icons';
 import { AttendanceStatus } from '@/constants/enums';
 import type { Lead } from '@/lib/services/lead.service';
@@ -13,6 +13,7 @@ interface AttendanceModalProps {
 }
 
 export function AttendanceModal({ open, lead, onClose }: AttendanceModalProps) {
+  const { message } = App.useApp();
   const [status, setStatus] = useState<AttendanceStatus | null>(null);
   const updateLeadMutation = useUpdateLead();
 
@@ -60,7 +61,7 @@ export function AttendanceModal({ open, lead, onClose }: AttendanceModalProps) {
         </div>
         <div>
           <Radio.Group onChange={(e) => setStatus(e.target.value)} value={status}>
-            <Space direction="vertical" size="middle">
+            <Space orientation="vertical" size="middle">
               <Radio value={AttendanceStatus.ARRIVED}>
                 <Space>
                   <CheckCircleTwoTone twoToneColor="#52c41a" />

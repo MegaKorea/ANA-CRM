@@ -179,7 +179,7 @@ export default function AccountingPage() {
       key: 'customer',
       width: 200,
       render: (_: unknown, record: PaymentTicket) => (
-        <Space direction="vertical" size={2}>
+        <Space orientation="vertical" size={2}>
           <Space size={4}>
             <UserOutlined style={{ color: '#1890ff', fontSize: 12 }} />
             <Typography.Text strong style={{ fontSize: 13 }}>
@@ -389,7 +389,7 @@ export default function AccountingPage() {
             <Statistic
               title="Chờ duyệt"
               value={pendingCount}
-              valueStyle={{ color: '#faad14' }}
+              styles={{ content: { color: '#faad14' } }}
               prefix={
                 <Badge
                   count={pendingCount}
@@ -419,7 +419,7 @@ export default function AccountingPage() {
             <Statistic
               title="Đã duyệt"
               value={formatNumberVi(approvedTotal)}
-              valueStyle={{ color: '#52c41a' }}
+              styles={{ content: { color: '#52c41a' } }}
               prefix={<DollarOutlined />}
               suffix="đ"
             />

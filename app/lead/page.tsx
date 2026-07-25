@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { Table, Button, Space, message, Row, Col, Form, Typography, List, Tabs } from 'antd';
+import { App, Table, Button, Space, Row, Col, Form, Typography, List, Tabs } from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import type { Lead } from '@/lib/services/lead.service';
@@ -53,6 +53,11 @@ const AttendanceModal = dynamic(
   { ssr: false },
 );
 
+const AppointmentModal = dynamic(
+  () => import('@/app/lead/components/AppointmentModal'),
+  { ssr: false }
+);
+
 const ConversationModal = dynamic(
   () => import('@/app/lead/components/ConversationModal'),
   { ssr: false },
@@ -69,6 +74,7 @@ const PaymentHistoryModal = dynamic(
 );
 
 export default function LeadPage() {
+  const { message } = App.useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [form] = Form.useForm<LeadFormValues>();
@@ -85,6 +91,9 @@ export default function LeadPage() {
 
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [attendanceLead, setAttendanceLead] = useState<Lead | null>(null);
+
+  const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
+  const [appointmentLead, setAppointmentLead] = useState<Lead | null>(null);
 
   const [isConversationModalOpen, setIsConversationModalOpen] = useState(false);
   const [conversationLead, setConversationLead] = useState<Lead | null>(null);
@@ -172,7 +181,7 @@ export default function LeadPage() {
   const handleError = useCallback((error: unknown) => {
     const errorMessage = error instanceof Error ? error.message : LeadPageText.ERROR_GENERIC;
     message.error(errorMessage);
-  }, []);
+  }, [message]);
 
   const handleSubmit = useCallback(
     (values: LeadFormValues) => {
@@ -231,7 +240,7 @@ export default function LeadPage() {
         });
       }
     },
-    [editingLead, updateLeadMutation, createLeadMutation, handleCloseModal, handleError],
+    [editingLead, updateLeadMutation, createLeadMutation, handleCloseModal, handleError, message],
   );
 
   const handleDelete = useCallback(
@@ -243,7 +252,7 @@ export default function LeadPage() {
         onError: handleError,
       });
     },
-    [deleteLeadMutation, handleError],
+    [deleteLeadMutation, handleError, message],
   );
 
   const handleRefresh = useCallback(() => {
@@ -252,7 +261,7 @@ export default function LeadPage() {
         message.success(LeadPageText.SUCCESS_REFRESH);
       })
       .catch(handleError);
-  }, [refetch, handleError]);
+  }, [refetch, handleError, message]);
 
   const handleOpenDetailModal = useCallback((lead: Lead) => {
     setDetailLead(lead);
@@ -297,6 +306,16 @@ export default function LeadPage() {
   const handleOpenAttendanceModal = useCallback((lead: Lead) => {
     setAttendanceLead(lead);
     setIsAttendanceModalOpen(true);
+  }, []);
+
+  const handleOpenAppointmentModal = useCallback((lead: Lead) => {
+    setAppointmentLead(lead);
+    setIsAppointmentModalOpen(true);
+  }, []);
+
+  const handleCloseAppointmentModal = useCallback(() => {
+    setIsAppointmentModalOpen(false);
+    setAppointmentLead(null);
   }, []);
 
   const handleCloseAttendanceModal = useCallback(() => {
@@ -344,6 +363,7 @@ export default function LeadPage() {
         handleOpenNoteHistoryModal,
         handleOpenImagesModal,
         handleOpenAttendanceModal,
+        handleOpenAppointmentModal,
         handleOpenConversationModal,
         handleOpenPaymentTicketModal,
         handleOpenPaymentHistoryModal,
@@ -364,6 +384,7 @@ export default function LeadPage() {
       handleOpenNoteHistoryModal,
       handleOpenImagesModal,
       handleOpenAttendanceModal,
+      handleOpenAppointmentModal,
       handleOpenConversationModal,
       handleOpenPaymentTicketModal,
       handleOpenPaymentHistoryModal,
@@ -527,6 +548,13 @@ export default function LeadPage() {
         open={isAttendanceModalOpen}
         lead={attendanceLead}
         onClose={handleCloseAttendanceModal}
+      />
+
+      <AppointmentModal
+        open={isAppointmentModalOpen}
+        leadId={appointmentLead?.id}
+        leadName={appointmentLead?.full_name}
+        onClose={handleCloseAppointmentModal}
       />
 
       {conversationLead?.conversation && (

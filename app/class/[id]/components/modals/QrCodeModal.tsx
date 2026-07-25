@@ -46,7 +46,7 @@ export function QrCodeModal({ open, token: qrToken, expiresAt, onClose }: Props)
                         color={token.colorText}
                     />
                 </div>
-                <Space direction="vertical" align="center" size={6}>
+                <Space orientation="vertical" align="center" size={6}>
                     <Space>
                         <CheckCircleOutlined style={{ color: token.colorSuccess }} />
                         <Typography.Text>Học viên quét mã này để điểm danh</Typography.Text>

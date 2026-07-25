@@ -1,4 +1,4 @@
-import { Col, Form, Input, InputNumber, message, Modal, Row, Select } from 'antd';
+import { App, Col, Form, Input, InputNumber, Modal, Row, Select } from 'antd';
 import { useUpdateClass } from '@/lib/hooks/use-classes';
 import { useCourses } from '@/lib/hooks/use-courses';
 import type { Class } from '@/lib/services/class.service';
@@ -13,6 +13,7 @@ interface UpdateClassModalProps {
 }
 
 export function UpdateClassModal({ open, onClose, classData }: UpdateClassModalProps) {
+  const { message } = App.useApp();
   const [form] = Form.useForm<UpdateClassInput>();
   const updateClassMutation = useUpdateClass();
   const { data: courses, isLoading: isCoursesLoading } = useCourses();
@@ -60,7 +61,7 @@ export function UpdateClassModal({ open, onClose, classData }: UpdateClassModalP
       onOk={() => form.submit()}
       confirmLoading={updateClassMutation.isPending}
       width={800}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form form={form} layout="vertical" onFinish={handleUpdate}>
         <Row gutter={16}>

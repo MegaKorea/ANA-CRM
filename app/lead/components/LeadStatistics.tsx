@@ -189,7 +189,7 @@ export function LeadStatistics() {
                     }}
                 >
                     <Space
-                        direction={isMobile ? 'vertical' : 'horizontal'}
+                        orientation={isMobile ? 'vertical' : 'horizontal'}
                         style={{ width: isMobile ? '100%' : 'auto' }}
                     >
                         <span style={{ fontWeight: 500 }}>Bộ lọc ngày:</span>
@@ -243,7 +243,7 @@ export function LeadStatistics() {
                                 value={fbTotalSpend}
                                 formatter={(v) => formatCurrency(Number(v))}
                                 prefix={<FacebookOutlined />}
-                                valueStyle={{ color: token.colorPrimaryText, fontWeight: 'bold' }}
+                                styles={{ content: { color: token.colorPrimaryText, fontWeight: 'bold' } }}
                             />
                         </Card>
                     </Col>
@@ -261,7 +261,7 @@ export function LeadStatistics() {
                             title="Tương Tác"
                             value={fbTotalMessages}
                             prefix={<UserOutlined />}
-                            valueStyle={{ color: token.colorWarningText, fontWeight: 'bold' }}
+                            styles={{ content: { color: token.colorWarningText, fontWeight: 'bold' } }}
                         />
                     </Card>
                 </Col>
@@ -278,7 +278,7 @@ export function LeadStatistics() {
                             title="Tổng Data"
                             value={totalLeads}
                             prefix={<DatabaseOutlined />}
-                            valueStyle={{ color: token.colorSuccessText, fontWeight: 'bold' }}
+                            styles={{ content: { color: token.colorSuccessText, fontWeight: 'bold' } }}
                         />
                     </Card>
                 </Col>

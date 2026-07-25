@@ -1,4 +1,4 @@
-import { Modal, message, Typography, Space } from 'antd';
+import { App, Modal, Typography, Space } from 'antd';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { ScanOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
@@ -9,6 +9,7 @@ interface Props {
 }
 
 export function StudentScannerModal({ open, onClose }: Props) {
+  const { message } = App.useApp();
     const router = useRouter();
 
     const handleScan = (result: string) => {

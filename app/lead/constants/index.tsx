@@ -12,6 +12,7 @@ import {
   FacebookOutlined,
   DollarOutlined,
   HistoryOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons';
 import type { Lead } from '@/lib/services/lead.service';
 import { AttendanceStatus, DateLocale, LeadSource, LeadStatus } from '@/constants/enums';
@@ -169,6 +170,7 @@ export const AttendanceStatusLabel = {
 } as const;
 
 export type HandleOpenAttendanceModal = (lead: Lead) => void;
+export type HandleOpenAppointmentModal = (lead: Lead) => void;
 
 export type HandleOpenLeadModal = (lead?: Lead) => void;
 
@@ -246,6 +248,7 @@ export const getLeadTableColumns = ({
   handleOpenNoteHistoryModal,
   handleOpenImagesModal,
   handleOpenAttendanceModal,
+  handleOpenAppointmentModal,
   handleOpenConversationModal,
   handleOpenPaymentTicketModal,
   handleOpenPaymentHistoryModal,
@@ -259,6 +262,7 @@ export const getLeadTableColumns = ({
   handleOpenNoteHistoryModal: HandleOpenNoteHistoryModal;
   handleOpenImagesModal: HandleOpenImagesModal;
   handleOpenAttendanceModal: HandleOpenAttendanceModal;
+  handleOpenAppointmentModal: HandleOpenAppointmentModal;
   handleOpenConversationModal: HandleOpenConversationModal;
   handleOpenPaymentTicketModal: HandleOpenPaymentTicketModal;
   handleOpenPaymentHistoryModal: HandleOpenPaymentHistoryModal;
@@ -490,11 +494,31 @@ export const getLeadTableColumns = ({
       dataIndex: 'appointment_date',
       key: 'appointment_date',
       render: (_: unknown, record: Lead) => {
-        if (!record.appointment_date) return null;
+        // No appointment yet — offer to book the first one.
+        if (!record.appointment_date) {
+          return (
+            <Tooltip title="Đặt lịch hẹn">
+              <Button
+                size="small"
+                type="text"
+                icon={<CalendarOutlined />}
+                onClick={() => handleOpenAppointmentModal(record)}
+              />
+            </Tooltip>
+          );
+        }
 
         return (
           <Space>
             <span>{new Date(record.appointment_date).toLocaleString(DateLocale.VIET_NAM)}</span>
+            <Tooltip title="Quản lý lịch hẹn">
+              <Button
+                size="small"
+                type="text"
+                icon={<CalendarOutlined />}
+                onClick={() => handleOpenAppointmentModal(record)}
+              />
+            </Tooltip>
             <Tooltip title="Cập nhật trạng thái điểm danh">
               <Badge dot={record.attendance_status === AttendanceStatus.NOT_ARRIVED} offset={[-2, 2]}>
                 <Button

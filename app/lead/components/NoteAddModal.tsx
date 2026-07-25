@@ -1,6 +1,6 @@
 'use client';
 
-import { Modal, Input, message } from 'antd';
+import { App, Modal, Input } from 'antd';
 import { useState } from 'react';
 import type { Lead } from '@/lib/services/lead.service';
 import type { NoteItem } from '@/lib/supabase/types/tables/leads';
@@ -13,6 +13,7 @@ interface NoteAddModalProps {
 }
 
 export function NoteAddModal({ open, lead, onClose }: NoteAddModalProps) {
+  const { message } = App.useApp();
   const [noteContent, setNoteContent] = useState('');
   const updateLeadMutation = useUpdateLead();
 
@@ -68,7 +69,7 @@ export function NoteAddModal({ open, lead, onClose }: NoteAddModalProps) {
       cancelText="Hủy"
       confirmLoading={updateLeadMutation.isPending}
       centered
-      destroyOnClose
+      destroyOnHidden
       width={600}
       styles={{
         body: { padding: '24px' },

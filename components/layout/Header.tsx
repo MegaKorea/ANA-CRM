@@ -17,6 +17,8 @@ import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { useLogout } from '@/lib/hooks/use-auth';
 import { ThemeMode } from '@/constants/enums/theme.enum';
 import { HeaderMenuText } from '@/constants/header';
+import { AppointmentReminder } from './AppointmentReminder';
+import { PushToggle } from './PushToggle';
 
 const { Header: AntHeader } = Layout;
 
@@ -88,6 +90,8 @@ export const Header = memo(function Header({ collapsed, onToggle }: HeaderProps)
       </Space>
 
       <Space size="middle">
+        <PushToggle />
+        <AppointmentReminder />
         <Button
           type="text"
           icon={themeMode === ThemeMode.DARK ? <SunOutlined /> : <MoonOutlined />}

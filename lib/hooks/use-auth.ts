@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { message } from 'antd';
+import { App } from 'antd';
 import { api } from '@/lib/axios';
 import type { LoginInput } from '@/lib/validators/auth.validator';
 import { AuthApiPath, LoginFormMessage, LogoutMessage } from '@/constants/auth';
@@ -19,6 +19,8 @@ interface LoginResponse {
 export function useLogin() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  // Context-aware message so toasts follow the active theme.
+  const { message } = App.useApp();
 
   return useMutation<LoginResponse, unknown, LoginInput>({
     mutationFn: (input: LoginInput) => api.post<LoginResponse>(AuthApiPath.LOGIN, input),
@@ -51,6 +53,7 @@ export function useLogin() {
 export function useLogout() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { message } = App.useApp();
 
   return useMutation({
     mutationFn: async () => {

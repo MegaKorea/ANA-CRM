@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Button, message, Upload, Image } from 'antd';
+import { App, Button, Upload, Image } from 'antd';
 import {
   InboxOutlined,
   LoadingOutlined,
@@ -31,6 +31,7 @@ export default function ImageUpload({
   showPreview = true,
   showSuccessMessage = true,
 }: ImageUploadProps) {
+  const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(value || null);
 

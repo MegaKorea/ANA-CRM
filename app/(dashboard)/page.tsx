@@ -13,7 +13,7 @@ const { Title } = Typography;
 
 export default function DashboardPage() {
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+    <Space orientation="vertical" size="large" style={{ width: '100%' }}>
       <Title level={4} style={{ margin: 0 }}>
         Dashboard
       </Title>
@@ -25,7 +25,7 @@ export default function DashboardPage() {
               title="Tổng khách hàng"
               value={0}
               prefix={<TeamOutlined style={{ color: '#1890ff' }} />}
-              valueStyle={{ color: '#1890ff' }}
+              styles={{ content: { color: '#1890ff' } }}
             />
           </Card>
         </Col>
@@ -35,7 +35,7 @@ export default function DashboardPage() {
               title="Đơn hàng mới"
               value={0}
               prefix={<ShoppingCartOutlined style={{ color: '#52c41a' }} />}
-              valueStyle={{ color: '#52c41a' }}
+              styles={{ content: { color: '#52c41a' } }}
             />
           </Card>
         </Col>
@@ -45,7 +45,7 @@ export default function DashboardPage() {
               title="Doanh thu tháng"
               value={0}
               prefix={<DollarOutlined style={{ color: '#faad14' }} />}
-              valueStyle={{ color: '#faad14' }}
+              styles={{ content: { color: '#faad14' } }}
               formatter={(value) => formatCurrencyVnd(value as number)}
             />
           </Card>
@@ -57,7 +57,7 @@ export default function DashboardPage() {
               value={0}
               prefix={<RiseOutlined style={{ color: '#722ed1' }} />}
               suffix="%"
-              valueStyle={{ color: '#722ed1' }}
+              styles={{ content: { color: '#722ed1' } }}
             />
           </Card>
         </Col>

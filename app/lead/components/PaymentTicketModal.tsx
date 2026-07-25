@@ -117,7 +117,7 @@ export function PaymentTicketModal({ open, lead, onClose }: PaymentTicketModalPr
       cancelText="Hủy"
       confirmLoading={createTicket.isPending}
       width={560}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form<TicketFormValues>
         form={form}

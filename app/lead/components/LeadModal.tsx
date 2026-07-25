@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  App,
   Drawer,
   Form,
   Input,
@@ -68,6 +69,7 @@ export function LeadModal({
   onClose,
   onSubmit,
 }: LeadModalProps) {
+  const { message } = App.useApp();
   const { data: courses, isLoading: isCoursesLoading } = useCourses();
 
   return (
@@ -75,8 +77,8 @@ export function LeadModal({
       open={open}
       title={editingLead ? LeadPageText.MODAL_EDIT_TITLE : 'Tạo mới'}
       onClose={onClose}
-      width={1000}
-      destroyOnClose
+      size={1000}
+      destroyOnHidden
       footer={
         <Space style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Button onClick={onClose}>Hủy</Button>
@@ -90,6 +92,13 @@ export function LeadModal({
         form={form}
         layout="vertical"
         onFinish={onSubmit}
+        onFinishFailed={({ errorFields }) => {
+          // Without this the drawer silently does nothing when a field is invalid
+          // — including fields scrolled out of view.
+          const first = errorFields[0]?.errors[0];
+          message.error(first ?? 'Vui lòng kiểm tra lại thông tin đã nhập');
+        }}
+        scrollToFirstError
         initialValues={{
           status: LeadStatus.NEW,
           source: LeadSource.FACEBOOK,
