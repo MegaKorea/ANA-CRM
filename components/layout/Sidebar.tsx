@@ -1,16 +1,17 @@
 'use client';
 
-import { Layout, Menu, type MenuProps, Typography } from 'antd';
+import { Layout, Menu, Skeleton, type MenuProps, Typography } from 'antd';
 import { usePathname } from 'next/navigation';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import styles from './Sidebar.module.scss';
 import logo from '../../app/assets/logo/logo-ana.png';
 import Image from 'next/image';
 import { useTheme } from '@/lib/hooks/use-theme';
 import { HiViewGridAdd } from 'react-icons/hi';
-import { menuItems, type AppMenuItem, type MenuItem } from '@/constants/menu';
+import { menuItems } from '@/constants/menu';
 import { useNavigation } from '@/lib/contexts/navigation.context';
-import { useCurrentUser } from '@/lib/hooks/use-current-user';
+import { useAuthLoading, useUserRoleCode } from '@/lib/hooks/use-current-user';
+import { filterMenuByRole } from '@/lib/utils/menu-filter';
 
 const { Sider } = Layout;
 
@@ -23,58 +24,25 @@ interface SidebarProps {
 export function Sidebar({ collapsed, isMobile, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { themeMode } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const { navigateWithDelay } = useNavigation();
-  const { user } = useCurrentUser();
+  const roleCode = useUserRoleCode();
+  const isLoading = useAuthLoading();
 
-  const filteredMenuItems = useMemo(() => {
-    const userRole = user?.roleCode;
+  const filteredMenuItems = useMemo(
+    () => filterMenuByRole(menuItems, roleCode),
+    [roleCode]
+  );
 
-    function filterMenu(items: AppMenuItem[]): MenuItem[] {
-      return items
-        .filter((item) => {
-          if (item.roles && item.roles.length > 0) {
-            if (!userRole || !item.roles.includes(userRole)) {
-              return false;
-            }
-          }
-          return true;
-        })
-        .map((item) => {
-          if (item.children) {
-            return {
-              ...item,
-              children: filterMenu(item.children),
-            } as MenuItem;
-          }
-          const { roles, ...rest } = item;
-          return rest as MenuItem;
-        });
-    }
-
-    return filterMenu(menuItems);
-  }, [user?.roleCode]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setMounted(true);
-    }, 0);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const selectedKeys = useMemo(() => {
-    if (!mounted) return [];
-    return [pathname];
-  }, [pathname, mounted]);
+  const selectedKeys = useMemo(() => [pathname], [pathname]);
 
   const defaultOpenKeys = useMemo(() => {
-    if (!mounted || collapsed) return [];
+    if (collapsed) return [];
     const paths = pathname.split('/').filter(Boolean);
     if (paths.length > 1) {
       return [`/${paths[0]}`];
     }
     return [];
-  }, [pathname, collapsed, mounted]);
+  }, [pathname, collapsed]);
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
     navigateWithDelay(key);
@@ -95,15 +63,21 @@ export function Sidebar({ collapsed, isMobile, onClose }: SidebarProps) {
         </Typography.Title>
       </div>
 
-      <Menu
-        theme={themeMode}
-        mode="inline"
-        selectedKeys={selectedKeys}
-        defaultOpenKeys={defaultOpenKeys}
-        items={filteredMenuItems}
-        onClick={handleMenuClick}
-        className={styles.menu}
-      />
+      {isLoading ? (
+        <div className={styles.menuSkeleton}>
+          <Skeleton active paragraph={{ rows: 8 }} title={false} />
+        </div>
+      ) : (
+        <Menu
+          theme={themeMode}
+          mode="inline"
+          selectedKeys={selectedKeys}
+          defaultOpenKeys={defaultOpenKeys}
+          items={filteredMenuItems}
+          onClick={handleMenuClick}
+          className={styles.menu}
+        />
+      )}
     </>
   );
 

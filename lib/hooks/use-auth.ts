@@ -3,16 +3,29 @@ import { useRouter } from 'next/navigation';
 import { message } from 'antd';
 import { api } from '@/lib/axios';
 import type { LoginInput } from '@/lib/validators/auth.validator';
-import { AuthApiPath, LoginFormMessage, LogoutMessage } from '@/constants/auth';
+import { AuthApiPath, AuthQueryKey, LoginFormMessage, LogoutMessage } from '@/constants/auth';
 import { DEFAULT_AUTHENTICATED_ROUTE, AUTH_ROUTES } from '@/constants/routes';
+import { UserStatusDb } from '@/constants/enums';
+import type { CurrentUser } from '@/lib/services/auth.service';
 import { useUserStore } from '@/lib/stores/user.store';
 import { getSupabaseClient } from '@/lib/supabase/client';
+
 interface LoginResponse {
   user: {
     id: string;
     email: string;
     fullName: string;
     roleCode?: string | null;
+  };
+}
+
+function toCurrentUser(loginUser: LoginResponse['user']): CurrentUser {
+  return {
+    id: loginUser.id,
+    email: loginUser.email,
+    fullName: loginUser.fullName,
+    status: UserStatusDb.ACTIVE,
+    roleCode: loginUser.roleCode ?? null,
   };
 }
 
@@ -23,11 +36,11 @@ export function useLogin() {
   return useMutation<LoginResponse, unknown, LoginInput>({
     mutationFn: (input: LoginInput) => api.post<LoginResponse>(AuthApiPath.LOGIN, input),
     onSuccess: (data) => {
-      // Clear React Query cache before login to ensure fresh data
-      queryClient.clear();
-
-      // Clear Zustand user store
-      useUserStore.getState().clearUser();
+      if (data?.user) {
+        const currentUser = toCurrentUser(data.user);
+        useUserStore.getState().setUser(currentUser);
+        queryClient.setQueryData([AuthQueryKey.ME], currentUser);
+      }
 
       message.success(LoginFormMessage.LOGIN_SUCCESS);
 

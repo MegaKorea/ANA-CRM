@@ -13,3 +13,7 @@ export enum RoleErrorCode {
   INTERNAL_SERVER_ERROR = 'ROLE_INTERNAL_SERVER_ERROR',
 }
 
+export enum RoleCode {
+  ADMIN = 'ADMIN',
+}
+

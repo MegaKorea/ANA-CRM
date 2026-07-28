@@ -2,19 +2,36 @@ import { useState, useEffect } from 'react';
 
 const MOBILE_BREAKPOINT = 768;
 
-export function useIsMobile() {
-    const [isMobile, setIsMobile] = useState<boolean>(false);
+export const LAYOUT_DESKTOP_BREAKPOINT = 992;
 
-    useEffect(() => {
-        setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+export function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(true);
 
-        const handleResize = () => {
-            setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
-        };
+  useEffect(() => {
+    const update = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    };
 
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
-    return isMobile;
+  return isMobile;
+}
+
+export function useIsLayoutMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(true);
+
+  useEffect(() => {
+    const update = () => {
+      setIsMobile(window.innerWidth < LAYOUT_DESKTOP_BREAKPOINT);
+    };
+
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  return isMobile;
 }

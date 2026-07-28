@@ -14,22 +14,39 @@ async function fetchCurrentUser(): Promise<CurrentUser> {
   return response.user;
 }
 
+const currentUserQueryOptions = {
+  queryKey: [AuthQueryKey.ME] as const,
+  queryFn: fetchCurrentUser,
+  retry: false,
+  refetchOnWindowFocus: false,
+};
+
+function computeAuthLoading(
+  isLoading: boolean,
+  isFetching: boolean,
+  data: CurrentUser | undefined,
+  storeUser: CurrentUser | null
+): boolean {
+  const user = data ?? storeUser;
+  return (isLoading || isFetching) && user === null;
+}
+
 export function useCurrentUser() {
-  const user = useUserStore((state) => state.user);
+  const storeUser = useUserStore((state) => state.user);
   const setUser = useUserStore((state) => state.setUser);
   const setLoading = useUserStore((state) => state.setLoading);
   const clearUser = useUserStore((state) => state.clearUser);
 
-  const { data, isLoading, error } = useQuery<CurrentUser, unknown>({
-    queryKey: [AuthQueryKey.ME],
-    queryFn: fetchCurrentUser,
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
+  const { data, isLoading, isFetching, error } = useQuery<CurrentUser, unknown>(
+    currentUserQueryOptions
+  );
+
+  const user = data ?? storeUser;
+  const isLoadingUser = computeAuthLoading(isLoading, isFetching, data, storeUser);
 
   useEffect(() => {
-    setLoading(isLoading);
-  }, [isLoading, setLoading]);
+    setLoading(isLoadingUser);
+  }, [isLoadingUser, setLoading]);
 
   useEffect(() => {
     if (data) {
@@ -41,7 +58,24 @@ export function useCurrentUser() {
 
   return {
     user,
-    isLoading,
+    isLoading: isLoadingUser,
     error,
   };
+}
+
+export function useUserRoleCode(): string | null {
+  const storeRoleCode = useUserStore((state) => state.user?.roleCode ?? null);
+  const { data: queryRoleCode } = useQuery({
+    ...currentUserQueryOptions,
+    select: (user) => user.roleCode ?? null,
+  });
+
+  return queryRoleCode ?? storeRoleCode;
+}
+
+export function useAuthLoading(): boolean {
+  const storeUser = useUserStore((state) => state.user);
+  const { isLoading, isFetching, data } = useQuery(currentUserQueryOptions);
+
+  return computeAuthLoading(isLoading, isFetching, data, storeUser);
 }

@@ -196,9 +196,10 @@ export const getUserTableColumns = ({
     width: UserTableColumnWidth.ACTION,
     render: (_: unknown, record: User) => (
       <Space>
-        <Button onClick={() => handleOpenModal(record)}>
-          <HiOutlinePencilAlt size={UserActionIconSize.DEFAULT} />
-        </Button>
+        <Button
+          icon={<HiOutlinePencilAlt size={UserActionIconSize.DEFAULT} />}
+          onClick={() => handleOpenModal(record)}
+        />
         <Popconfirm
           title={UserPageText.DELETE_TITLE}
           description={UserPageText.DELETE_DESCRIPTION}
@@ -206,9 +207,10 @@ export const getUserTableColumns = ({
           okText={UserPageText.DELETE_OK_TEXT}
           cancelText={UserPageText.DELETE_CANCEL_TEXT}
         >
-          <Button danger>
-            <HiOutlineTrash size={UserActionIconSize.DEFAULT} />
-          </Button>
+          <Button
+            danger
+            icon={<HiOutlineTrash size={UserActionIconSize.DEFAULT} />}
+          />
         </Popconfirm>
       </Space>
     ),
