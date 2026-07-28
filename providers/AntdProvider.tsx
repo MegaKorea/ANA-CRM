@@ -39,7 +39,8 @@ function AntdProviderContent({ children }: AntdProviderProps): JSX.Element {
       components: {
         Layout: {
           headerBg: colors.headerBg,
-          headerColor: colors.headerText,
+          headerColor:
+            themeMode === ThemeMode.DARK ? colors.headerText : colors.textPrimary,
           siderBg: colors.headerBg,
           bodyBg: colors.bodyBg,
         },

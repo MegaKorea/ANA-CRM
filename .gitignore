@@ -34,8 +34,11 @@ yarn-error.log*
 trace.log
 *.log
 
-# env files (can opt-in for committing if needed)
+# env files — never commit (local secrets)
 .env*
+.env.local
+file.env.local
+*env.local
 
 # vercel
 .vercel
