@@ -6,6 +6,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { PlusOutlined, BookOutlined } from '@ant-design/icons';
 import { useCourses, useDeleteCourse } from '@/lib/hooks/use-courses';
 import type { Course } from '@/lib/services/course.service';
+import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import dynamic from 'next/dynamic';
 import { formatNumberVi } from '@/lib/utils/numberFormat';
 import styles from './page.module.scss';
@@ -26,6 +27,15 @@ export default function CoursePage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+
+  // STU: read-only — giữ giao diện xem, ẩn CUD
+  const { hasPermission: canManage } = useAuthPermission([
+    'ADMIN',
+    'TELESALES',
+    'AO',
+    'PC',
+    'TEA',
+  ]);
 
   const { data: courses, isLoading } = useCourses();
   const { mutate: deleteCourse } = useDeleteCourse();
@@ -59,8 +69,8 @@ export default function CoursePage() {
 
   const courseCards = useMemo(() => courses ?? [], [courses]);
 
-  const columns: ColumnsType<Course> = useMemo(
-    () => [
+  const columns: ColumnsType<Course> = useMemo(() => {
+    const baseColumns: ColumnsType<Course> = [
       {
         title: 'Mã',
         dataIndex: 'code',
@@ -115,6 +125,12 @@ export default function CoursePage() {
           </Tag>
         ),
       },
+    ];
+
+    if (!canManage) return baseColumns;
+
+    return [
+      ...baseColumns,
       {
         title: 'Hành động',
         key: 'action',
@@ -138,9 +154,8 @@ export default function CoursePage() {
           </Space>
         ),
       },
-    ],
-    [handleDelete, handleOpenUpdateModal],
-  );
+    ];
+  }, [canManage, handleDelete, handleOpenUpdateModal]);
 
   if (isLoading) {
     return (
@@ -158,16 +173,18 @@ export default function CoursePage() {
             Danh sách Khóa học
           </Title>
         </Col>
-        <Col>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleOpenCreateModal}
-            size="large"
-          >
-            Tạo mới Khóa học
-          </Button>
-        </Col>
+        {canManage ? (
+          <Col>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleOpenCreateModal}
+              size="large"
+            >
+              Tạo mới Khóa học
+            </Button>
+          </Col>
+        ) : null}
       </Row>
 
       <Table
@@ -182,12 +199,16 @@ export default function CoursePage() {
         scroll={{ x: 'max-content' }}
       />
 
-      <CreateCourseModal open={isCreateModalOpen} onClose={handleCloseCreateModal} />
-      <UpdateCourseModal
-        open={isUpdateModalOpen}
-        onClose={handleCloseUpdateModal}
-        courseData={selectedCourse}
-      />
+      {canManage ? (
+        <>
+          <CreateCourseModal open={isCreateModalOpen} onClose={handleCloseCreateModal} />
+          <UpdateCourseModal
+            open={isUpdateModalOpen}
+            onClose={handleCloseUpdateModal}
+            courseData={selectedCourse}
+          />
+        </>
+      ) : null}
     </div>
   );
 }
