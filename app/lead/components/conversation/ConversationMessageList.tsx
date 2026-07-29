@@ -60,7 +60,8 @@ function buildChatRows(messages: SmaxChatMessage[]): ChatRow[] {
   let lastDateKey = '';
   let lastFromPage: boolean | null = null;
 
-  for (const message of messages) {
+  for (let index = 0; index < messages.length; index += 1) {
+    const message = messages[index];
     const key = dateKey(message.createdAt);
     if (message.createdAt && key !== lastDateKey) {
       const label = formatDateLabel(message.createdAt);
@@ -73,7 +74,7 @@ function buildChatRows(messages: SmaxChatMessage[]): ChatRow[] {
 
     rows.push({
       type: 'message',
-      key: message.id,
+      key: `${message.id}-${index}`,
       message,
       compact: lastFromPage !== null && lastFromPage === message.isFromPage,
     });

@@ -324,6 +324,12 @@
   min-width: 24px;
 }
 
+.messageText {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .pageBubble {
   background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
   color: var(--color-text-primary);

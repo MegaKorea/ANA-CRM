@@ -42,12 +42,16 @@ function mapAttachment(
   if (!item) return null;
 
   const payload = asRecord(item.payload);
+  const imageData = asRecord(payload?.image_data);
+  const videoData = asRecord(payload?.video_data);
   const url =
     asString(item.url) ??
     asString(item.preview_url) ??
     asString(payload?.url) ??
-    asString(asRecord(payload?.image_data)?.url) ??
-    asString(asRecord(payload?.image_data)?.preview_url);
+    asString(imageData?.url) ??
+    asString(imageData?.preview_url) ??
+    asString(videoData?.url) ??
+    asString(videoData?.preview_url);
 
   if (!url) return null;
 
@@ -58,7 +62,11 @@ function mapAttachment(
     name: asString(item.name) ?? asString(item.filename),
     mime_type: asString(item.mime_type),
     size: typeof item.size === 'number' ? item.size : undefined,
-    preview_url: asString(item.preview_url) ?? url,
+    preview_url:
+      asString(item.preview_url) ??
+      asString(imageData?.preview_url) ??
+      asString(videoData?.preview_url) ??
+      url,
   };
 }
 

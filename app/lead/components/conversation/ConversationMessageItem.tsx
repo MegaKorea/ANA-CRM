@@ -43,19 +43,31 @@ function formatTime(timestamp: string): string {
 }
 
 function isImageAttachment(att: SmaxMessageAttachment): boolean {
-  return (
-    Boolean(att.mime_type?.startsWith('image/')) ||
-    Boolean(att.type?.startsWith('image')) ||
-    /\.(jpg|jpeg|png|gif|webp)$/i.test(att.url ?? '')
+  const type = (att.type ?? '').toLowerCase();
+  const mime = (att.mime_type ?? '').toLowerCase();
+  if (mime.startsWith('image/')) return true;
+  if (
+    type.startsWith('image') ||
+    type === 'photo' ||
+    type === 'sticker' ||
+    type === 'gif' ||
+    type === 'animated_image'
+  ) {
+    return true;
+  }
+
+  return /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(
+    att.url ?? att.preview_url ?? ''
   );
 }
 
 function isVideoAttachment(att: SmaxMessageAttachment): boolean {
-  return (
-    Boolean(att.mime_type?.startsWith('video/')) ||
-    Boolean(att.type?.startsWith('video')) ||
-    /\.(mp4|webm|mov|m4v|ogg)$/i.test(att.url ?? '')
-  );
+  const type = (att.type ?? '').toLowerCase();
+  const mime = (att.mime_type ?? '').toLowerCase();
+  if (mime.startsWith('video/')) return true;
+  if (type.startsWith('video')) return true;
+
+  return /\.(mp4|webm|mov|m4v|ogg)$/i.test(att.url ?? att.preview_url ?? '');
 }
 
 function attachmentSrc(att: SmaxMessageAttachment): string | undefined {
@@ -240,7 +252,9 @@ export function ConversationMessageItem({
               isFromPage ? styles.pageBubble : styles.userBubble
             }`}
           >
-            {message.text ? <div>{message.text}</div> : null}
+            {message.text ? (
+              <div className={styles.messageText}>{message.text}</div>
+            ) : null}
             <MessageAttachments attachments={message.attachments} />
           </div>
 
