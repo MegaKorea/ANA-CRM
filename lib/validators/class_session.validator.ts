@@ -76,7 +76,8 @@ export function validateGenerateSessionsInput(input: unknown): GenerateSessionsI
 // ─── Attendance Validators ───────────────────────────────────────────────
 
 export interface UpsertAttendanceInput {
-    student_id: string;
+    /** `leads.id` — client gửi lên dạng số hoặc chuỗi số, chuẩn hoá về number. */
+    student_id: number;
     status: typeof VALID_ATTENDANCE_STATUSES[number];
     notes?: string | null;
 }
@@ -88,7 +89,11 @@ export function validateUpsertAttendanceInput(input: unknown): UpsertAttendanceI
 
     const data = input as Record<string, unknown>;
 
-    if (typeof data.student_id !== 'string' || !data.student_id.trim()) {
+    // Khoá của object trong JS luôn là chuỗi, nên client thường gửi "6" thay vì 6.
+    const studentId =
+        typeof data.student_id === 'number' ? data.student_id : Number(data.student_id);
+
+    if (!Number.isInteger(studentId) || studentId <= 0) {
         throw new AppError('STUDENT_ID_REQUIRED', HttpStatusCode.BAD_REQUEST);
     }
 
@@ -97,7 +102,7 @@ export function validateUpsertAttendanceInput(input: unknown): UpsertAttendanceI
     }
 
     return {
-        student_id: data.student_id.trim(),
+        student_id: studentId,
         status: data.status as typeof VALID_ATTENDANCE_STATUSES[number],
         notes: typeof data.notes === 'string' ? data.notes.trim() || null : null,
     };

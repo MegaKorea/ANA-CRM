@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchJson } from '@/lib/utils/fetchJson';
-import type { ClassSession, SessionAttendance } from '@/lib/services/class_session.service';
+import { QR_ROTATE_INTERVAL_MS } from '@/constants/attendance';
+import type {
+    ClassSession,
+    QrAttendanceResult,
+    SessionAttendance,
+} from '@/lib/services/class_session.service';
 import type { AttendanceStatus } from '@/lib/supabase/types/tables/session_attendances';
 
 // ─── Query Keys ──────────────────────────────────────────────────────────
@@ -97,6 +102,46 @@ export function useGenerateQrToken(classId: string) {
     });
 }
 
+export const QR_TOKEN_KEY = 'qr-token';
+
+/**
+ * Mã QR đang hiển thị cho một buổi học.
+ *
+ * Dùng useQuery + refetchInterval thay vì tự quản interval: React Query lo việc
+ * xoay mã, huỷ khi unmount và không để hai vòng lặp chồng nhau. Mã phải luôn
+ * tươi nên tắt cache (staleTime/gcTime = 0).
+ */
+export function useQrCodeToken(sessionId: string | null, enabled: boolean) {
+    return useQuery({
+        queryKey: [QR_TOKEN_KEY, sessionId],
+        queryFn: () => generateQrTokenReq(sessionId!),
+        enabled: enabled && !!sessionId,
+        refetchInterval: QR_ROTATE_INTERVAL_MS,
+        refetchIntervalInBackground: true,
+        refetchOnWindowFocus: false,
+        staleTime: 0,
+        gcTime: 0,
+        retry: 1,
+    });
+}
+
+// Revoke QR code token (khi giáo viên đóng cửa sổ mã)
+async function revokeQrTokenReq(sessionId: string): Promise<void> {
+    await fetchJson<{ success: boolean }>(`/api/classes/sessions/${sessionId}`, {
+        method: 'DELETE',
+    });
+}
+
+export function useRevokeQrToken(classId: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: revokeQrTokenReq,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [CLASS_SESSIONS_KEY, classId] });
+        },
+    });
+}
+
 // ─── Attendances ─────────────────────────────────────────────────────────
 
 async function fetchSessionAttendances(sessionId: string): Promise<SessionAttendance[]> {
@@ -117,7 +162,7 @@ async function bulkUpsertAttendancesReq({
     records,
 }: {
     sessionId: string;
-    records: { student_id: string; status: AttendanceStatus; notes?: string | null }[];
+    records: { student_id: number; status: AttendanceStatus; notes?: string | null }[];
 }): Promise<SessionAttendance[]> {
     return fetchJson<SessionAttendance[]>(`/api/classes/sessions/${sessionId}/attendances`, {
         method: 'POST',
@@ -138,8 +183,8 @@ export function useBulkUpsertAttendances(classId: string) {
 }
 
 // QR code verification (student-side)
-async function verifyQrCodeReq(token: string): Promise<SessionAttendance> {
-    return fetchJson<SessionAttendance>('/api/attendance/qr', {
+async function verifyQrCodeReq(token: string): Promise<QrAttendanceResult> {
+    return fetchJson<QrAttendanceResult>('/api/attendance/qr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token }),
@@ -147,7 +192,14 @@ async function verifyQrCodeReq(token: string): Promise<SessionAttendance> {
 }
 
 export function useVerifyQrCode() {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: verifyQrCodeReq,
+        onSuccess: (result) => {
+            // Bảng điểm danh của giáo viên phải thấy ngay học viên vừa quét.
+            queryClient.invalidateQueries({
+                queryKey: [SESSION_ATTENDANCES_KEY, result.session.id],
+            });
+        },
     });
 }

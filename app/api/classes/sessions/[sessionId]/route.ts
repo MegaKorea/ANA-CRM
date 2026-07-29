@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionById, updateSession, generateQrCodeToken } from '@/lib/services/class_session.service';
+import {
+    getSessionById,
+    updateSession,
+    generateQrCodeToken,
+    revokeQrCodeToken,
+} from '@/lib/services/class_session.service';
 import { validateUpdateSessionInput } from '@/lib/validators/class_session.validator';
 import { HttpStatusCode } from '@/constants/enums';
 
@@ -34,6 +39,7 @@ export async function PATCH(
 }
 
 // POST /api/classes/sessions/[sessionId] — Generate QR code token
+// Mã chỉ sống vài chục giây; màn hình giáo viên gọi lại liên tục để xoay mã.
 export async function POST(
     _request: NextRequest,
     { params }: { params: Promise<{ sessionId: string }> }
@@ -42,6 +48,21 @@ export async function POST(
         const { sessionId } = await params;
         const result = await generateQrCodeToken(sessionId);
         return NextResponse.json(result, { status: HttpStatusCode.OK });
+    } catch (error: any) {
+        return NextResponse.json({ error: error.message }, { status: HttpStatusCode.INTERNAL_SERVER_ERROR });
+    }
+}
+
+// DELETE /api/classes/sessions/[sessionId] — Revoke the QR token
+// Gọi khi giáo viên đóng cửa sổ QR, để không còn mã sống sau buổi điểm danh.
+export async function DELETE(
+    _request: NextRequest,
+    { params }: { params: Promise<{ sessionId: string }> }
+): Promise<NextResponse> {
+    try {
+        const { sessionId } = await params;
+        await revokeQrCodeToken(sessionId);
+        return NextResponse.json({ success: true }, { status: HttpStatusCode.OK });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: HttpStatusCode.INTERNAL_SERVER_ERROR });
     }

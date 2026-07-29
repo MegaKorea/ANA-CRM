@@ -18,13 +18,14 @@ const ATTENDANCE_STATUS_CONFIG: Record<AttendanceStatus, { label: string; color:
 };
 
 export interface StudentItem {
-    id: string;
+    /** `leads.id` lấy từ class_students.student_id. */
+    id: number;
     name: string;
     phone: string;
 }
 
 export interface AttendanceRecord {
-    student_id: string;
+    student_id: number;
     status: AttendanceStatus;
     notes: string | null;
 }
@@ -74,8 +75,10 @@ export function AttendanceModal({
     }, [studentList, attendanceData, localAttendances]);
 
     const handleOk = () => {
+        // Object.entries luôn trả khoá dạng chuỗi — đổi lại về number vì
+        // session_attendances.student_id là bigint tham chiếu leads(id).
         const records = Object.entries(mergedAttendances).map(([student_id, val]) => ({
-            student_id,
+            student_id: Number(student_id),
             status: val.status,
             notes: val.notes || null,
         }));

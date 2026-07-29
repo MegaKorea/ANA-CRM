@@ -17,7 +17,6 @@ import {
   useClassSessions,
   useGenerateSessions,
   useUpdateSession,
-  useGenerateQrToken,
   useSessionAttendances,
   useBulkUpsertAttendances,
 } from '@/lib/hooks/use-class-sessions';
@@ -73,7 +72,7 @@ export function TabSchedule({ classData }: { classData: Class }) {
   const { data: classStudents } = useClassStudents(classId);
   const generateSessions = useGenerateSessions(classId);
   const updateSession = useUpdateSession(classId);
-  const generateQr = useGenerateQrToken(classId);
+  // Việc sinh/xoay/thu hồi mã QR do QrCodeModal tự lo.
   const bulkUpsert = useBulkUpsertAttendances(classId);
 
   // ─── Edit modal state ──────────────────────────────────────────────────────
@@ -89,9 +88,8 @@ export function TabSchedule({ classData }: { classData: Class }) {
   );
 
   // ─── QR modal state ───────────────────────────────────────────────────────
-  const [qrModal, setQrModal] = useState<{ open: boolean; token: string; expiresAt: string }>({
-    open: false, token: '', expiresAt: '',
-  });
+  // Modal tự xin và xoay mã theo chu kỳ, nên ở đây chỉ cần biết đang mở buổi nào.
+  const [qrSession, setQrSession] = useState<ClassSession | null>(null);
 
   // ─── Student Scanner state
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -177,14 +175,9 @@ export function TabSchedule({ classData }: { classData: Class }) {
     }
   }, [attendanceSession, bulkUpsert]);
 
-  const handleGenerateQr = useCallback(async (session: ClassSession) => {
-    try {
-      const result = await generateQr.mutateAsync(session.id);
-      setQrModal({ open: true, token: result.token, expiresAt: result.expiresAt });
-    } catch (e: any) {
-      message.error(e.message || 'Tạo mã QR thất bại.');
-    }
-  }, [generateQr]);
+  const handleGenerateQr = useCallback((session: ClassSession) => {
+    setQrSession(session);
+  }, []);
 
   // ─── Guard states ──────────────────────────────────────────────────────────
   if (!hasRequiredDates) {
@@ -517,10 +510,10 @@ export function TabSchedule({ classData }: { classData: Class }) {
       />
 
       <QrCodeModal
-        open={qrModal.open}
-        token={qrModal.token}
-        expiresAt={qrModal.expiresAt}
-        onClose={() => setQrModal({ open: false, token: '', expiresAt: '' })}
+        open={qrSession !== null}
+        session={qrSession}
+        classId={classId}
+        onClose={() => setQrSession(null)}
       />
 
       <StudentScannerModal
