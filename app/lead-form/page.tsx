@@ -1,9 +1,20 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, App, Button, Card, Form, Input, Result, Typography } from 'antd';
+import { Alert, App, Button, Card, Form, Input, Result, Select, Typography } from 'antd';
+import { LeadStatus } from '@/constants/enums';
+import { LEAD_STATUS_OPTIONS } from '@/app/lead/constants/labels';
 
 const { Title, Paragraph } = Typography;
+
+/** Năm sinh: 100 năm gần nhất, cùng quy ước chuỗi năm với màn hình quản lý lead. */
+const YEAR_OPTIONS = Array.from({ length: 100 }, (_, index) => {
+  const year = new Date().getFullYear() - index;
+  return { value: year.toString(), label: String(year) };
+});
+
+/** Các trường quyết định lead có bị trùng hay không. */
+const DUPLICATE_CHECK_FIELDS = ['full_name', 'phone_number'];
 
 /**
  * Staff lead-entry form. Operated by the team (not customers) — typically inside
@@ -25,6 +36,11 @@ const { Title, Paragraph } = Typography;
 interface LeadFormValues {
   full_name: string;
   phone_number: string;
+  /** Chuỗi năm sinh, ví dụ "2000". */
+  date_of_birth?: string;
+  status?: LeadStatus;
+  /** Nội dung thô; server bọc thành một phần tử trong mảng ghi chú. */
+  note?: string;
 }
 
 /** Shape of the customer object Smax returns (kept loose — we store it verbatim). */
@@ -45,6 +61,7 @@ interface DuplicateLead {
   id: number;
   full_name: string;
   phone_number: string | null;
+  status?: LeadStatus | null;
 }
 
 const SM_FORM_CUSTOMER = '__SM_FORM_CUSTOMER';
@@ -112,6 +129,11 @@ export default function LeadFormPage() {
           body: JSON.stringify({
             full_name: values.full_name,
             phone_number: values.phone_number,
+            date_of_birth: values.date_of_birth,
+            status: values.status,
+            // Gửi text thô — server gắn thời điểm và bọc thành NoteItem, đồng
+            // thời nối vào lịch sử ghi chú sẵn có khi cập nhật lead trùng.
+            note: values.note?.trim() || undefined,
             smax_log: smaxLogRef.current ?? undefined,
             lead_id: leadId,
           }),
@@ -125,7 +147,13 @@ export default function LeadFormPage() {
           result?.code === 'DUPLICATE_LEAD' &&
           result?.existing
         ) {
-          setDuplicate(result.existing as DuplicateLead);
+          const existing = result.existing as DuplicateLead;
+          setDuplicate(existing);
+          // Hiển thị trạng thái hiện có của lead cũ, nếu không nhân viên bấm
+          // "Cập nhật" sẽ vô tình đẩy trạng thái về MỚI theo mặc định của form.
+          if (existing.status) {
+            form.setFieldsValue({ status: existing.status });
+          }
           message.warning('Thông tin đã tồn tại trong hệ thống.');
           return;
         }
@@ -161,9 +189,17 @@ export default function LeadFormPage() {
     [duplicate, submitLead]
   );
 
-  // Any edit invalidates the previous duplicate check → revert to "Lưu thông tin".
-  const handleValuesChange = useCallback(() => {
-    setDuplicate((prev) => (prev ? null : prev));
+  // Sửa họ tên/SĐT làm kết quả kiểm tra trùng hết hiệu lực → về "Lưu thông tin".
+  // Các trường khác (năm sinh, trạng thái, ghi chú) không ảnh hưởng tới việc
+  // trùng lead, nên giữ nguyên nút "Cập nhật" để nhân viên bổ sung thông tin
+  // rồi cập nhật thẳng vào lead đã có.
+  const handleValuesChange = useCallback((changedValues: Partial<LeadFormValues>) => {
+    const touchedDuplicateField = Object.keys(changedValues).some((field) =>
+      DUPLICATE_CHECK_FIELDS.includes(field)
+    );
+    if (touchedDuplicateField) {
+      setDuplicate((prev) => (prev ? null : prev));
+    }
   }, []);
 
   const handleReset = useCallback(() => {
@@ -234,6 +270,7 @@ export default function LeadFormPage() {
               onFinish={handleSubmit}
               onValuesChange={handleValuesChange}
               requiredMark={false}
+              initialValues={{ status: LeadStatus.NEW }}
             >
               <Form.Item
                 name="full_name"
@@ -255,6 +292,31 @@ export default function LeadFormPage() {
                 ]}
               >
                 <Input placeholder="Nhập số điện thoại khách hàng" size="large" allowClear />
+              </Form.Item>
+
+              <Form.Item name="date_of_birth" label="Năm sinh">
+                <Select
+                  placeholder="Chọn năm sinh"
+                  size="large"
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  options={YEAR_OPTIONS}
+                />
+              </Form.Item>
+
+              <Form.Item name="status" label="Trạng thái">
+                <Select size="large" options={LEAD_STATUS_OPTIONS} />
+              </Form.Item>
+
+              <Form.Item name="note" label="Ghi chú">
+                <Input.TextArea
+                  placeholder="Nhập ghi chú về khách hàng (tùy chọn)"
+                  rows={3}
+                  maxLength={1000}
+                  showCount
+                  allowClear
+                />
               </Form.Item>
 
               <Form.Item style={{ marginBottom: 0, marginTop: 8 }}>
