@@ -1,22 +1,19 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { Table, Button, Space, message, Row, Col, Form, Typography, List, Tabs } from 'antd';
+import { App, Table, Button, Space, Row, Col, Form, Typography, List, Tabs } from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import type { Lead } from '@/lib/services/lead.service';
 import type { CreateLeadInput, UpdateLeadInput } from '@/lib/validators/lead.validator';
 import { useLeads, useCreateLead, useUpdateLead, useDeleteLead } from '@/lib/hooks/use-leads';
 import {
-  LeadDateRangePlaceholder,
   LeadPageGap,
-  LeadPageMargin,
-  LeadPagePadding,
   LeadPageText,
   getLeadTableColumns,
 } from '@/app/lead/constants';
 import type { LeadFormValues } from '@/app/lead/components/LeadModal';
-import { LeadStatus, DateFormat, LeadSource, DateLocale } from '@/constants/enums';
+import { LeadStatus, DateFormat, LeadSource } from '@/constants/enums';
 import { type LocationValue } from '@/components/common/LocationSelect';
 import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
 import { useCourses } from '@/lib/hooks/use-courses';
@@ -54,6 +51,11 @@ const AttendanceModal = dynamic(
   { ssr: false },
 );
 
+const AppointmentModal = dynamic(
+  () => import('@/app/lead/components/AppointmentModal'),
+  { ssr: false }
+);
+
 const ConversationModal = dynamic(
   () => import('@/app/lead/components/ConversationModal'),
   { ssr: false },
@@ -70,6 +72,7 @@ const PaymentHistoryModal = dynamic(
 );
 
 export default function LeadPage() {
+  const { message } = App.useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [form] = Form.useForm<LeadFormValues>();
@@ -86,6 +89,9 @@ export default function LeadPage() {
 
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [attendanceLead, setAttendanceLead] = useState<Lead | null>(null);
+
+  const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
+  const [appointmentLead, setAppointmentLead] = useState<Lead | null>(null);
 
   const [isConversationModalOpen, setIsConversationModalOpen] = useState(false);
   const [conversationLead, setConversationLead] = useState<Lead | null>(null);
@@ -105,6 +111,31 @@ export default function LeadPage() {
   const [pageSize, setPageSize] = useState(10);
   const isMobile = useIsMobile();
 
+  const handleSearch = useCallback((val: string) => {
+    setSearchKeyword(val);
+    setCurrentPage(1);
+  }, []);
+
+  const handleStatusChange = useCallback((val: LeadStatus | undefined) => {
+    setStatusFilter(val);
+    setCurrentPage(1);
+  }, []);
+
+  const handleSourceChange = useCallback((val: LeadSource | undefined) => {
+    setSourceFilter(val);
+    setCurrentPage(1);
+  }, []);
+
+  const handleCourseChange = useCallback((val: string | undefined) => {
+    setCourseFilter(val);
+    setCurrentPage(1);
+  }, []);
+
+  const handleCreatedAtRangeChange = useCallback((val: [Dayjs | null, Dayjs | null] | null) => {
+    setCreatedAtRange(val);
+    setCurrentPage(1);
+  }, []);
+
   const { data, isLoading, isFetching, refetch } = useLeads({
     search: searchKeyword || undefined,
     status: statusFilter,
@@ -118,7 +149,7 @@ export default function LeadPage() {
 
   const { data: courses } = useCourses();
 
-  const leads = data?.data || [];
+  const leads = useMemo(() => data?.data || [], [data?.data]);
   const total = data?.total || 0;
 
   // Batch-fetch payment counts for visible leads
@@ -153,6 +184,7 @@ export default function LeadPage() {
           pid_zalo: lead.pid_zalo || undefined,
           conversation: lead.conversation || undefined,
           tuition_fee: lead.tuition_fee ?? undefined,
+          rate: lead.rate ?? 0,
           created_at: lead.created_at ? dayjs(lead.created_at) : undefined,
         });
       } else {
@@ -173,7 +205,7 @@ export default function LeadPage() {
   const handleError = useCallback((error: unknown) => {
     const errorMessage = error instanceof Error ? error.message : LeadPageText.ERROR_GENERIC;
     message.error(errorMessage);
-  }, []);
+  }, [message]);
 
   const handleSubmit = useCallback(
     (values: LeadFormValues) => {
@@ -203,6 +235,7 @@ export default function LeadPage() {
         pid_zalo: values.pid_zalo,
         conversation: values.conversation,
         tuition_fee: values.tuition_fee,
+        rate: values.rate,
         created_at: values.created_at ? values.created_at.toISOString() : undefined,
       };
 
@@ -232,7 +265,7 @@ export default function LeadPage() {
         });
       }
     },
-    [editingLead, updateLeadMutation, createLeadMutation, handleCloseModal, handleError],
+    [editingLead, updateLeadMutation, createLeadMutation, handleCloseModal, handleError, message],
   );
 
   const handleDelete = useCallback(
@@ -244,7 +277,7 @@ export default function LeadPage() {
         onError: handleError,
       });
     },
-    [deleteLeadMutation, handleError],
+    [deleteLeadMutation, handleError, message],
   );
 
   const handleRefresh = useCallback(() => {
@@ -253,7 +286,7 @@ export default function LeadPage() {
         message.success(LeadPageText.SUCCESS_REFRESH);
       })
       .catch(handleError);
-  }, [refetch, handleError]);
+  }, [refetch, handleError, message]);
 
   const handleOpenDetailModal = useCallback((lead: Lead) => {
     setDetailLead(lead);
@@ -298,6 +331,16 @@ export default function LeadPage() {
   const handleOpenAttendanceModal = useCallback((lead: Lead) => {
     setAttendanceLead(lead);
     setIsAttendanceModalOpen(true);
+  }, []);
+
+  const handleOpenAppointmentModal = useCallback((lead: Lead) => {
+    setAppointmentLead(lead);
+    setIsAppointmentModalOpen(true);
+  }, []);
+
+  const handleCloseAppointmentModal = useCallback(() => {
+    setIsAppointmentModalOpen(false);
+    setAppointmentLead(null);
   }, []);
 
   const handleCloseAttendanceModal = useCallback(() => {
@@ -345,6 +388,7 @@ export default function LeadPage() {
         handleOpenNoteHistoryModal,
         handleOpenImagesModal,
         handleOpenAttendanceModal,
+        handleOpenAppointmentModal,
         handleOpenConversationModal,
         handleOpenPaymentTicketModal,
         handleOpenPaymentHistoryModal,
@@ -365,6 +409,7 @@ export default function LeadPage() {
       handleOpenNoteHistoryModal,
       handleOpenImagesModal,
       handleOpenAttendanceModal,
+      handleOpenAppointmentModal,
       handleOpenConversationModal,
       handleOpenPaymentTicketModal,
       handleOpenPaymentHistoryModal,
@@ -411,15 +456,15 @@ export default function LeadPage() {
             children: (
               <>
                 <LeadFilters
-                  onSearch={setSearchKeyword}
+                  onSearch={handleSearch}
                   statusFilter={statusFilter}
-                  onStatusChange={setStatusFilter}
+                  onStatusChange={handleStatusChange}
                   sourceFilter={sourceFilter}
-                  onSourceChange={setSourceFilter}
+                  onSourceChange={handleSourceChange}
                   courseFilter={courseFilter}
-                  onCourseChange={setCourseFilter}
+                  onCourseChange={handleCourseChange}
                   createdAtRange={createdAtRange}
-                  onCreatedAtRangeChange={setCreatedAtRange}
+                  onCreatedAtRangeChange={handleCreatedAtRangeChange}
                   courses={courses || []}
                 />
 
@@ -528,6 +573,13 @@ export default function LeadPage() {
         open={isAttendanceModalOpen}
         lead={attendanceLead}
         onClose={handleCloseAttendanceModal}
+      />
+
+      <AppointmentModal
+        open={isAppointmentModalOpen}
+        leadId={appointmentLead?.id}
+        leadName={appointmentLead?.full_name}
+        onClose={handleCloseAppointmentModal}
       />
 
       {conversationLead && hasSmaxConversation(conversationLead.smax_log) && (

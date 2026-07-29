@@ -72,6 +72,12 @@ export async function fetchAllLeads(params?: LeadQueryParams): Promise<Paginated
 
     const { data, count, error } = await query;
     if (error) {
+      if (error.code === 'PGRST103') {
+        return {
+          data: [],
+          total: count ?? 0,
+        };
+      }
       handleSupabaseError(error, {
         defaultErrorCode: LeadErrorCode.FETCH_FAILED,
       });
@@ -185,6 +191,7 @@ export async function createLead(input: CreateLeadInput): Promise<Lead> {
       pid_zalo: input.pid_zalo ?? null,
       conversation: input.conversation ?? null,
       tuition_fee: input.tuition_fee ?? 0,
+      rate: input.rate ?? 0,
       smax_log: input.smax_log ? (input.smax_log as never) : null,
     };
 
@@ -240,6 +247,7 @@ export async function updateLeadById(id: number, input: UpdateLeadInput): Promis
       pid_zalo: 'nullable',
       conversation: 'nullable',
       tuition_fee: 'nullable',
+      rate: 'direct',
       smax_log: 'object',
       created_at: 'direct',
     });

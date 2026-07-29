@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { Table, Button, Space, message, Row, Col, Typography, Form } from 'antd';
+import { App, Table, Button, Space, Row, Col, Typography, Form } from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useRoles, useCreateRole, useUpdateRole, useDeleteRole } from '@/lib/hooks/use-roles';
 import type { Role } from '@/lib/services/role.service';
@@ -21,6 +21,7 @@ const RoleModal = dynamic(() => import('./components/RoleModal').then((m) => m.R
 });
 
 export default function RolePage() {
+  const { message } = App.useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [form] = Form.useForm<RoleFormValues>();
@@ -87,7 +88,7 @@ export default function RolePage() {
         });
       }
     },
-    [editingRole, updateRoleMutation, createRoleMutation, handleCloseModal],
+    [editingRole, updateRoleMutation, createRoleMutation, handleCloseModal, message],
   );
 
   const handleDelete = useCallback(
@@ -102,7 +103,7 @@ export default function RolePage() {
         },
       });
     },
-    [deleteRoleMutation],
+    [deleteRoleMutation, message],
   );
 
   const columns = useMemo(
@@ -126,7 +127,7 @@ export default function RolePage() {
         const errorMessage = error instanceof Error ? error.message : RolePageText.ERROR_GENERIC;
         message.error(errorMessage);
       });
-  }, [refetch]);
+  }, [refetch, message]);
 
   const isSubmitting = createRoleMutation.isPending || updateRoleMutation.isPending;
 

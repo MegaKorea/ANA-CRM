@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Card, Select, Button, Table, Space, Typography, Popconfirm, message, Form, Input } from 'antd';
+import { App, Card, Select, Button, Table, Space, Typography, Popconfirm, Form, Input } from 'antd';
 import { DeleteOutlined, UserAddOutlined, SaveOutlined } from '@ant-design/icons';
 import type { Class } from '@/lib/services/class.service';
 import { useUsers } from '@/lib/hooks/use-users';
@@ -9,6 +9,7 @@ import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 const { Text, Title } = Typography;
 
 export function TabTeachers({ classData }: { classData: Class }) {
+  const { message } = App.useApp();
   const { hasPermission: isManager } = useAuthPermission(['ADMIN', 'AO']);
   const { data: teachers, isLoading: isTeachersLoading } = useUsers({ roleCode: 'TEA' });
   const teacherOptions = useMemo(() => {

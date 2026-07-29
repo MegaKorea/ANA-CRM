@@ -32,6 +32,7 @@ export interface CreateLeadInput {
   pid_zalo?: string;
   conversation?: string;
   tuition_fee?: number;
+  rate?: number;
   smax_log?: Record<string, unknown>;
   created_at?: string;
 }
@@ -61,6 +62,7 @@ export interface UpdateLeadInput {
   pid_zalo?: string;
   conversation?: string;
   tuition_fee?: number;
+  rate?: number;
   smax_log?: Record<string, unknown>;
   created_at?: string;
 }
@@ -70,6 +72,11 @@ export interface LeadFormInput {
   full_name: string;
   phone_number: string;
   smax_log?: Record<string, unknown>;
+  /** Năm sinh dạng chuỗi 4 chữ số, cùng quy ước với cột `date_of_birth`. */
+  date_of_birth?: string;
+  status?: LeadStatus;
+  /** Ghi chú đã được đóng gói thành mảng NoteItem để lưu thẳng vào cột `note`. */
+  note?: NoteItem[];
 }
 
 export function validateLeadId(id: unknown): number {
@@ -220,6 +227,20 @@ function validateOptionalNumberField(value: unknown): number | null | undefined 
   return numericValue;
 }
 
+/** Customer potential rating: an integer 0–5. Undefined when not provided. */
+function validateRateField(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+
+  const numericValue = Number(value);
+  if (!Number.isInteger(numericValue) || numericValue < 0 || numericValue > 5) {
+    throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+  }
+
+  return numericValue;
+}
+
 function validateOptionalStringArrayField(value: unknown): string[] | undefined {
   if (value === undefined || value === null) {
     return undefined;
@@ -271,6 +292,50 @@ function validateOptionalNoteArrayField(value: unknown): NoteItem[] | undefined 
   }
 
   return result.length > 0 ? result : undefined;
+}
+
+/**
+ * Năm sinh cho form nhập lead.
+ *
+ * Cột `date_of_birth` đã được chuyển sang kiểu text chỉ chứa năm
+ * (migration 20260304100500), nên ở đây chỉ nhận chuỗi 4 chữ số hợp lý thay vì
+ * một ngày đầy đủ — đúng với Select năm ở màn hình quản lý lead.
+ */
+function validateBirthYearField(value: unknown): string | undefined {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+
+  const year = typeof value === 'number' ? String(value) : String(value).trim();
+  const currentYear = new Date().getFullYear();
+
+  if (!/^\d{4}$/.test(year) || Number(year) < 1900 || Number(year) > currentYear) {
+    throw new AppError(LeadErrorCode.DATE_OF_BIRTH_INVALID, HttpStatusCode.BAD_REQUEST);
+  }
+
+  return year;
+}
+
+/**
+ * Ghi chú nhập từ form: người dùng gõ một đoạn text, nhưng cột `note` lưu mảng
+ * `NoteItem[]` (lịch sử ghi chú). Bọc lại thành đúng một phần tử với thời điểm
+ * do server sinh, để client không tự đặt được `created_at`.
+ * Vẫn chấp nhận sẵn dạng mảng để dùng chung với các luồng khác.
+ */
+function validateFormNoteField(value: unknown): NoteItem[] | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (typeof value === 'string') {
+    const content = value.trim();
+    if (!content) {
+      return undefined;
+    }
+    return [{ content, created_at: new Date().toISOString() }];
+  }
+
+  return validateOptionalNoteArrayField(value);
 }
 
 function validateStatusField(value: unknown): LeadStatus | undefined {
@@ -398,6 +463,7 @@ export function validateCreateLeadInput(input: unknown): CreateLeadInput {
     pid_zalo: validateOptionalStringField(data.pid_zalo),
     conversation: validateOptionalStringField(data.conversation),
     tuition_fee: validateOptionalNumberField(data.tuition_fee) as number | undefined,
+    rate: validateRateField(data.rate),
     smax_log: validateOptionalJsonField(data.smax_log),
     created_at: validateOptionalDateField(data.created_at) as string | undefined,
   };
@@ -429,6 +495,9 @@ export function validateLeadFormInput(input: unknown): LeadFormInput {
     full_name: fullName,
     phone_number: phoneNumber,
     smax_log: validateOptionalJsonField(data.smax_log),
+    date_of_birth: validateBirthYearField(data.date_of_birth),
+    status: validateStatusField(data.status),
+    note: validateFormNoteField(data.note),
   };
 }
 
@@ -577,6 +646,11 @@ export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
   const tuitionFee = validateOptionalNumberField(data.tuition_fee);
   if (tuitionFee !== undefined) {
     result.tuition_fee = tuitionFee as number | undefined;
+  }
+
+  const rate = validateRateField(data.rate);
+  if (rate !== undefined) {
+    result.rate = rate;
   }
 
   return result;

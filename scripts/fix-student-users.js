@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 
@@ -8,7 +9,7 @@ const envVars = fs.readFileSync('.env', 'utf8').split('\n').reduce((acc, line) =
 }, {});
 
 const supabaseUrl = envVars['NEXT_PUBLIC_SUPABASE_URL'];
-const supabaseKey = envVars['NEXT_PUBLIC_SERVICE_ROLE_KEY']; // Must use service role
+const supabaseKey = envVars['SUPABASE_SERVICE_ROLE_KEY']; // Must use service role
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 

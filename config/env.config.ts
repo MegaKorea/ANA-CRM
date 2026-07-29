@@ -4,9 +4,18 @@ import { ConfigErrorCode, HttpStatusCode } from '@/constants/enums';
 export enum EnvKey {
   SUPABASE_URL = 'NEXT_PUBLIC_SUPABASE_URL',
   SUPABASE_ANON_KEY = 'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-  SERVICE_ROLE_KEY = 'NEXT_PUBLIC_SERVICE_ROLE_KEY',
+  // Server-only: must NOT carry the NEXT_PUBLIC_ prefix, which would inline the
+  // service-role key into the browser bundle and expose full database access.
+  SERVICE_ROLE_KEY = 'SUPABASE_SERVICE_ROLE_KEY',
   API_BASE_URL = 'NEXT_PUBLIC_API_BASE_URL',
   NODE_ENV = 'NODE_ENV',
+  // Web Push (VAPID)
+  VAPID_PUBLIC_KEY = 'VAPID_PUBLIC_KEY',
+  VAPID_PRIVATE_KEY = 'VAPID_PRIVATE_KEY',
+  VAPID_SUBJECT = 'VAPID_SUBJECT',
+  CRON_SECRET = 'CRON_SECRET',
+  ENABLE_PUSH_SCHEDULER = 'ENABLE_PUSH_SCHEDULER',
+  // Smax (server-only: token không được lộ ra bundle trình duyệt).
   SMAX_API_TOKEN = 'SMAX_API_TOKEN',
   SMAX_API_BASE_URL = 'SMAX_API_BASE_URL',
   SMAX_BIZ_ALIAS = 'SMAX_BIZ_ALIAS',

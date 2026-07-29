@@ -1,21 +1,19 @@
-import { Button, Popconfirm, Space, Tooltip, Badge } from 'antd';
+import { Button, Popconfirm, Space, Tooltip, Badge, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { HiOutlinePencilAlt, HiOutlineTrash, HiOutlineInformationCircle } from 'react-icons/hi';
 import {
   PlusOutlined,
   InfoCircleOutlined,
   PictureOutlined,
-  CheckCircleTwoTone,
-  ClockCircleTwoTone,
-  CloseCircleTwoTone,
   MessageOutlined,
   FacebookOutlined,
   DollarOutlined,
   HistoryOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons';
 import { hasSmaxConversation } from '@/lib/smax/parse-smax-log';
 import type { Lead } from '@/lib/services/lead.service';
-import { AttendanceStatus, DateLocale, LeadSource, LeadStatus } from '@/constants/enums';
+import { AttendanceStatus, DateLocale, LeadSource } from '@/constants/enums';
 import type { Course } from '@/lib/services/course.service';
 import type { LocationValue } from '@/components/common/LocationSelect';
 import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
@@ -23,7 +21,12 @@ import type { NoteItem } from '@/lib/supabase/types/tables/leads';
 import { FiGlobe, FiMail, FiPhone, FiFacebook, FiMessageSquare, FiMoreHorizontal } from 'react-icons/fi';
 import { SiZalo } from 'react-icons/si';
 import { formatNumberVi } from '@/lib/utils/numberFormat';
+import { openInNewTab, isSafeHttpUrl } from '@/lib/utils/openInNewTab';
 import { AssignTelesales } from '@/app/lead/components/AssignTelesales';
+import { LeadRate } from '@/app/lead/components/LeadRate';
+import { SmaxThreadButton } from '@/app/lead/components/SmaxThreadButton';
+import { AttendanceStatusIcon } from '@/app/lead/components/AttendanceStatusIcon';
+import { LeadStatusLabel, LEAD_STATUS_OPTIONS } from '@/app/lead/constants/labels';
 
 const ZALO_CHAT_URL_BASE =
   'https://smax.ai/bizs/ana-beauty-academy/chats/zlw555884932030283040';
@@ -129,16 +132,7 @@ export const LeadPageText = {
   COURSE_IDS_LABEL: 'Khóa học quan tâm',
 } as const;
 
-export const LeadStatusLabel = {
-  [LeadStatus.NEW]: 'MỚI',
-  [LeadStatus.CONVERTED]: 'ĐÃ ĐĂNG KÍ',
-  [LeadStatus.NOT_CONTACTED]: 'CHƯA TIẾP CẬN',
-  [LeadStatus.REJECT]: 'TỪ CHỐI',
-  [LeadStatus.INTERESTED]: 'QUAN TÂM',
-  [LeadStatus.NOT_INTERESTED]: 'KHÔNG QUAN TÂM',
-  [LeadStatus.NURTURING]: 'ĐANG CHĂM SÓC',
-  [LeadStatus.OTHER]: 'KHÁC',
-} as const;
+export { LeadStatusLabel, LEAD_STATUS_OPTIONS };
 
 export const LeadSourceLabel = {
   [LeadSource.WEBSITE]: 'Website',
@@ -170,6 +164,7 @@ export const AttendanceStatusLabel = {
 } as const;
 
 export type HandleOpenAttendanceModal = (lead: Lead) => void;
+export type HandleOpenAppointmentModal = (lead: Lead) => void;
 
 export type HandleOpenLeadModal = (lead?: Lead) => void;
 
@@ -239,6 +234,164 @@ export function getZaloChatUrl(pidZalo: string | null | undefined): string | und
   return `${ZALO_CHAT_URL_BASE}?tid=zlw${encodeURIComponent(trimmedPid)}`;
 }
 
+/**
+ * Lấy link hội thoại Smax (thread_url) từ object smax_log thô của lead.
+ * Trả về undefined nếu không có smax_log hoặc thiếu thread_url hợp lệ.
+ */
+export function getSmaxThreadUrl(smaxLog: unknown): string | undefined {
+  if (!smaxLog || typeof smaxLog !== 'object') {
+    return undefined;
+  }
+  const url = (smaxLog as Record<string, unknown>).thread_url;
+  return typeof url === 'string' && isSafeHttpUrl(url) ? url : undefined;
+}
+
+const FACEBOOK_PROFILE_URL_BASE = 'https://www.facebook.com/';
+
+/** Host được tính là trang Facebook của khách. */
+const FACEBOOK_PROFILE_HOSTS = ['facebook.com', 'fb.com', 'm.me', 'messenger.com'];
+
+/** Key có thể chứa id Facebook của khách, dùng khi smax_log không có link đầy đủ. */
+const SMAX_FACEBOOK_ID_KEYS = ['gid', 'fb_id', 'facebook_id', 'psid', 'uid'];
+
+/** Độ sâu tối đa khi quét smax_log — đủ cho object khách lồng vài cấp. */
+const SMAX_SCAN_MAX_DEPTH = 3;
+
+/**
+ * Kiểm tra một giá trị có phải link trang Facebook của khách hay không.
+ * Loại trừ `graph.facebook.com` (API) và `*.fbcdn.net` (ảnh đại diện).
+ */
+function isFacebookProfileUrl(value: unknown): value is string {
+  if (typeof value !== 'string' || !isSafeHttpUrl(value)) {
+    return false;
+  }
+
+  let hostname: string;
+  try {
+    hostname = new URL(value.trim()).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+
+  if (hostname.startsWith('graph.')) {
+    return false;
+  }
+
+  return FACEBOOK_PROFILE_HOSTS.some((host) => hostname === host || hostname.endsWith(`.${host}`));
+}
+
+/**
+ * Lấy link Facebook của khách từ object smax_log thô.
+ *
+ * Smax không cố định tên trường chứa link, nên ta duyệt toàn bộ object (tối đa
+ * `SMAX_SCAN_MAX_DEPTH` cấp) và nhận giá trị đầu tiên trỏ về facebook.com/m.me.
+ * `thread_url` bị loại vì đó là hội thoại trong Smax, không phải trang khách.
+ * Nếu không có link sẵn, dựng link từ id Facebook (`gid`, `psid`, ...) nếu có.
+ */
+export function getSmaxFacebookUrl(smaxLog: unknown): string | undefined {
+  if (!smaxLog || typeof smaxLog !== 'object') {
+    return undefined;
+  }
+
+  const threadUrl = getSmaxThreadUrl(smaxLog);
+  const queue: { node: object; depth: number }[] = [{ node: smaxLog, depth: 0 }];
+  let facebookId: string | undefined;
+
+  while (queue.length > 0) {
+    const { node, depth } = queue.shift() as { node: object; depth: number };
+
+    for (const [key, value] of Object.entries(node)) {
+      if (isFacebookProfileUrl(value) && value.trim() !== threadUrl) {
+        return value.trim();
+      }
+
+      if (!facebookId && SMAX_FACEBOOK_ID_KEYS.includes(key.toLowerCase())) {
+        const rawId = typeof value === 'number' ? String(value) : String(value ?? '').trim();
+        // Id Facebook là chuỗi số dài; tránh nhận nhầm id nội bộ ngắn của Smax.
+        if (/^\d{5,}$/.test(rawId)) {
+          facebookId = rawId;
+        }
+      }
+
+      if (value && typeof value === 'object' && depth < SMAX_SCAN_MAX_DEPTH) {
+        queue.push({ node: value as object, depth: depth + 1 });
+      }
+    }
+  }
+
+  return facebookId ? `${FACEBOOK_PROFILE_URL_BASE}${facebookId}` : undefined;
+}
+
+/**
+ * Link Facebook hiển thị cho một lead: ưu tiên link nhập tay, nếu chưa có
+ * (hoặc không hợp lệ) thì lấy link khách từ smax_log.
+ */
+export function getLeadFacebookUrl(lead: Lead): string | undefined {
+  if (isSafeHttpUrl(lead.facebook_url)) {
+    return lead.facebook_url.trim();
+  }
+  return getSmaxFacebookUrl(lead.smax_log);
+}
+
+export interface SmaxTag {
+  id?: string;
+  name?: string;
+  time?: string;
+  alias?: string;
+}
+
+/**
+ * Trích xuất danh sách thẻ (tags) từ object smax_log thô của lead.
+ * Lọc bỏ các phần tử rỗng, null hoặc các tag không có thông tin.
+ */
+export function getSmaxTags(smaxLog: unknown): SmaxTag[] {
+  if (!smaxLog || typeof smaxLog !== 'object') {
+    return [];
+  }
+  const tags = (smaxLog as Record<string, unknown>).tags;
+  if (!Array.isArray(tags)) {
+    return [];
+  }
+
+  return tags.filter((item): item is SmaxTag => {
+    if (!item || typeof item !== 'object') return false;
+    const tag = item as SmaxTag;
+    const hasName = typeof tag.name === 'string' && tag.name.trim().length > 0;
+    const hasAlias = typeof tag.alias === 'string' && tag.alias.trim().length > 0;
+    const hasId = typeof tag.id === 'string' && tag.id.trim().length > 0;
+    return hasName || hasAlias || hasId;
+  });
+}
+
+const SMAX_TAG_PRESET_COLORS = [
+  'blue',
+  'green',
+  'gold',
+  'purple',
+  'magenta',
+  'cyan',
+  'orange',
+  'volcano',
+  'geekblue',
+  'lime',
+] as const;
+
+/**
+ * Trả về màu nhất quán (deterministic color) cho mỗi tên tag khác nhau.
+ */
+export function getSmaxTagColor(tagName: string): string {
+  if (!tagName) return 'default';
+  let hash = 0;
+  for (let i = 0; i < tagName.length; i++) {
+    hash = tagName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % SMAX_TAG_PRESET_COLORS.length;
+  return SMAX_TAG_PRESET_COLORS[index];
+}
+
+
+
+
 export const getLeadTableColumns = ({
   handleOpenModal,
   handleDelete,
@@ -247,6 +400,7 @@ export const getLeadTableColumns = ({
   handleOpenNoteHistoryModal,
   handleOpenImagesModal,
   handleOpenAttendanceModal,
+  handleOpenAppointmentModal,
   handleOpenConversationModal,
   handleOpenPaymentTicketModal,
   handleOpenPaymentHistoryModal,
@@ -260,6 +414,7 @@ export const getLeadTableColumns = ({
   handleOpenNoteHistoryModal: HandleOpenNoteHistoryModal;
   handleOpenImagesModal: HandleOpenImagesModal;
   handleOpenAttendanceModal: HandleOpenAttendanceModal;
+  handleOpenAppointmentModal: HandleOpenAppointmentModal;
   handleOpenConversationModal: HandleOpenConversationModal;
   handleOpenPaymentTicketModal: HandleOpenPaymentTicketModal;
   handleOpenPaymentHistoryModal: HandleOpenPaymentHistoryModal;
@@ -276,6 +431,12 @@ export const getLeadTableColumns = ({
       title: LeadPageText.COLUMN_FULL_NAME,
       dataIndex: 'full_name',
       key: 'full_name',
+      render: (_: unknown, record: Lead) => (
+        <Space size={4}>
+          <span>{record.full_name}</span>
+          <SmaxThreadButton lead={record} />
+        </Space>
+      ),
     },
     // {
     //   title: LeadPageText.COLUMN_EMAIL,
@@ -325,17 +486,22 @@ export const getLeadTableColumns = ({
       key: 'facebook_url',
       align: 'center',
       width: 72,
-      render: (_: unknown, record: Lead) => (
-        <Tooltip title={record.facebook_url ? 'Mở Facebook' : 'Không có link Facebook'}>
-          <Button
-            size="small"
-            type="text"
-            icon={<FacebookOutlined style={{ fontSize: 16, color: record.facebook_url ? '#1877f2' : undefined }} />}
-            disabled={!record.facebook_url}
-            onClick={() => record.facebook_url && window.open(record.facebook_url, '_blank')}
-          />
-        </Tooltip>
-      ),
+      render: (_: unknown, record: Lead) => {
+        // Chưa nhập tay thì dùng link Facebook khách lấy từ smax_log.
+        const facebookUrl = getLeadFacebookUrl(record);
+
+        return (
+          <Tooltip title={facebookUrl ? 'Mở Facebook' : 'Không có link Facebook'}>
+            <Button
+              size="small"
+              type="text"
+              icon={<FacebookOutlined style={{ fontSize: 16, color: facebookUrl ? '#1877f2' : undefined }} />}
+              disabled={!facebookUrl}
+              onClick={() => openInNewTab(facebookUrl)}
+            />
+          </Tooltip>
+        );
+      },
     },
     {
       title: 'Zalo',
@@ -352,7 +518,7 @@ export const getLeadTableColumns = ({
               type="text"
               icon={<SiZalo size={16} color={zaloChatUrl ? '#0068ff' : undefined} />}
               disabled={!zaloChatUrl}
-              onClick={() => zaloChatUrl && window.open(zaloChatUrl, '_blank')}
+              onClick={() => openInNewTab(zaloChatUrl)}
             />
           </Tooltip>
         );
@@ -408,6 +574,38 @@ export const getLeadTableColumns = ({
           return null;
         }
         return LeadStatusLabel[status as keyof typeof LeadStatusLabel] ?? status;
+      },
+    },
+    {
+      title: 'Tiềm năng',
+      key: 'rate',
+      align: 'center',
+      width: 140,
+      render: (_: unknown, record: Lead) => <LeadRate lead={record} />,
+    },
+    {
+      title: 'Thẻ Smax',
+      key: 'smax_tags',
+      width: 180,
+      render: (_: unknown, record: Lead) => {
+        const tags = getSmaxTags(record.smax_log);
+        if (!tags || tags.length === 0) {
+          return null;
+        }
+        return (
+          <Space size={[0, 4]} wrap>
+            {tags.map((tag, idx) => {
+              const tagName = tag.name || tag.alias;
+              if (!tagName) return null;
+              const color = getSmaxTagColor(tagName);
+              return (
+                <Tag key={tag.id || idx} color={color}>
+                  {tagName}
+                </Tag>
+              );
+            })}
+          </Space>
+        );
       },
     },
     {
@@ -498,25 +696,37 @@ export const getLeadTableColumns = ({
       dataIndex: 'appointment_date',
       key: 'appointment_date',
       render: (_: unknown, record: Lead) => {
-        if (!record.appointment_date) return null;
+        // No appointment yet — offer to book the first one.
+        if (!record.appointment_date) {
+          return (
+            <Tooltip title="Đặt lịch hẹn">
+              <Button
+                size="small"
+                type="text"
+                icon={<CalendarOutlined />}
+                onClick={() => handleOpenAppointmentModal(record)}
+              />
+            </Tooltip>
+          );
+        }
 
         return (
           <Space>
             <span>{new Date(record.appointment_date).toLocaleString(DateLocale.VIET_NAM)}</span>
+            <Tooltip title="Quản lý lịch hẹn">
+              <Button
+                size="small"
+                type="text"
+                icon={<CalendarOutlined />}
+                onClick={() => handleOpenAppointmentModal(record)}
+              />
+            </Tooltip>
             <Tooltip title="Cập nhật trạng thái điểm danh">
               <Badge dot={record.attendance_status === AttendanceStatus.NOT_ARRIVED} offset={[-2, 2]}>
                 <Button
                   size="small"
                   type="text"
-                  icon={
-                    record.attendance_status === AttendanceStatus.ARRIVED ? (
-                      <CheckCircleTwoTone twoToneColor="#52c41a" style={{ fontSize: 16 }} />
-                    ) : record.attendance_status === AttendanceStatus.NO_SHOW ? (
-                      <CloseCircleTwoTone twoToneColor="#ff4d4f" style={{ fontSize: 16 }} />
-                    ) : (
-                      <ClockCircleTwoTone twoToneColor="#faad14" style={{ fontSize: 16 }} />
-                    )
-                  }
+                  icon={<AttendanceStatusIcon status={record.attendance_status} />}
                   onClick={() => handleOpenAttendanceModal(record)}
                 />
               </Badge>

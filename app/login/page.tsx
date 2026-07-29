@@ -53,7 +53,7 @@ export default function LoginPage() {
 
             <Row justify="center">
               <Col xs={24} sm={20} md={18}>
-                <Card className={styles.loginCard} bordered={false}>
+                <Card className={styles.loginCard} variant="borderless">
                   <Form
                     form={form}
                     name="login"

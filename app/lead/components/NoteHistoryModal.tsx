@@ -28,7 +28,7 @@ export function NoteHistoryModal({ open, lead, onClose }: NoteHistoryModalProps)
       footer={null}
       width={600}
       centered
-      destroyOnClose
+      destroyOnHidden
     >
       {sortedNotes.length === 0 ? (
         <Empty description="Chưa có ghi chú nào" style={{ padding: '32px 0' }} />

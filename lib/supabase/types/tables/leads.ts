@@ -36,6 +36,8 @@ export interface LeadsTable {
     pid_zalo: string | null;
     conversation: string | null;
     tuition_fee: number | null;
+    /** Customer potential rating, 0–5 stars (0 = not yet rated). */
+    rate: number;
     /** Raw customer object returned by Smax when the lead was captured via an embedded Smax form. */
     smax_log: Record<string, unknown> | null;
     created_at: string | null;
@@ -68,6 +70,7 @@ export interface LeadsTable {
     pid_zalo?: string | null;
     conversation?: string | null;
     tuition_fee?: number | null;
+    rate?: number;
     smax_log?: Record<string, unknown> | null;
     created_at?: string | null;
     updated_at?: string | null;
@@ -99,6 +102,7 @@ export interface LeadsTable {
     pid_zalo?: string | null;
     conversation?: string | null;
     tuition_fee?: number | null;
+    rate?: number;
     smax_log?: Record<string, unknown> | null;
     created_at?: string | null;
     updated_at?: string | null;

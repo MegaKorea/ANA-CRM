@@ -167,7 +167,7 @@ export function PaymentHistoryModal({
       onCancel={onClose}
       footer={null}
       width={600}
-      destroyOnClose
+      destroyOnHidden
       centered
       className={styles.modal}
     >

@@ -1,10 +1,12 @@
 'use client';
 
 import {
+  App,
   Drawer,
   Form,
   Input,
   InputNumber,
+  Rate,
   Select,
   DatePicker,
   Row,
@@ -48,6 +50,7 @@ export interface LeadFormValues {
   pid_zalo?: string;
   conversation?: string;
   tuition_fee?: number;
+  rate?: number;
   created_at?: Dayjs | null;
 }
 
@@ -68,6 +71,7 @@ export function LeadModal({
   onClose,
   onSubmit,
 }: LeadModalProps) {
+  const { message } = App.useApp();
   const { data: courses, isLoading: isCoursesLoading } = useCourses();
 
   return (
@@ -75,8 +79,8 @@ export function LeadModal({
       open={open}
       title={editingLead ? LeadPageText.MODAL_EDIT_TITLE : 'Tạo mới'}
       onClose={onClose}
-      width={1000}
-      destroyOnClose
+      size={1000}
+      destroyOnHidden
       footer={
         <Space style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Button onClick={onClose}>Hủy</Button>
@@ -90,10 +94,18 @@ export function LeadModal({
         form={form}
         layout="vertical"
         onFinish={onSubmit}
+        onFinishFailed={({ errorFields }) => {
+          // Without this the drawer silently does nothing when a field is invalid
+          // — including fields scrolled out of view.
+          const first = errorFields[0]?.errors[0];
+          message.error(first ?? 'Vui lòng kiểm tra lại thông tin đã nhập');
+        }}
+        scrollToFirstError
         initialValues={{
           status: LeadStatus.NEW,
           source: LeadSource.FACEBOOK,
           ethnicity: Ethnicity[0],
+          rate: 0,
         }}
       >
         <Row gutter={[16, 16]}>
@@ -242,6 +254,12 @@ export function LeadModal({
                 formatter={formatIntegerInput}
                 parser={parseIntegerInput as never}
               />
+            </Form.Item>
+          </Col>
+
+          <Col span={8}>
+            <Form.Item name="rate" label="Mức độ tiềm năng">
+              <Rate allowClear />
             </Form.Item>
           </Col>
 

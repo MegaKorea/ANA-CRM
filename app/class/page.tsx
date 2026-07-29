@@ -210,7 +210,7 @@ export default function ClassPage() {
             'data-label': typeof col.title === 'string' ? col.title : '',
           }) as any,
       })),
-    [handleDelete, router],
+    [handleDelete, router, notStudent],
   ) as ColumnsType<Class>;
 
   if (isClassesLoading) {

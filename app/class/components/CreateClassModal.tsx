@@ -1,4 +1,4 @@
-import { Col, Form, Input, InputNumber, message, Modal, Row, Select } from 'antd';
+import { App, Col, Form, Input, InputNumber, Modal, Row, Select } from 'antd';
 import { useCreateClass } from '@/lib/hooks/use-classes';
 import { useCourses } from '@/lib/hooks/use-courses';
 import type { CreateClassInput } from '@/lib/validators/class.validator';
@@ -10,6 +10,7 @@ interface CreateClassModalProps {
 }
 
 export function CreateClassModal({ open, onClose }: CreateClassModalProps) {
+  const { message } = App.useApp();
   const [form] = Form.useForm<CreateClassInput>();
   const createClassMutation = useCreateClass();
   const { data: courses, isLoading: isCoursesLoading } = useCourses();
