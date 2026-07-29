@@ -15,6 +15,10 @@ export enum EnvKey {
   VAPID_SUBJECT = 'VAPID_SUBJECT',
   CRON_SECRET = 'CRON_SECRET',
   ENABLE_PUSH_SCHEDULER = 'ENABLE_PUSH_SCHEDULER',
+  // Smax (server-only: token không được lộ ra bundle trình duyệt).
+  SMAX_API_TOKEN = 'SMAX_API_TOKEN',
+  SMAX_API_BASE_URL = 'SMAX_API_BASE_URL',
+  SMAX_BIZ_ALIAS = 'SMAX_BIZ_ALIAS',
 }
 
 export function getRequiredEnv(key: EnvKey): string {

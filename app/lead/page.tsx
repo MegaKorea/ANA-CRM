@@ -23,6 +23,7 @@ import { LeadFilters } from '@/app/lead/components/LeadFilters';
 import { LeadMobileCard } from '@/app/lead/components/LeadMobileCard';
 import { LeadStatistics } from '@/app/lead/components/LeadStatistics';
 import { usePaymentCounts } from '@/lib/hooks/use-payment-tickets';
+import { hasSmaxConversation } from '@/lib/smax/parse-smax-log';
 
 const LeadModal = dynamic(
   () => import('@/app/lead/components/LeadModal').then((m) => m.LeadModal),
@@ -581,9 +582,9 @@ export default function LeadPage() {
         onClose={handleCloseAppointmentModal}
       />
 
-      {conversationLead?.conversation && (
+      {conversationLead && hasSmaxConversation(conversationLead.smax_log) && (
         <ConversationModal
-          conversation={conversationLead.conversation}
+          smaxLog={conversationLead.smax_log}
           open={isConversationModalOpen}
           onCancel={handleCloseConversationModal}
         />

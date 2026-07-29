@@ -11,6 +11,7 @@ import {
   HistoryOutlined,
   CalendarOutlined,
 } from '@ant-design/icons';
+import { hasSmaxConversation } from '@/lib/smax/parse-smax-log';
 import type { Lead } from '@/lib/services/lead.service';
 import { AttendanceStatus, DateLocale, LeadSource } from '@/constants/enums';
 import type { Course } from '@/lib/services/course.service';
@@ -528,17 +529,24 @@ export const getLeadTableColumns = ({
       key: 'conversation',
       align: 'center',
       width: 72,
-      render: (_: unknown, record: Lead) => (
-        <Tooltip title={record.conversation ? 'Xem hội thoại' : 'Không có hội thoại'}>
-          <Button
-            size="small"
-            type="text"
-            icon={<MessageOutlined style={{ fontSize: 16, color: record.conversation ? '#52c41a' : undefined }} />}
-            disabled={!record.conversation}
-            onClick={() => record.conversation && handleOpenConversationModal(record)}
-          />
-        </Tooltip>
-      ),
+      render: (_: unknown, record: Lead) => {
+        const canOpenChat = hasSmaxConversation(record.smax_log);
+        return (
+          <Tooltip title={canOpenChat ? 'Xem hội thoại' : 'Không có hội thoại Smax'}>
+            <Button
+              size="small"
+              type="text"
+              icon={
+                <MessageOutlined
+                  style={{ fontSize: 16, color: canOpenChat ? '#52c41a' : undefined }}
+                />
+              }
+              disabled={!canOpenChat}
+              onClick={() => canOpenChat && handleOpenConversationModal(record)}
+            />
+          </Tooltip>
+        );
+      },
     },
     {
       title: LeadPageText.COLUMN_DATE_OF_BIRTH,

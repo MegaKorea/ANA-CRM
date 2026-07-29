@@ -5,6 +5,7 @@ import { AntdProvider } from './AntdProvider';
 import { QueryProvider } from './QueryProvider';
 import { ThemeProvider } from '@/lib/hooks/use-theme';
 import { NavigationProvider } from '@/lib/contexts/navigation.context';
+import { CurrentUserProvider } from './CurrentUserProvider';
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -14,9 +15,11 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <ThemeProvider>
       <QueryProvider>
-        <AntdProvider>
-          <NavigationProvider>{children}</NavigationProvider>
-        </AntdProvider>
+        <CurrentUserProvider>
+          <AntdProvider>
+            <NavigationProvider>{children}</NavigationProvider>
+          </AntdProvider>
+        </CurrentUserProvider>
       </QueryProvider>
     </ThemeProvider>
   );
