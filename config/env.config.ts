@@ -7,6 +7,9 @@ export enum EnvKey {
   SERVICE_ROLE_KEY = 'NEXT_PUBLIC_SERVICE_ROLE_KEY',
   API_BASE_URL = 'NEXT_PUBLIC_API_BASE_URL',
   NODE_ENV = 'NODE_ENV',
+  SMAX_API_TOKEN = 'SMAX_API_TOKEN',
+  SMAX_API_BASE_URL = 'SMAX_API_BASE_URL',
+  SMAX_BIZ_ALIAS = 'SMAX_BIZ_ALIAS',
 }
 
 export function getRequiredEnv(key: EnvKey): string {
