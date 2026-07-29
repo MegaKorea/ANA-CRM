@@ -12,7 +12,7 @@ import {
   CalendarOutlined,
 } from '@ant-design/icons';
 import type { Lead } from '@/lib/services/lead.service';
-import { AttendanceStatus, DateLocale, LeadSource, LeadStatus } from '@/constants/enums';
+import { AttendanceStatus, DateLocale, LeadSource } from '@/constants/enums';
 import type { Course } from '@/lib/services/course.service';
 import type { LocationValue } from '@/components/common/LocationSelect';
 import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
@@ -25,6 +25,7 @@ import { AssignTelesales } from '@/app/lead/components/AssignTelesales';
 import { LeadRate } from '@/app/lead/components/LeadRate';
 import { SmaxThreadButton } from '@/app/lead/components/SmaxThreadButton';
 import { AttendanceStatusIcon } from '@/app/lead/components/AttendanceStatusIcon';
+import { LeadStatusLabel, LEAD_STATUS_OPTIONS } from '@/app/lead/constants/labels';
 
 const ZALO_CHAT_URL_BASE =
   'https://smax.ai/bizs/ana-beauty-academy/chats/zlw555884932030283040';
@@ -130,16 +131,7 @@ export const LeadPageText = {
   COURSE_IDS_LABEL: 'Khóa học quan tâm',
 } as const;
 
-export const LeadStatusLabel = {
-  [LeadStatus.NEW]: 'MỚI',
-  [LeadStatus.CONVERTED]: 'ĐÃ ĐĂNG KÍ',
-  [LeadStatus.NOT_CONTACTED]: 'CHƯA TIẾP CẬN',
-  [LeadStatus.REJECT]: 'TỪ CHỐI',
-  [LeadStatus.INTERESTED]: 'QUAN TÂM',
-  [LeadStatus.NOT_INTERESTED]: 'KHÔNG QUAN TÂM',
-  [LeadStatus.NURTURING]: 'ĐANG CHĂM SÓC',
-  [LeadStatus.OTHER]: 'KHÁC',
-} as const;
+export { LeadStatusLabel, LEAD_STATUS_OPTIONS };
 
 export const LeadSourceLabel = {
   [LeadSource.WEBSITE]: 'Website',
@@ -251,6 +243,93 @@ export function getSmaxThreadUrl(smaxLog: unknown): string | undefined {
   }
   const url = (smaxLog as Record<string, unknown>).thread_url;
   return typeof url === 'string' && isSafeHttpUrl(url) ? url : undefined;
+}
+
+const FACEBOOK_PROFILE_URL_BASE = 'https://www.facebook.com/';
+
+/** Host được tính là trang Facebook của khách. */
+const FACEBOOK_PROFILE_HOSTS = ['facebook.com', 'fb.com', 'm.me', 'messenger.com'];
+
+/** Key có thể chứa id Facebook của khách, dùng khi smax_log không có link đầy đủ. */
+const SMAX_FACEBOOK_ID_KEYS = ['gid', 'fb_id', 'facebook_id', 'psid', 'uid'];
+
+/** Độ sâu tối đa khi quét smax_log — đủ cho object khách lồng vài cấp. */
+const SMAX_SCAN_MAX_DEPTH = 3;
+
+/**
+ * Kiểm tra một giá trị có phải link trang Facebook của khách hay không.
+ * Loại trừ `graph.facebook.com` (API) và `*.fbcdn.net` (ảnh đại diện).
+ */
+function isFacebookProfileUrl(value: unknown): value is string {
+  if (typeof value !== 'string' || !isSafeHttpUrl(value)) {
+    return false;
+  }
+
+  let hostname: string;
+  try {
+    hostname = new URL(value.trim()).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+
+  if (hostname.startsWith('graph.')) {
+    return false;
+  }
+
+  return FACEBOOK_PROFILE_HOSTS.some((host) => hostname === host || hostname.endsWith(`.${host}`));
+}
+
+/**
+ * Lấy link Facebook của khách từ object smax_log thô.
+ *
+ * Smax không cố định tên trường chứa link, nên ta duyệt toàn bộ object (tối đa
+ * `SMAX_SCAN_MAX_DEPTH` cấp) và nhận giá trị đầu tiên trỏ về facebook.com/m.me.
+ * `thread_url` bị loại vì đó là hội thoại trong Smax, không phải trang khách.
+ * Nếu không có link sẵn, dựng link từ id Facebook (`gid`, `psid`, ...) nếu có.
+ */
+export function getSmaxFacebookUrl(smaxLog: unknown): string | undefined {
+  if (!smaxLog || typeof smaxLog !== 'object') {
+    return undefined;
+  }
+
+  const threadUrl = getSmaxThreadUrl(smaxLog);
+  const queue: { node: object; depth: number }[] = [{ node: smaxLog, depth: 0 }];
+  let facebookId: string | undefined;
+
+  while (queue.length > 0) {
+    const { node, depth } = queue.shift() as { node: object; depth: number };
+
+    for (const [key, value] of Object.entries(node)) {
+      if (isFacebookProfileUrl(value) && value.trim() !== threadUrl) {
+        return value.trim();
+      }
+
+      if (!facebookId && SMAX_FACEBOOK_ID_KEYS.includes(key.toLowerCase())) {
+        const rawId = typeof value === 'number' ? String(value) : String(value ?? '').trim();
+        // Id Facebook là chuỗi số dài; tránh nhận nhầm id nội bộ ngắn của Smax.
+        if (/^\d{5,}$/.test(rawId)) {
+          facebookId = rawId;
+        }
+      }
+
+      if (value && typeof value === 'object' && depth < SMAX_SCAN_MAX_DEPTH) {
+        queue.push({ node: value as object, depth: depth + 1 });
+      }
+    }
+  }
+
+  return facebookId ? `${FACEBOOK_PROFILE_URL_BASE}${facebookId}` : undefined;
+}
+
+/**
+ * Link Facebook hiển thị cho một lead: ưu tiên link nhập tay, nếu chưa có
+ * (hoặc không hợp lệ) thì lấy link khách từ smax_log.
+ */
+export function getLeadFacebookUrl(lead: Lead): string | undefined {
+  if (isSafeHttpUrl(lead.facebook_url)) {
+    return lead.facebook_url.trim();
+  }
+  return getSmaxFacebookUrl(lead.smax_log);
 }
 
 export interface SmaxTag {
@@ -406,17 +485,22 @@ export const getLeadTableColumns = ({
       key: 'facebook_url',
       align: 'center',
       width: 72,
-      render: (_: unknown, record: Lead) => (
-        <Tooltip title={record.facebook_url ? 'Mở Facebook' : 'Không có link Facebook'}>
-          <Button
-            size="small"
-            type="text"
-            icon={<FacebookOutlined style={{ fontSize: 16, color: record.facebook_url ? '#1877f2' : undefined }} />}
-            disabled={!record.facebook_url}
-            onClick={() => openInNewTab(record.facebook_url)}
-          />
-        </Tooltip>
-      ),
+      render: (_: unknown, record: Lead) => {
+        // Chưa nhập tay thì dùng link Facebook khách lấy từ smax_log.
+        const facebookUrl = getLeadFacebookUrl(record);
+
+        return (
+          <Tooltip title={facebookUrl ? 'Mở Facebook' : 'Không có link Facebook'}>
+            <Button
+              size="small"
+              type="text"
+              icon={<FacebookOutlined style={{ fontSize: 16, color: facebookUrl ? '#1877f2' : undefined }} />}
+              disabled={!facebookUrl}
+              onClick={() => openInNewTab(facebookUrl)}
+            />
+          </Tooltip>
+        );
+      },
     },
     {
       title: 'Zalo',
