@@ -3,7 +3,7 @@
 import { Modal, List, Select, Tag, Typography, Space, Spin, Empty } from 'antd';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import type { ClassSession, SessionAttendance } from '@/lib/services/class_session.service';
 import type { AttendanceStatus } from '@/lib/supabase/types/tables/session_attendances';
 
@@ -52,14 +52,15 @@ export function AttendanceModal({
     onSave,
     onCancel,
 }: Props) {
+    const [prevSessionId, setPrevSessionId] = useState<string | null>(null);
     const [localAttendances, setLocalAttendances] = useState<
         Record<string, { status: AttendanceStatus; notes: string }>
     >({});
 
-    // Reset local edits whenever the modal opens for a new session
-    useEffect(() => {
-        if (open) setLocalAttendances({});
-    }, [open, session?.id]);
+    if (open && session && session.id !== prevSessionId) {
+        setPrevSessionId(session.id);
+        setLocalAttendances({});
+    }
 
     const mergedAttendances = useMemo(() => {
         const map: Record<string, { status: AttendanceStatus; notes: string }> = {};

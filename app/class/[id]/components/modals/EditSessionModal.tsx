@@ -5,7 +5,7 @@ import { EditOutlined, EnvironmentOutlined, UserOutlined, BookOutlined } from '@
 import { theme } from 'antd';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { ClassSession } from '@/lib/services/class_session.service';
 
 dayjs.locale('vi');
@@ -37,16 +37,17 @@ interface Props {
 export function EditSessionModal({ open, session, teacherOptions, isMobile, loading, onOk, onCancel }: Props) {
     const { token } = theme.useToken();
 
+    const [prevSessionId, setPrevSessionId] = useState<string | null>(null);
     const [teacherId, setTeacherId] = useState<string | null>(null);
     const [content, setContent] = useState('');
     const [room, setRoom] = useState<string | null>(null);
-    useEffect(() => {
-        if (session) {
-            setTeacherId(session.teacher_id);
-            setContent(session.content || '');
-            setRoom(session.room || null);
-        }
-    }, [session]);
+
+    if (open && session && session.id !== prevSessionId) {
+        setPrevSessionId(session.id);
+        setTeacherId(session.teacher_id);
+        setContent(session.content || '');
+        setRoom(session.room || null);
+    }
 
     const handleOk = () => {
         onOk({ teacher_id: teacherId, content: content || null, room: room || null });

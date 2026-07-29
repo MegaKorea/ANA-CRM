@@ -72,6 +72,12 @@ export async function fetchAllLeads(params?: LeadQueryParams): Promise<Paginated
 
     const { data, count, error } = await query;
     if (error) {
+      if (error.code === 'PGRST103') {
+        return {
+          data: [],
+          total: count ?? 0,
+        };
+      }
       handleSupabaseError(error, {
         defaultErrorCode: LeadErrorCode.FETCH_FAILED,
       });

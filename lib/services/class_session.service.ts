@@ -106,6 +106,7 @@ export async function generateSessionsForClass(
     classId: string,
     startDate: string,
     endDate: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _schedule?: string | null
 ): Promise<ClassSession[]> {
     const supabase = createAdminClient();

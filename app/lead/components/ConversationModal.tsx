@@ -1,5 +1,4 @@
-import { Modal, Avatar, Spin, Empty, Skeleton } from "antd";
-import { useState } from "react";
+import { Modal, Avatar, Empty, Skeleton } from "antd";
 import {
     UserOutlined,
     RobotOutlined,
@@ -7,7 +6,7 @@ import {
     MessageOutlined,
 } from "@ant-design/icons";
 import "./ModalConversations.scss";
-import { facebookService, type FacebookConversationMessagesResponse } from "@/lib/services/facebook.service";
+import { facebookService } from "@/lib/services/facebook.service";
 
 const getCidFromUrl = (url: string) => {
     if (!url || typeof url !== "string") {
@@ -65,7 +64,6 @@ const ModalConversations = ({
         staleTime: 1000 * 60 * 5, // 5 minutes
     });
 
-    const pageToken = conversationData?.pageToken;
     const avatarPage = conversationData?.avatarPage ?? "";
     const conversationMessages = conversationData?.messages ?? [];
 

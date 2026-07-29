@@ -37,7 +37,7 @@ export function validateCreateCourseInput(input: unknown): CreateCourseInput {
     };
 }
 
-export interface UpdateCourseInput extends Partial<CreateCourseInput> { }
+export type UpdateCourseInput = Partial<CreateCourseInput>;
 
 export function validateUpdateCourseInput(input: unknown): UpdateCourseInput {
     if (!input || typeof input !== 'object') {

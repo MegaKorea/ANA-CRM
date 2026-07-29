@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { App, Modal, List, Image, Button, Popconfirm } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 import type { Lead } from '@/lib/services/lead.service';
@@ -14,13 +14,13 @@ interface LeadImagesModalProps {
 export function LeadImagesModal({ open, lead, onClose }: LeadImagesModalProps) {
   const { message } = App.useApp();
   const updateLeadMutation = useUpdateLead();
+  const [prevLeadId, setPrevLeadId] = useState<number | null>(null);
   const [localImages, setLocalImages] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (open) {
-      setLocalImages(lead?.images || []);
-    }
-  }, [open, lead?.images]);
+  if (open && lead && lead.id !== prevLeadId) {
+    setPrevLeadId(lead.id);
+    setLocalImages(lead.images || []);
+  }
 
   const handleUpload = (url: string) => {
     if (!lead) return;

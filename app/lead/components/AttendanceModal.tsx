@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { App, Modal, Radio, Space } from 'antd';
 import { CheckCircleTwoTone, ClockCircleTwoTone, CloseCircleTwoTone } from '@ant-design/icons';
 import { AttendanceStatus } from '@/constants/enums';
@@ -14,14 +14,14 @@ interface AttendanceModalProps {
 
 export function AttendanceModal({ open, lead, onClose }: AttendanceModalProps) {
   const { message } = App.useApp();
+  const [prevLeadId, setPrevLeadId] = useState<number | null>(null);
   const [status, setStatus] = useState<AttendanceStatus | null>(null);
   const updateLeadMutation = useUpdateLead();
 
-  useEffect(() => {
-    if (open && lead) {
-      setStatus(lead.attendance_status || AttendanceStatus.NOT_ARRIVED);
-    }
-  }, [open, lead]);
+  if (open && lead && lead.id !== prevLeadId) {
+    setPrevLeadId(lead.id);
+    setStatus(lead.attendance_status || AttendanceStatus.NOT_ARRIVED);
+  }
 
   const handleSave = () => {
     if (!lead || !status) return;

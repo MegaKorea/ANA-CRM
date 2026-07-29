@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, type ReactNode } from 'react';
+import { useState, useCallback, useSyncExternalStore, type ReactNode } from 'react';
 import { Layout, Drawer, Grid } from 'antd';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
@@ -16,27 +16,22 @@ interface CRMLayoutProps {
   children: ReactNode;
 }
 
+const emptySubscribe = () => () => {};
+const getTrue = () => true;
+const getFalse = () => false;
+
 export function CRMLayout({ children }: CRMLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(emptySubscribe, getTrue, getFalse);
   const { isNavigating } = useNavigation();
   const { themeMode } = useTheme();
 
   const screens = useBreakpoint();
+  const isMobile = mounted && Boolean((screens.xs || screens.sm || screens.md) && !screens.lg);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const effectiveCollapsed = isMobile || collapsed;
 
-  const isMobile = mounted && (screens.xs || screens.sm || screens.md) && !screens.lg;
-
-  useEffect(() => {
-    if (isMobile) {
-      setCollapsed(true);
-    }
-  }, [isMobile]);
-
-  const siderWidth = isMobile ? 0 : (collapsed ? 80 : 260);
+  const siderWidth = isMobile ? 0 : (effectiveCollapsed ? 80 : 260);
 
   const handleToggle = useCallback(() => {
     setCollapsed((prev) => !prev);

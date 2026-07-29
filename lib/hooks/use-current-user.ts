@@ -15,7 +15,7 @@ async function fetchCurrentUser(): Promise<CurrentUser> {
 }
 
 export function useCurrentUser() {
-  const user = useUserStore((state) => state.user);
+  const userFromStore = useUserStore((state) => state.user);
   const setUser = useUserStore((state) => state.setUser);
   const setLoading = useUserStore((state) => state.setLoading);
   const clearUser = useUserStore((state) => state.clearUser);
@@ -40,7 +40,7 @@ export function useCurrentUser() {
   }, [data, error, setUser, clearUser]);
 
   return {
-    user,
+    user: data ?? userFromStore,
     isLoading,
     error,
   };

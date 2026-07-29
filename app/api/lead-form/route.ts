@@ -33,6 +33,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         full_name: input.full_name,
         phone_number: input.phone_number,
         smax_log: input.smax_log,
+        source: LeadSource.FACEBOOK,
       });
 
       return NextResponse.json(
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       full_name: input.full_name,
       phone_number: input.phone_number,
       smax_log: input.smax_log,
-      source: LeadSource.SMAX,
+      source: LeadSource.FACEBOOK,
       status: LeadStatus.NEW,
     });
 

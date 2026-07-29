@@ -9,7 +9,12 @@ export function usePermission(currentRoleCodes: RoleCode[], requiredRoleCodes: R
   return useMemo(
     () =>
       requiredRoleCodes.length === PermissionArrayLength.EMPTY ||
-      requiredRoleCodes.some((requiredRoleCode) => currentRoleCodes.includes(requiredRoleCode)),
+      requiredRoleCodes.some((requiredRoleCode) =>
+        currentRoleCodes.some(
+          (currentRoleCode) =>
+            currentRoleCode.toUpperCase() === requiredRoleCode.toUpperCase()
+        )
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [currentKey, requiredKey]
   );

@@ -15,11 +15,8 @@ import {
 } from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
 import {
-    DollarOutlined,
     UserOutlined,
     FacebookOutlined,
-    WalletOutlined,
-    CreditCardOutlined,
     DatabaseOutlined,
 } from '@ant-design/icons';
 import { DateFormat } from '@/constants/enums';
@@ -29,9 +26,6 @@ import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 
 const { RangePicker } = DatePicker;
 const { Title } = Typography;
-
-interface StatisticSummary {
-}
 
 interface ChartDataRow {
     date: string;
@@ -103,7 +97,7 @@ const fetchStatisticsData = async (startDate: string, endDate: string) => {
     });
 
     return {
-        summary: leadData.summary as StatisticSummary,
+        summary: leadData.summary as Record<string, unknown>,
         chartData: finalChartData,
         fbTotalSpend: totalSpend,
         fbTotalMessages: totalMessages,
@@ -132,8 +126,11 @@ export function LeadStatistics() {
         message.error((error as Error).message || 'Lỗi khi lấy dữ liệu thống kê');
     }
 
-    const { summary, chartData, fbTotalSpend, fbTotalMessages } = data || {
-        summary: {},
+    const { chartData, fbTotalSpend, fbTotalMessages } = (data as {
+        chartData: ChartDataRow[];
+        fbTotalSpend: number;
+        fbTotalMessages: number;
+    }) || {
         chartData: [],
         fbTotalSpend: 0,
         fbTotalMessages: 0,

@@ -1,13 +1,10 @@
-import { Button, Popconfirm, Space, Tooltip, Badge } from 'antd';
+import { Button, Popconfirm, Space, Tooltip, Badge, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { HiOutlinePencilAlt, HiOutlineTrash, HiOutlineInformationCircle } from 'react-icons/hi';
 import {
   PlusOutlined,
   InfoCircleOutlined,
   PictureOutlined,
-  CheckCircleTwoTone,
-  ClockCircleTwoTone,
-  CloseCircleTwoTone,
   MessageOutlined,
   FacebookOutlined,
   DollarOutlined,
@@ -23,8 +20,11 @@ import type { NoteItem } from '@/lib/supabase/types/tables/leads';
 import { FiGlobe, FiMail, FiPhone, FiFacebook, FiMessageSquare, FiMoreHorizontal } from 'react-icons/fi';
 import { SiZalo } from 'react-icons/si';
 import { formatNumberVi } from '@/lib/utils/numberFormat';
+import { openInNewTab, isSafeHttpUrl } from '@/lib/utils/openInNewTab';
 import { AssignTelesales } from '@/app/lead/components/AssignTelesales';
 import { LeadRate } from '@/app/lead/components/LeadRate';
+import { SmaxThreadButton } from '@/app/lead/components/SmaxThreadButton';
+import { AttendanceStatusIcon } from '@/app/lead/components/AttendanceStatusIcon';
 
 const ZALO_CHAT_URL_BASE =
   'https://smax.ai/bizs/ana-beauty-academy/chats/zlw555884932030283040';
@@ -241,6 +241,77 @@ export function getZaloChatUrl(pidZalo: string | null | undefined): string | und
   return `${ZALO_CHAT_URL_BASE}?tid=zlw${encodeURIComponent(trimmedPid)}`;
 }
 
+/**
+ * Lấy link hội thoại Smax (thread_url) từ object smax_log thô của lead.
+ * Trả về undefined nếu không có smax_log hoặc thiếu thread_url hợp lệ.
+ */
+export function getSmaxThreadUrl(smaxLog: unknown): string | undefined {
+  if (!smaxLog || typeof smaxLog !== 'object') {
+    return undefined;
+  }
+  const url = (smaxLog as Record<string, unknown>).thread_url;
+  return typeof url === 'string' && isSafeHttpUrl(url) ? url : undefined;
+}
+
+export interface SmaxTag {
+  id?: string;
+  name?: string;
+  time?: string;
+  alias?: string;
+}
+
+/**
+ * Trích xuất danh sách thẻ (tags) từ object smax_log thô của lead.
+ * Lọc bỏ các phần tử rỗng, null hoặc các tag không có thông tin.
+ */
+export function getSmaxTags(smaxLog: unknown): SmaxTag[] {
+  if (!smaxLog || typeof smaxLog !== 'object') {
+    return [];
+  }
+  const tags = (smaxLog as Record<string, unknown>).tags;
+  if (!Array.isArray(tags)) {
+    return [];
+  }
+
+  return tags.filter((item): item is SmaxTag => {
+    if (!item || typeof item !== 'object') return false;
+    const tag = item as SmaxTag;
+    const hasName = typeof tag.name === 'string' && tag.name.trim().length > 0;
+    const hasAlias = typeof tag.alias === 'string' && tag.alias.trim().length > 0;
+    const hasId = typeof tag.id === 'string' && tag.id.trim().length > 0;
+    return hasName || hasAlias || hasId;
+  });
+}
+
+const SMAX_TAG_PRESET_COLORS = [
+  'blue',
+  'green',
+  'gold',
+  'purple',
+  'magenta',
+  'cyan',
+  'orange',
+  'volcano',
+  'geekblue',
+  'lime',
+] as const;
+
+/**
+ * Trả về màu nhất quán (deterministic color) cho mỗi tên tag khác nhau.
+ */
+export function getSmaxTagColor(tagName: string): string {
+  if (!tagName) return 'default';
+  let hash = 0;
+  for (let i = 0; i < tagName.length; i++) {
+    hash = tagName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % SMAX_TAG_PRESET_COLORS.length;
+  return SMAX_TAG_PRESET_COLORS[index];
+}
+
+
+
+
 export const getLeadTableColumns = ({
   handleOpenModal,
   handleDelete,
@@ -280,6 +351,12 @@ export const getLeadTableColumns = ({
       title: LeadPageText.COLUMN_FULL_NAME,
       dataIndex: 'full_name',
       key: 'full_name',
+      render: (_: unknown, record: Lead) => (
+        <Space size={4}>
+          <span>{record.full_name}</span>
+          <SmaxThreadButton lead={record} />
+        </Space>
+      ),
     },
     // {
     //   title: LeadPageText.COLUMN_EMAIL,
@@ -336,7 +413,7 @@ export const getLeadTableColumns = ({
             type="text"
             icon={<FacebookOutlined style={{ fontSize: 16, color: record.facebook_url ? '#1877f2' : undefined }} />}
             disabled={!record.facebook_url}
-            onClick={() => record.facebook_url && window.open(record.facebook_url, '_blank')}
+            onClick={() => openInNewTab(record.facebook_url)}
           />
         </Tooltip>
       ),
@@ -356,7 +433,7 @@ export const getLeadTableColumns = ({
               type="text"
               icon={<SiZalo size={16} color={zaloChatUrl ? '#0068ff' : undefined} />}
               disabled={!zaloChatUrl}
-              onClick={() => zaloChatUrl && window.open(zaloChatUrl, '_blank')}
+              onClick={() => openInNewTab(zaloChatUrl)}
             />
           </Tooltip>
         );
@@ -413,6 +490,31 @@ export const getLeadTableColumns = ({
       align: 'center',
       width: 140,
       render: (_: unknown, record: Lead) => <LeadRate lead={record} />,
+    },
+    {
+      title: 'Thẻ Smax',
+      key: 'smax_tags',
+      width: 180,
+      render: (_: unknown, record: Lead) => {
+        const tags = getSmaxTags(record.smax_log);
+        if (!tags || tags.length === 0) {
+          return null;
+        }
+        return (
+          <Space size={[0, 4]} wrap>
+            {tags.map((tag, idx) => {
+              const tagName = tag.name || tag.alias;
+              if (!tagName) return null;
+              const color = getSmaxTagColor(tagName);
+              return (
+                <Tag key={tag.id || idx} color={color}>
+                  {tagName}
+                </Tag>
+              );
+            })}
+          </Space>
+        );
+      },
     },
     {
       title: LeadPageText.COURSE_IDS_LABEL,
@@ -532,15 +634,7 @@ export const getLeadTableColumns = ({
                 <Button
                   size="small"
                   type="text"
-                  icon={
-                    record.attendance_status === AttendanceStatus.ARRIVED ? (
-                      <CheckCircleTwoTone twoToneColor="#52c41a" style={{ fontSize: 16 }} />
-                    ) : record.attendance_status === AttendanceStatus.NO_SHOW ? (
-                      <CloseCircleTwoTone twoToneColor="#ff4d4f" style={{ fontSize: 16 }} />
-                    ) : (
-                      <ClockCircleTwoTone twoToneColor="#faad14" style={{ fontSize: 16 }} />
-                    )
-                  }
+                  icon={<AttendanceStatusIcon status={record.attendance_status} />}
                   onClick={() => handleOpenAttendanceModal(record)}
                 />
               </Badge>

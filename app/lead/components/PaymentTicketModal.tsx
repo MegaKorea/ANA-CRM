@@ -11,7 +11,6 @@ import {
   Upload,
   Button,
   message,
-  Space,
   Image,
 } from 'antd';
 import { UploadOutlined, DeleteOutlined } from '@ant-design/icons';

@@ -8,15 +8,12 @@ import type { Lead } from '@/lib/services/lead.service';
 import type { CreateLeadInput, UpdateLeadInput } from '@/lib/validators/lead.validator';
 import { useLeads, useCreateLead, useUpdateLead, useDeleteLead } from '@/lib/hooks/use-leads';
 import {
-  LeadDateRangePlaceholder,
   LeadPageGap,
-  LeadPageMargin,
-  LeadPagePadding,
   LeadPageText,
   getLeadTableColumns,
 } from '@/app/lead/constants';
 import type { LeadFormValues } from '@/app/lead/components/LeadModal';
-import { LeadStatus, DateFormat, LeadSource, DateLocale } from '@/constants/enums';
+import { LeadStatus, DateFormat, LeadSource } from '@/constants/enums';
 import { type LocationValue } from '@/components/common/LocationSelect';
 import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
 import { useCourses } from '@/lib/hooks/use-courses';
@@ -113,6 +110,31 @@ export default function LeadPage() {
   const [pageSize, setPageSize] = useState(10);
   const isMobile = useIsMobile();
 
+  const handleSearch = useCallback((val: string) => {
+    setSearchKeyword(val);
+    setCurrentPage(1);
+  }, []);
+
+  const handleStatusChange = useCallback((val: LeadStatus | undefined) => {
+    setStatusFilter(val);
+    setCurrentPage(1);
+  }, []);
+
+  const handleSourceChange = useCallback((val: LeadSource | undefined) => {
+    setSourceFilter(val);
+    setCurrentPage(1);
+  }, []);
+
+  const handleCourseChange = useCallback((val: string | undefined) => {
+    setCourseFilter(val);
+    setCurrentPage(1);
+  }, []);
+
+  const handleCreatedAtRangeChange = useCallback((val: [Dayjs | null, Dayjs | null] | null) => {
+    setCreatedAtRange(val);
+    setCurrentPage(1);
+  }, []);
+
   const { data, isLoading, isFetching, refetch } = useLeads({
     search: searchKeyword || undefined,
     status: statusFilter,
@@ -126,7 +148,7 @@ export default function LeadPage() {
 
   const { data: courses } = useCourses();
 
-  const leads = data?.data || [];
+  const leads = useMemo(() => data?.data || [], [data?.data]);
   const total = data?.total || 0;
 
   // Batch-fetch payment counts for visible leads
@@ -433,15 +455,15 @@ export default function LeadPage() {
             children: (
               <>
                 <LeadFilters
-                  onSearch={setSearchKeyword}
+                  onSearch={handleSearch}
                   statusFilter={statusFilter}
-                  onStatusChange={setStatusFilter}
+                  onStatusChange={handleStatusChange}
                   sourceFilter={sourceFilter}
-                  onSourceChange={setSourceFilter}
+                  onSourceChange={handleSourceChange}
                   courseFilter={courseFilter}
-                  onCourseChange={setCourseFilter}
+                  onCourseChange={handleCourseChange}
                   createdAtRange={createdAtRange}
-                  onCreatedAtRangeChange={setCreatedAtRange}
+                  onCreatedAtRangeChange={handleCreatedAtRangeChange}
                   courses={courses || []}
                 />
 

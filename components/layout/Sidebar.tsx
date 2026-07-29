@@ -2,7 +2,7 @@
 
 import { Layout, Menu, type MenuProps, Typography } from 'antd';
 import { usePathname } from 'next/navigation';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import styles from './Sidebar.module.scss';
 import logo from '../../app/assets/logo/logo-ana.png';
 import Image from 'next/image';
@@ -23,9 +23,8 @@ interface SidebarProps {
 export function Sidebar({ collapsed, isMobile, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { themeMode } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const { navigateWithDelay } = useNavigation();
-  const { user } = useCurrentUser();
+  const { user, isLoading } = useCurrentUser();
 
   const filteredMenuItems = useMemo(() => {
     const userRole = user?.roleCode;
@@ -34,33 +33,34 @@ export function Sidebar({ collapsed, isMobile, onClose }: SidebarProps) {
       return items
         .filter((item) => {
           if (item.roles && item.roles.length > 0) {
-            if (!userRole || !item.roles.includes(userRole)) {
-              return false;
+            if (userRole) {
+              return item.roles.some((r) => r.toUpperCase() === userRole.toUpperCase());
             }
+            if (isLoading) {
+              return true;
+            }
+            return false;
           }
           return true;
         })
         .map((item) => {
           if (item.children) {
+            const children = filterMenu(item.children);
             return {
               ...item,
-              children: filterMenu(item.children),
+              children: children.length > 0 ? children : undefined,
             } as MenuItem;
           }
-          const { roles, ...rest } = item;
+          const rest = { ...item };
+          delete (rest as Partial<AppMenuItem>).roles;
           return rest as MenuItem;
         });
     }
 
     return filterMenu(menuItems);
-  }, [user?.roleCode]);
+  }, [user?.roleCode, isLoading]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setMounted(true);
-    }, 0);
-    return () => clearTimeout(timer);
-  }, []);
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
 
   const selectedKeys = useMemo(() => {
     if (!mounted) return [];

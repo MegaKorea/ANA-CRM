@@ -45,7 +45,7 @@ export function validateCreateClassInput(input: unknown): CreateClassInput {
     };
 }
 
-export interface UpdateClassInput extends Partial<CreateClassInput> { }
+export type UpdateClassInput = Partial<CreateClassInput>;
 
 export function validateUpdateClassInput(input: unknown): UpdateClassInput {
     if (!input || typeof input !== 'object') {

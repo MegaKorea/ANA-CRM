@@ -6,12 +6,16 @@ import {
   CheckCircleTwoTone,
   ClockCircleTwoTone,
   CloseCircleTwoTone,
+  MessageOutlined,
 } from '@ant-design/icons';
 import { HiOutlineInformationCircle, HiOutlinePencilAlt, HiOutlineTrash } from 'react-icons/hi';
 import { LeadStatus, DateLocale, AttendanceStatus } from '@/constants/enums';
 import type { Lead } from '@/lib/services/lead.service';
 import {
   getZaloChatUrl,
+  getSmaxThreadUrl,
+  getSmaxTags,
+  getSmaxTagColor,
   LeadPageText,
   LeadStatusLabel,
   LeadSourceIcon,
@@ -49,22 +53,38 @@ export const LeadMobileCard = memo(function LeadMobileCard({
   const noteCount = notes.length;
   const imageCount = lead.images?.length || 0;
   const zaloChatUrl = getZaloChatUrl(lead.pid_zalo);
+  const smaxThreadUrl = getSmaxThreadUrl(lead.smax_log);
 
   return (
     <Card
       size="small"
       title={
-        <Typography.Text
-          strong
-          style={{
-            fontSize: '15px',
-            whiteSpace: 'normal',
-            wordBreak: 'break-word',
-            color: '#1677ff',
-          }}
-        >
-          {lead.full_name}
-        </Typography.Text>
+        <Space size={4} align="center">
+          <Typography.Text
+            strong
+            style={{
+              fontSize: '15px',
+              whiteSpace: 'normal',
+              wordBreak: 'break-word',
+              color: '#1677ff',
+            }}
+          >
+            {lead.full_name}
+          </Typography.Text>
+          {smaxThreadUrl && (
+            <Tooltip title="Mở hội thoại Smax">
+              <Button
+                size="small"
+                type="text"
+                icon={<MessageOutlined style={{ fontSize: 15, color: '#7c3aed' }} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(smaxThreadUrl, '_blank', 'noopener,noreferrer');
+                }}
+              />
+            </Tooltip>
+          )}
+        </Space>
       }
       extra={
         lead.status ? (
@@ -191,6 +211,27 @@ export const LeadMobileCard = memo(function LeadMobileCard({
               : '—'}
           </Typography.Text>
         </Flex>
+        {(() => {
+          const smaxTags = getSmaxTags(lead.smax_log);
+          if (!smaxTags || smaxTags.length === 0) return null;
+          return (
+            <Flex justify="space-between" align="center" className="text-body-small">
+              <Typography.Text type="secondary">Thẻ Smax</Typography.Text>
+              <Space size={[0, 4]} wrap>
+                {smaxTags.map((tag, idx) => {
+                  const tagName = tag.name || tag.alias;
+                  if (!tagName) return null;
+                  const color = getSmaxTagColor(tagName);
+                  return (
+                    <Tag key={tag.id || idx} color={color} style={{ margin: 0 }}>
+                      {tagName}
+                    </Tag>
+                  );
+                })}
+              </Space>
+            </Flex>
+          );
+        })()}
 
         <Flex justify="space-between" align="center" className="text-body-small">
           <Typography.Text type="secondary">Lịch hẹn</Typography.Text>

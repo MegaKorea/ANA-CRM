@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
-import { App, Button, Card, Col, Row, Typography, Space, Spin, Tag, Popconfirm, Table } from 'antd';
+import { App, Button, Col, Row, Typography, Space, Spin, Tag, Popconfirm, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { PlusOutlined, BookOutlined } from '@ant-design/icons';
 import { useCourses, useDeleteCourse } from '@/lib/hooks/use-courses';

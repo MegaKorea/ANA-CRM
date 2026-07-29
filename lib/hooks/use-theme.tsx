@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useMemo, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useSyncExternalStore, useMemo, useCallback, type ReactNode } from 'react';
 import { ThemeMode, ThemeStorageKey } from '@/constants/enums/theme.enum';
 import { ThemeErrorCode } from '@/constants/enums/error.enum';
 import { AppError } from '@/errors';
@@ -12,40 +12,63 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
+let currentTheme: ThemeMode = ThemeMode.LIGHT;
+const listeners = new Set<() => void>();
+
+function subscribe(callback: () => void) {
+  listeners.add(callback);
+  const handleStorage = (e: StorageEvent) => {
+    if (e.key === ThemeStorageKey.MODE && (e.newValue === ThemeMode.LIGHT || e.newValue === ThemeMode.DARK)) {
+      currentTheme = e.newValue as ThemeMode;
+      listeners.forEach((l) => l());
+    }
+  };
+  window.addEventListener('storage', handleStorage);
+  return () => {
+    listeners.delete(callback);
+    window.removeEventListener('storage', handleStorage);
+  };
+}
+
+function getSnapshot(): ThemeMode {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem(ThemeStorageKey.MODE);
+    if (stored === ThemeMode.DARK || stored === ThemeMode.LIGHT) {
+      return stored as ThemeMode;
+    }
+  }
+  return currentTheme;
+}
+
+function getServerSnapshot(): ThemeMode {
+  return ThemeMode.LIGHT;
+}
+
+function setTheme(mode: ThemeMode) {
+  currentTheme = mode;
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(ThemeStorageKey.MODE, mode);
+    const root = document.documentElement;
+    if (mode === ThemeMode.DARK) {
+      root.classList.add(ThemeMode.DARK);
+    } else {
+      root.classList.remove(ThemeMode.DARK);
+    }
+  }
+  listeners.forEach((l) => l());
+}
+
 interface ThemeProviderProps {
   children: ReactNode;
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  // 初始状态始终使用 LIGHT，避免服务器和客户端不匹配
-  const [themeMode, setThemeMode] = useState<ThemeMode>(ThemeMode.LIGHT);
-  const [mounted, setMounted] = useState(false);
-
-  // 在客户端挂载后，从 localStorage 读取主题设置
-  useEffect(() => {
-    setMounted(true);
-    const stored = localStorage.getItem(ThemeStorageKey.MODE);
-    if (stored && (stored === ThemeMode.LIGHT || stored === ThemeMode.DARK)) {
-      setThemeMode(stored as ThemeMode);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-    localStorage.setItem(ThemeStorageKey.MODE, themeMode);
-    const root = document.documentElement;
-    if (themeMode === ThemeMode.DARK) {
-      root.classList.add(ThemeMode.DARK);
-    } else {
-      root.classList.remove(ThemeMode.DARK);
-    }
-  }, [themeMode, mounted]);
+  const themeMode = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   const toggleTheme = useCallback(() => {
-    setThemeMode((prev) =>
-      prev === ThemeMode.LIGHT ? ThemeMode.DARK : ThemeMode.LIGHT
-    );
-  }, []);
+    const nextTheme = themeMode === ThemeMode.LIGHT ? ThemeMode.DARK : ThemeMode.LIGHT;
+    setTheme(nextTheme);
+  }, [themeMode]);
 
   const contextValue = useMemo(
     () => ({ themeMode, toggleTheme }),
@@ -66,3 +89,4 @@ export function useTheme(): ThemeContextValue {
   }
   return context;
 }
+

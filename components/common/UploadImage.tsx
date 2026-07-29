@@ -91,7 +91,7 @@ export default function ImageUpload({
         setLoading(false);
       }
     },
-  }), [onUpload, server]);
+  }), [onUpload, server, showPreview, showSuccessMessage, message]);
 
   return (
     <div>

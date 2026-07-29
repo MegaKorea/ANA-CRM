@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { AppError } from '@/errors';
 import { HttpStatusCode, AuthErrorCode, UserStatusDb, AuthMessage } from '@/constants/enums';
 import type { LoginInput } from '@/lib/validators/auth.validator';
@@ -63,7 +64,8 @@ export async function loginWithEmailAndPassword(
     );
   }
 
-  const { data: userData, error: userError } = await supabase
+  const adminClient = createAdminClient();
+  const { data: userData } = await adminClient
     .from('users')
     .select('id, email, full_name, status, roles(code)')
     .eq('id', authData.user.id)
@@ -78,7 +80,7 @@ export async function loginWithEmailAndPassword(
     }
 
     const updateData: UpdateTables<'users'> = { last_login: new Date().toISOString() };
-    await supabase.from('users').update(updateData as never).eq('id', authData.user.id);
+    await adminClient.from('users').update(updateData as never).eq('id', authData.user.id);
 
     return {
       user: {
@@ -115,7 +117,8 @@ export async function getCurrentUser(): Promise<CurrentUser> {
     );
   }
 
-  const { data: userData, error: userError } = await supabase
+  const adminClient = createAdminClient();
+  const { data: userData } = await adminClient
     .from('users')
     .select('id, email, full_name, status, roles(code)')
     .eq('id', authUser.id)
