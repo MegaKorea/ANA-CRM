@@ -1,5 +1,4 @@
 
-
 export interface InsightRow {
     spend: string
     campaign_id: string
@@ -21,77 +20,11 @@ export interface FetchInsightsParams {
     endDate: string
 }
 
-export interface FacebookPageTokenResponse {
-    page_token: string;
-    access_token: string;
-    picture: {
-        data: {
-            url: string;
-        };
-    };
-}
-
-export interface FacebookConversationIdResponseItem {
-    id: string;
-}
-
-export interface FacebookConversationIdResponse {
-    data: FacebookConversationIdResponseItem[];
-}
-
-export interface FacebookUserRef {
-    id: string;
-    name?: string;
-}
-
-export interface FacebookMessageAttachmentPayload {
-    url?: string;
-}
-
-export interface FacebookMessageAttachment {
-    id: string;
-    mime_type?: string;
-    name?: string;
-    size?: number;
-    file_url?: string;
-    image_data?: {
-        url: string;
-    };
-    payload?: FacebookMessageAttachmentPayload;
-}
-
-export interface FacebookMessage {
-    id: string;
-    created_time: string;
-    message?: string;
-    ai_generated?: boolean;
-    from?: FacebookUserRef;
-    to?: {
-        data: FacebookUserRef[];
-    };
-    attachments?: {
-        data: FacebookMessageAttachment[];
-    };
-}
-
-export interface FacebookConversationMessagesEdge {
-    data: FacebookMessage[];
-}
-
-export interface FacebookConversationMessagesResponse {
-    data: FacebookMessage[];
-    paging?: { cursors: { before: string; after: string }; next?: string };
-    messages?: FacebookConversationMessagesEdge;
-}
-
 const AD_ACCOUNT_IDS = [
     "act_1175215059809297",
 ]
 
 const access_token = process.env.NEXT_PUBLIC_FB_ACCESS_TOKEN
-
-console.log(access_token)
-
 
 const baseUrl = "https://graph.facebook.com/v25.0"
 
@@ -133,76 +66,3 @@ export async function fetchInsights({
         return { data: null, error: msg }
     }
 }
-
-
-
-export interface FacebookFullConversationResult {
-    messages: FacebookMessage[];
-    avatarPage: string;
-    pageToken: string;
-}
-
-export const facebookService = {
-    getPageToken: async (
-        pageId: string
-    ): Promise<FacebookPageTokenResponse> => {
-        const url = `${baseUrl}/${pageId}?fields=page_token,access_token,picture&access_token=${access_token}`
-        const rest = await fetch(url)
-        const json: FacebookPageTokenResponse = await rest.json()
-        return json
-    },
-    getConversationIds: async (
-        conversationId: string,
-        pageAccessToken: string
-    ): Promise<FacebookConversationIdResponseItem[]> => {
-        const url = `${baseUrl}/me/conversations?user_id=${conversationId}&access_token=${pageAccessToken}`
-        const rest = await fetch(url)
-        const json: FacebookConversationIdResponse = await rest.json()
-        return json.data ?? []
-    },
-
-    getConversationMessages: async (
-        conversationId: string,
-        pageAccessToken: string
-    ): Promise<FacebookConversationMessagesResponse> => {
-        const url = `${baseUrl}/${conversationId}/messages?fields=message,ai_generated,attachments,from,to,created_time&access_token=${pageAccessToken}`
-        const rest = await fetch(url)
-        // FB returns { data: [...messages], paging: {...} }
-        const json: FacebookConversationMessagesResponse = await rest.json()
-        return json
-    },
-
-    getFullConversation: async (cid: string | null): Promise<FacebookFullConversationResult | null> => {
-        if (!cid) return null;
-        try {
-            const pageId = cid.split("_")[0];
-            const userId = cid.split("_")[1];
-
-            // 1. Get Page Token & Avatar
-            const pageTokenResult = await facebookService.getPageToken(pageId);
-            const pageToken = pageTokenResult?.access_token;
-            const avatarPage = pageTokenResult?.picture?.data?.url ?? "";
-
-            if (!pageToken) return null;
-
-            // 2. Get Thread/Conversation ID
-            const conversationIds = await facebookService.getConversationIds(userId, pageToken);
-            const threadId = conversationIds[0]?.id;
-            if (!threadId) {
-                return { messages: [], avatarPage, pageToken };
-            }
-
-            // 3. Get Messages
-            const conversationData = await facebookService.getConversationMessages(threadId, pageToken);
-            const messages = conversationData.data ?? [];
-            return {
-                messages: [...messages].reverse(),
-                avatarPage,
-                pageToken
-            };
-        } catch (error) {
-            console.error("Error fetching full conversation:", error);
-            throw error;
-        }
-    }
-};
