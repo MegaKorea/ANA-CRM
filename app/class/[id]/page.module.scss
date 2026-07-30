@@ -2,6 +2,16 @@
   padding: 0.75rem;
   height: 100%;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+
+  // Mobile: one scroll owner (Layout .content). Nested overflow here
+  // fights the calendar touch target and feels "stuck".
+  @media (max-width: 767px) {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    touch-action: pan-y;
+  }
 
   @media (min-width: 640px) {
     padding: 1rem;
@@ -143,6 +153,10 @@
   height: 100%;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   border-radius: 0.5rem;
+
+  @media (max-width: 767px) {
+    height: auto;
+  }
 
   @media (min-width: 640px) {
     border-radius: 0.75rem;

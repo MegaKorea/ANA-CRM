@@ -17,6 +17,7 @@ export interface ClassStudent {
         phone_number: string;
     };
     login_email?: string;
+    user_id?: string | null;
 }
 
 export async function getClassStudents(classId: string): Promise<ClassStudent[]> {
@@ -49,34 +50,75 @@ export async function getClassStudents(classId: string): Promise<ClassStudent[]>
 
     const students = (data as unknown as ClassStudent[]) || [];
 
-    // Fetch login emails from users table
+    const leadIds = students.map((s) => s.student_id).filter(Boolean);
     const phoneNumbers = students
-        .map(s => s.leads?.phone_number)
+        .map((s) => s.leads?.phone_number)
         .filter((phone): phone is string => Boolean(phone));
 
-    if (phoneNumbers.length > 0) {
+    if (leadIds.length > 0 || phoneNumbers.length > 0) {
+        const orParts: string[] = [];
+        if (leadIds.length > 0) orParts.push(`lead_id.in.(${leadIds.join(',')})`);
+        if (phoneNumbers.length > 0) {
+            const phones = phoneNumbers.map((p) => `"${p.replace(/"/g, '')}"`).join(',');
+            orParts.push(`phone.in.(${phones})`);
+        }
+
         const { data: usersData, error: usersError } = await supabase
             .from('users')
-            .select('phone, email')
-            .in('phone', phoneNumbers);
+            .select('id, email, lead_id, phone')
+            .or(orParts.join(','));
 
         if (!usersError && usersData) {
-            const phoneToEmailMap = new Map<string, string>();
-            (usersData as any[]).forEach(u => {
-                if (u.phone && u.email) {
-                    phoneToEmailMap.set(u.phone, u.email);
-                }
-            });
+            const byLeadId = new Map<number, { id: string; email: string | null }>();
+            const byPhone = new Map<string, { id: string; email: string | null; lead_id: number | null }>();
 
-            students.forEach(s => {
-                if (s.leads?.phone_number) {
-                    s.login_email = phoneToEmailMap.get(s.leads.phone_number);
+            for (const u of usersData as Array<{
+                id: string;
+                email: string | null;
+                lead_id: number | null;
+                phone: string | null;
+            }>) {
+                if (u.lead_id != null) {
+                    byLeadId.set(u.lead_id, { id: u.id, email: u.email });
+                }
+                if (u.phone) {
+                    byPhone.set(u.phone, { id: u.id, email: u.email, lead_id: u.lead_id });
+                }
+            }
+
+            students.forEach((s) => {
+                let user = byLeadId.get(s.student_id) ?? null;
+                if (!user && s.leads?.phone_number) {
+                    const byPh = byPhone.get(s.leads.phone_number);
+                    if (byPh) {
+                        user = { id: byPh.id, email: byPh.email };
+                        if (byPh.lead_id == null) {
+                            void supabase
+                                .from('users')
+                                .update({ lead_id: s.student_id } as never)
+                                .eq('id', byPh.id);
+                        }
+                    }
+                }
+                if (user) {
+                    s.user_id = user.id;
+                    if (user.email) s.login_email = user.email;
                 }
             });
         }
     }
 
-    return students;
+    return students.toSorted((a, b) => {
+        const givenName = (fullName: string) => {
+            const parts = fullName.trim().split(/\s+/).filter(Boolean);
+            return parts[parts.length - 1] || '';
+        };
+        return givenName(a.leads?.full_name || '').localeCompare(
+            givenName(b.leads?.full_name || ''),
+            'vi',
+            { sensitivity: 'base' },
+        );
+    });
 }
 
 export async function addClassStudent(classId: string, studentId: number): Promise<ClassStudent> {
@@ -96,7 +138,12 @@ export async function addClassStudent(classId: string, studentId: number): Promi
     if (lead && lead.phone_number) {
         try {
             const { createStudentAccountIfNotExists } = await import('./user.service');
-            await createStudentAccountIfNotExists(lead.phone_number, lead.full_name, lead.email);
+            await createStudentAccountIfNotExists(
+                lead.phone_number,
+                lead.full_name,
+                lead.email,
+                studentId,
+            );
         } catch (e) {
             console.error('Failed to create student account during class enrollment:', e);
         }

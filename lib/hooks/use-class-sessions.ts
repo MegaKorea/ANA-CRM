@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchJson } from '@/lib/utils/fetchJson';
-import type { ClassSession, SessionAttendance } from '@/lib/services/class_session.service';
+import type { ClassSession, SessionAttendance, VerifyQrResult } from '@/lib/services/class_session.service';
 import type { AttendanceStatus } from '@/lib/supabase/types/tables/session_attendances';
+import { useUserRoleCode } from '@/lib/hooks/use-current-user';
 
 // ─── Query Keys ──────────────────────────────────────────────────────────
 
@@ -15,10 +16,14 @@ async function fetchClassSessions(classId: string): Promise<ClassSession[]> {
 }
 
 export function useClassSessions(classId: string) {
+    const roleCode = useUserRoleCode();
     return useQuery({
-        queryKey: [CLASS_SESSIONS_KEY, classId],
+        // role trong key: STU nhận hasAttendance theo bản thân, staff theo cả buổi
+        queryKey: [CLASS_SESSIONS_KEY, classId, roleCode ?? 'anon'],
         queryFn: () => fetchClassSessions(classId),
         enabled: !!classId,
+        refetchOnWindowFocus: true,
+        staleTime: 15_000,
     });
 }
 
@@ -138,16 +143,37 @@ export function useBulkUpsertAttendances(classId: string) {
 }
 
 // QR code verification (student-side)
-async function verifyQrCodeReq(token: string): Promise<SessionAttendance> {
-    return fetchJson<SessionAttendance>('/api/attendance/qr', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-    });
+async function verifyQrCodeReq(token: string): Promise<VerifyQrResult> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 18_000);
+    try {
+        return await fetchJson<VerifyQrResult>('/api/attendance/qr', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token }),
+            signal: controller.signal,
+        });
+    } catch (e: unknown) {
+        if (e instanceof Error && e.name === 'AbortError') {
+            throw new Error('Hết thời gian chờ phản hồi từ máy chủ.');
+        }
+        throw e;
+    } finally {
+        clearTimeout(timeoutId);
+    }
 }
 
-export function useVerifyQrCode() {
+export function useVerifyQrCode(classId?: string) {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: verifyQrCodeReq,
+        onSuccess: () => {
+            if (classId) {
+                queryClient.invalidateQueries({ queryKey: [CLASS_SESSIONS_KEY, classId] });
+            } else {
+                queryClient.invalidateQueries({ queryKey: [CLASS_SESSIONS_KEY] });
+            }
+            queryClient.invalidateQueries({ queryKey: [SESSION_ATTENDANCES_KEY] });
+        },
     });
 }

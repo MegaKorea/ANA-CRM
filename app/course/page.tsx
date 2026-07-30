@@ -28,7 +28,6 @@ export default function CoursePage() {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
-  // STU: read-only — giữ giao diện xem, ẩn CUD
   const { hasPermission: canManage } = useAuthPermission([
     'ADMIN',
     'TELESALES',

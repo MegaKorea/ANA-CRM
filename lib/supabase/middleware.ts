@@ -65,22 +65,45 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Student trying to access admin API routes (unless it's /api/student or /api/auth)
-    if (isStudentAuthenticated && !pathname.startsWith('/api/student') && !pathname.startsWith('/api/auth')) {
+    // Student API allowlist: student portal, auth, QR attendance + đọc lịch lớp
+    const studentApiAllowed =
+      pathname.startsWith('/api/student') ||
+      pathname.startsWith('/api/auth') ||
+      pathname.startsWith('/api/attendance/qr') ||
+      (request.method === 'GET' &&
+        (/^\/api\/classes\/[^/]+$/.test(pathname) ||
+          /^\/api\/classes\/[^/]+\/sessions$/.test(pathname) ||
+          /^\/api\/classes\/[^/]+\/students$/.test(pathname) ||
+          pathname === '/api/courses'));
+
+    if (isStudentAuthenticated && !studentApiAllowed) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
   }
 
   // Handle Login Routes
   if (isAuth) {
-    if (isAdminAuthenticated) {
+    const nextParam = searchParams.get('next');
+    const safeNext =
+      nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')
+        ? nextParam
+        : null;
+
+    if (isAdminAuthenticated || isStudentAuthenticated) {
       const url = request.nextUrl.clone();
-      url.pathname = DEFAULT_AUTHENTICATED_ROUTE;
-      return NextResponse.redirect(url);
-    }
-    if (isStudentAuthenticated) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/student'; // Default student landing page
+      if (safeNext) {
+        try {
+          const dest = new URL(safeNext, request.nextUrl.origin);
+          url.pathname = dest.pathname;
+          url.search = dest.search;
+        } catch {
+          url.pathname = isStudentAuthenticated ? '/course' : DEFAULT_AUTHENTICATED_ROUTE;
+          url.search = '';
+        }
+      } else {
+        url.pathname = isStudentAuthenticated ? '/course' : DEFAULT_AUTHENTICATED_ROUTE;
+        url.search = '';
+      }
       return NextResponse.redirect(url);
     }
   }
@@ -96,6 +119,22 @@ export async function updateSession(request: NextRequest) {
 
   // Handle Protected Admin Routes
   if (!isStudentRoute && !isAdminAuthenticated && !isPublic && !isApiRoute) {
+    // STU: khóa học, lớp (lịch), điểm danh QR
+    if (
+      isStudentAuthenticated &&
+      (pathname.startsWith('/attendance/qr') ||
+        pathname.startsWith('/course') ||
+        pathname.startsWith('/class'))
+    ) {
+      return supabaseResponse;
+    }
+    // STU hitting dashboard `/` or other staff pages → home course, not login
+    if (isStudentAuthenticated) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/course';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);

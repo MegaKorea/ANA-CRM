@@ -1,26 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClassSessions, generateSessionsForClass } from '@/lib/services/class_session.service';
+import { resolveClassViewer } from '@/lib/services/class_access.service';
 import { validateGenerateSessionsInput } from '@/lib/validators/class_session.validator';
 import { HttpStatusCode } from '@/constants/enums';
+import { AppError } from '@/errors';
+
+function errorResponse(error: unknown) {
+    if (error instanceof AppError) {
+        return NextResponse.json(
+            { error: error.message || error.code, code: error.code },
+            { status: error.statusCode },
+        );
+    }
+    const message = error instanceof Error ? error.message : 'Internal error';
+    return NextResponse.json({ error: message }, { status: HttpStatusCode.INTERNAL_SERVER_ERROR });
+}
 
 // GET /api/classes/[id]/sessions — List all sessions for a class
 export async function GET(
     _request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
     try {
         const { id } = await params;
-        const sessions = await getClassSessions(id);
+        const viewer = await resolveClassViewer(id);
+
+        const sessions = await getClassSessions(id, {
+            viewerUserId: viewer.kind === 'student' ? viewer.userId : null,
+            // Students must not receive live QR tokens (scan-only attendance).
+            redactQr: viewer.kind === 'student',
+        });
         return NextResponse.json(sessions, { status: HttpStatusCode.OK });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: HttpStatusCode.INTERNAL_SERVER_ERROR });
+    } catch (error: unknown) {
+        return errorResponse(error);
     }
 }
 
 // POST /api/classes/[id]/sessions — Auto-generate sessions for a class
 export async function POST(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
     try {
         const { id } = await params;
@@ -30,10 +49,10 @@ export async function POST(
             id,
             input.start_date,
             input.end_date,
-            input.schedule
+            input.schedule,
         );
         return NextResponse.json(sessions, { status: HttpStatusCode.CREATED });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: HttpStatusCode.INTERNAL_SERVER_ERROR });
+    } catch (error: unknown) {
+        return errorResponse(error);
     }
 }

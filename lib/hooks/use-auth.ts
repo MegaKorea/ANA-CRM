@@ -46,8 +46,14 @@ export function useLogin() {
 
       message.success(LoginFormMessage.LOGIN_SUCCESS);
 
-      if (data?.user?.roleCode === 'STU') {
-        router.push('/student');
+      const nextPath =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('next')
+          : null;
+      if (nextPath && nextPath.startsWith('/') && !nextPath.startsWith('//')) {
+        router.push(nextPath);
+      } else if (data?.user?.roleCode === 'STU') {
+        router.push('/course');
       } else {
         router.push(DEFAULT_AUTHENTICATED_ROUTE);
       }

@@ -243,7 +243,8 @@ export async function deleteUserById(id: string): Promise<void> {
 export async function createStudentAccountIfNotExists(
   phone: string,
   fullName: string,
-  email?: string | null
+  email?: string | null,
+  leadId?: number | null,
 ): Promise<void> {
   try {
     const supabase = createAdminClient();
@@ -251,12 +252,19 @@ export async function createStudentAccountIfNotExists(
     // Check if user with this phone already exists in our table
     const { data: existingUser } = await supabase
       .from('users')
-      .select('id')
+      .select('id, lead_id')
       .eq('phone', phone)
       .maybeSingle();
 
     if (existingUser) {
-      return; // Account already exists
+      const row = existingUser as { id: string; lead_id: number | null };
+      if (leadId != null && row.lead_id !== leadId) {
+        await supabase
+          .from('users')
+          .update({ lead_id: leadId } as never)
+          .eq('id', row.id);
+      }
+      return;
     }
 
     // Get STU role id
@@ -293,6 +301,7 @@ export async function createStudentAccountIfNotExists(
         phone: phone,
         status: UserStatusDb.ACTIVE,
         role_id: (role as any).id,
+        lead_id: leadId ?? null,
       };
 
       const { error: insertError } = await supabase
@@ -313,6 +322,8 @@ export async function createStudentAccountIfNotExists(
         email_confirm: true,
         user_metadata: {
           full_name: fullName,
+          role: 'STU',
+          ...(leadId != null ? { lead_id: leadId } : {}),
         },
       });
 
@@ -328,6 +339,7 @@ export async function createStudentAccountIfNotExists(
       phone: phone,
       status: UserStatusDb.ACTIVE,
       role_id: (role as any).id,
+      lead_id: leadId ?? null,
     };
 
     const { error: insertError } = await supabase

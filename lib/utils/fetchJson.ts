@@ -11,7 +11,15 @@ export class FetchJsonError extends Error {
 }
 
 export async function fetchJson<TResponse>(input: RequestInfo | URL, init?: RequestInit): Promise<TResponse> {
-  const res = await fetch(input, init);
+  let res: Response;
+  try {
+    res = await fetch(input, init);
+  } catch (e: unknown) {
+    if (e instanceof Error && (e.name === 'AbortError' || e.message.includes('aborted'))) {
+      throw new Error('Hết thời gian chờ phản hồi từ máy chủ.');
+    }
+    throw e;
+  }
 
   const contentType = res.headers.get('content-type') ?? '';
   const isJson = contentType.includes('application/json');

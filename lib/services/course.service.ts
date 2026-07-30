@@ -9,7 +9,6 @@ export async function fetchAllCourses(studentPhone?: string): Promise<Course[]> 
 
     let query = supabase.from('courses').select('*').order('created_at', { ascending: false });
 
-    // STU: chỉ khóa gắn với lớp đang học; chưa có lớp → []
     if (studentPhone) {
         const { data: leadData } = await supabase
             .from('leads')
