@@ -61,10 +61,25 @@ function initials(name: string) {
     : (name[0]?.toUpperCase() ?? '?');
 }
 
+const MASKED_CONTACT = '*********';
+
+function isOwnStudentRow(
+  record: { login_email?: string; leads?: { email?: string; phone_number?: string } | null },
+  userEmail: string | null | undefined,
+) {
+  if (!userEmail) return false;
+  const email = userEmail.toLowerCase();
+  return (
+    record.login_email?.toLowerCase() === email ||
+    record.leads?.email?.toLowerCase() === email
+  );
+}
+
 export function TabStudents({ classData }: { classData: Class }) {
   const { token } = theme.useToken();
   const isMobile = useIsMobile();
-  const { hasPermission: isManager } = useAuthPermission(['ADMIN', 'AO']);
+  const { hasPermission: isManager, user } = useAuthPermission(['ADMIN', 'AO']);
+  const maskPeerContacts = user?.roleCode === 'STU';
   const { data: students, isLoading } = useClassStudents(classData.id);
   const { data: leadsData, isLoading: isLeadsLoading } = useLeads({ limit: 100, page: 1 });
   const addStudentMutation = useAddClassStudent(classData.id);
@@ -119,6 +134,16 @@ export function TabStudents({ classData }: { classData: Class }) {
 
   const isFull = !!(classData.capacity && students && students.length >= classData.capacity);
 
+  const resolveContact = useCallback(
+    (value: string | null | undefined, record: any, emptyLabel?: string) => {
+      if (maskPeerContacts && !isOwnStudentRow(record, user?.email)) {
+        return value ? MASKED_CONTACT : emptyLabel ?? '';
+      }
+      return value || emptyLabel || '';
+    },
+    [maskPeerContacts, user?.email],
+  );
+
   // ── Desktop columns ────────────────────────────────────────────────────
   const columns = useMemo(() => {
     const cols: any[] = [
@@ -128,12 +153,19 @@ export function TabStudents({ classData }: { classData: Class }) {
         key: 'full_name',
         render: (text: string) => <Text strong>{text || 'N/A'}</Text>,
       },
-      { title: 'SĐT', dataIndex: ['leads', 'phone_number'], key: 'phone_number' },
+      {
+        title: 'SĐT',
+        dataIndex: ['leads', 'phone_number'],
+        key: 'phone_number',
+        render: (text: string, record: any) => resolveContact(text, record),
+      },
       {
         title: 'Email',
         dataIndex: 'login_email',
         key: 'login_email',
-        render: (text: string) => <Text>{text || 'Chưa thiết lập'}</Text>
+        render: (text: string, record: any) => (
+          <Text>{resolveContact(text, record, 'Chưa thiết lập')}</Text>
+        ),
       },
       {
         title: 'Ngày tham gia',
@@ -205,7 +237,7 @@ export function TabStudents({ classData }: { classData: Class }) {
       );
     }
     return cols;
-  }, [handleRemoveStudent, isManager]);
+  }, [handleRemoveStudent, isManager, resolveContact]);
 
   // ── Toolbar (dùng chung mobile + desktop) ─────────────────────────────
   const toolbar = (
@@ -256,8 +288,12 @@ export function TabStudents({ classData }: { classData: Class }) {
   // ── Mobile card item ───────────────────────────────────────────────────
   const renderMobileCard = (record: any) => {
     const name = record.leads?.full_name || 'N/A';
-    const phone = record.leads?.phone_number;
-    const email = record.login_email;
+    const phoneRaw = record.leads?.phone_number;
+    const emailRaw = record.login_email;
+    const phone = resolveContact(phoneRaw, record) || null;
+    const email = emailRaw
+      ? resolveContact(emailRaw, record)
+      : null;
     const date = record.enrollment_date ? dayjs(record.enrollment_date).format('DD/MM/YYYY') : '';
     const status = studentStatusMeta[record.status] ?? {
       label: record.status || '—',
@@ -271,7 +307,6 @@ export function TabStudents({ classData }: { classData: Class }) {
           style={{ width: '100%', borderRadius: token.borderRadiusLG }}
           styles={{ body: { padding: '12px 14px' } }}
         >
-          {/* Header: avatar + tên + status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
             <Avatar
               size={40}

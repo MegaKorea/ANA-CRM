@@ -43,6 +43,9 @@ file.env.local
 # vercel
 .vercel
 
+# local tunnel binaries (do not commit)
+cloudflared*.exe
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

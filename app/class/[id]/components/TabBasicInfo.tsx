@@ -2,7 +2,8 @@ import { App, Button, DatePicker, Form, Input, InputNumber, Row, Select, Space }
 import { useUpdateClass } from '@/lib/hooks/use-classes';
 import { useCourses } from '@/lib/hooks/use-courses';
 import type { Class } from '@/lib/services/class.service';
-import type { UpdateClassInput } from '@/lib/validators/class.validator';
+import type { UpdateClassInput, ClassTimetable } from '@/lib/validators/class.validator';
+import { normalizeClassTimetable } from '@/lib/validators/class.validator';
 import { useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
@@ -10,11 +11,11 @@ import { CLASS_STATUS_OPTIONS } from '@/lib/constants/classStatus';
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import styles from './components.module.scss';
 
-type ClassBasicInfoFormValues = Omit<UpdateClassInput, 'start_date' | 'end_date' | 'schedule'> & {
+type ClassBasicInfoFormValues = Omit<UpdateClassInput, 'start_date' | 'end_date' | 'schedule' | 'timetable'> & {
   start_date?: Dayjs | null;
   end_date?: Dayjs | null;
   schedule?: Dayjs | null;
-  timetable?: 'Sáng' | 'Chiều' | 'Tối' | null;
+  timetable?: ClassTimetable | null;
 };
 
 export function TabBasicInfo({ classData }: { classData: Class }) {
@@ -35,7 +36,7 @@ export function TabBasicInfo({ classData }: { classData: Class }) {
       start_date: classData.start_date ? dayjs(classData.start_date) : null,
       end_date: classData.end_date ? dayjs(classData.end_date) : null,
       schedule: classData.schedule ? dayjs(classData.schedule) : null,
-      timetable: classData.timetable,
+      timetable: normalizeClassTimetable(classData.timetable),
     }),
     [classData],
   );
@@ -50,6 +51,7 @@ export function TabBasicInfo({ classData }: { classData: Class }) {
       start_date: values.start_date?.format('YYYY-MM-DD') ?? null,
       end_date: values.end_date?.format('YYYY-MM-DD') ?? null,
       schedule: values.schedule?.format('YYYY-MM-DD') ?? null,
+      timetable: normalizeClassTimetable(values.timetable),
     };
     updateClassMutation.mutate(
       { id: classData.id, data: payload },
@@ -134,14 +136,17 @@ export function TabBasicInfo({ classData }: { classData: Class }) {
             />
           </Form.Item>
 
-          <Form.Item name="timetable" label="Thời khóa biểu">
+          <Form.Item
+            name="timetable"
+            label="Thời khóa biểu"
+            rules={[{ required: true, message: 'Chọn ca Sáng hoặc Chiều' }]}
+            extra="Đồng bộ sang tab Lịch học"
+          >
             <Select
-              placeholder="Chọn buổi học"
-              allowClear
+              placeholder="Chọn ca Sáng / Chiều"
               options={[
-                { label: 'Sáng', value: 'Sáng' },
-                { label: 'Chiều', value: 'Chiều' },
-                { label: 'Tối', value: 'Tối' },
+                { label: 'Sáng (8h00 – 11h45)', value: 'Sáng' },
+                { label: 'Chiều (13h00 – 16h45)', value: 'Chiều' },
               ]}
             />
           </Form.Item>

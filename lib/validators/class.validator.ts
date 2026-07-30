@@ -1,6 +1,8 @@
 import { AppError } from '@/errors';
 import { HttpStatusCode } from '@/constants/enums';
 
+export type ClassTimetable = 'Sáng' | 'Chiều';
+
 export interface CreateClassInput {
     code?: string | null;
     name: string;
@@ -10,8 +12,14 @@ export interface CreateClassInput {
     start_date?: string | null;
     end_date?: string | null;
     schedule?: string | null;
-    timetable?: 'Sáng' | 'Chiều' | 'Tối' | null;
+    timetable?: ClassTimetable | null;
     homeroom_teacher_id?: string | null;
+}
+
+export function normalizeClassTimetable(value: unknown): ClassTimetable | null {
+    if (value === 'Sáng' || value === 'Chiều') return value;
+    if (value === 'Tối') return 'Chiều';
+    return null;
 }
 
 export function validateCreateClassInput(input: unknown): CreateClassInput {
@@ -40,7 +48,7 @@ export function validateCreateClassInput(input: unknown): CreateClassInput {
         start_date: typeof data.start_date === 'string' ? data.start_date.trim() : null,
         end_date: typeof data.end_date === 'string' ? data.end_date.trim() : null,
         schedule: typeof data.schedule === 'string' ? data.schedule.trim() : null,
-        timetable: ['Sáng', 'Chiều', 'Tối'].includes(data.timetable as string) ? (data.timetable as any) : null,
+        timetable: normalizeClassTimetable(data.timetable),
         homeroom_teacher_id: typeof data.homeroom_teacher_id === 'string' ? data.homeroom_teacher_id.trim() : null,
     };
 }
@@ -95,8 +103,8 @@ export function validateUpdateClassInput(input: unknown): UpdateClassInput {
         updateData.schedule = typeof data.schedule === 'string' ? data.schedule.trim() : null;
     }
 
-    if (data.timetable !== undefined) {
-        updateData.timetable = ['Sáng', 'Chiều', 'Tối'].includes(data.timetable as string) ? (data.timetable as any) : null;
+    if ('timetable' in data) {
+        updateData.timetable = normalizeClassTimetable(data.timetable);
     }
 
     if (data.homeroom_teacher_id !== undefined) {

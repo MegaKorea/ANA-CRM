@@ -41,8 +41,6 @@ export async function loginWithEmailAndPassword(
     password: input.password,
   });
 
-  console.log(authData, authError);
-
   if (authError) {
     if (authError.message.includes(AuthMessage.INVALID_CREDENTIALS)) {
       throw new AppError(

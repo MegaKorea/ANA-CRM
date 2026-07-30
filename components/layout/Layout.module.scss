@@ -23,4 +23,12 @@
   border-radius: 8px;
   min-height: calc(100vh - 64px - 48px - 53px);
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
+
+  @media (max-width: 767px) {
+    margin: 12px;
+    // Primary page scroller on phone — avoid fighting child overflow.
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+  }
 }

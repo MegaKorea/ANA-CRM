@@ -3,27 +3,42 @@ import { verifyQrCodeAndMarkAttendance } from '@/lib/services/class_session.serv
 import { validateVerifyQrInput } from '@/lib/validators/class_session.validator';
 import { HttpStatusCode } from '@/constants/enums';
 import { createClient } from '@/lib/supabase/server';
+import { AppError } from '@/errors';
 
-// POST /api/attendance/qr — Student scans QR and marks attendance
+/** POST /api/attendance/qr — học viên quét QR → ghi present */
 export async function POST(request: NextRequest): Promise<NextResponse> {
     try {
-        // Get the currently authenticated student
         const supabase = await createClient();
-        const { data: { user: authUser } } = await supabase.auth.getUser();
+        const {
+            data: { user: authUser },
+        } = await supabase.auth.getUser();
 
         if (!authUser) {
-            return NextResponse.json(
-                { error: 'Bạn cần đăng nhập để điểm danh.' },
-                { status: HttpStatusCode.UNAUTHORIZED }
+            throw new AppError(
+                'UNAUTHORIZED',
+                HttpStatusCode.UNAUTHORIZED,
+                'Bạn cần đăng nhập để điểm danh.',
             );
         }
 
         const body = await request.json();
         const input = validateVerifyQrInput(body);
-        const attendance = await verifyQrCodeAndMarkAttendance(input.token, authUser.id);
+        const result = await verifyQrCodeAndMarkAttendance(input.token, authUser.id);
 
-        return NextResponse.json(attendance, { status: HttpStatusCode.OK });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: HttpStatusCode.INTERNAL_SERVER_ERROR });
+        return NextResponse.json(result, { status: HttpStatusCode.OK });
+    } catch (error: unknown) {
+        if (error instanceof AppError) {
+            return NextResponse.json(
+                { error: error.message || error.code, code: error.code },
+                { status: error.statusCode },
+            );
+        }
+
+        const message = error instanceof Error ? error.message : 'Điểm danh thất bại.';
+        console.error('[POST /api/attendance/qr]', message, error);
+        return NextResponse.json(
+            { error: message },
+            { status: HttpStatusCode.INTERNAL_SERVER_ERROR },
+        );
     }
 }

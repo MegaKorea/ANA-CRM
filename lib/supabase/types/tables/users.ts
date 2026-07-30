@@ -11,6 +11,7 @@ export interface UsersTable {
     address: string | null;
     birth_day: string | null;
     role_id: number;
+    lead_id: number | null;
     last_login: string | null;
     updated_at: string | null;
     created_at: string | null;
@@ -27,6 +28,7 @@ export interface UsersTable {
     address?: string | null;
     birth_day?: string | null;
     role_id: number;
+    lead_id?: number | null;
     last_login?: string | null;
     updated_at?: string | null;
     created_at?: string | null;
@@ -43,6 +45,7 @@ export interface UsersTable {
     address?: string | null;
     birth_day?: string | null;
     role_id?: number;
+    lead_id?: number | null;
     last_login?: string | null;
     updated_at?: string | null;
     created_at?: string | null;

@@ -1,11 +1,12 @@
 'use client';
 
 import styles from './page.module.scss';
-import { Tabs, Spin, Typography, Card, Breadcrumb, Space, Tag, Result, Button } from 'antd';
+import { Tabs, Spin, Typography, Card, Breadcrumb, Tag, Result, Button } from 'antd';
 import { HomeOutlined } from '@ant-design/icons';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useClass } from '@/lib/hooks/use-classes';
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
+import { useUserStore } from '@/lib/stores/user.store';
 
 import { TabBasicInfo } from './components/TabBasicInfo';
 import { TabTeachers } from './components/TabTeachers';
@@ -15,10 +16,19 @@ import { getClassStatusMeta } from '@/lib/constants/classStatus';
 
 const { Title, Text } = Typography;
 
+const CLASS_TABS = new Set(['basic_info', 'teachers', 'students', 'schedule']);
+
 export default function ClassDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const classId = params.id as string;
+
+  const tabParam = searchParams.get('tab') || 'basic_info';
+  const activeTab = CLASS_TABS.has(tabParam) ? tabParam : 'basic_info';
+
+  const roleCode = useUserStore((s) => s.user?.roleCode);
+  const homeHref = roleCode === 'STU' ? '/course' : '/';
 
   const { hasPermission, isLoading: isAuthLoading } = useAuthPermission([
     'ADMIN',
@@ -46,7 +56,7 @@ export default function ClassDetailPage() {
           title="403"
           subTitle="Xin lỗi, bạn không có quyền truy cập trang này."
           extra={
-            <Button type="primary" onClick={() => router.push('/')}>
+            <Button type="primary" onClick={() => router.push(homeHref)}>
               Trở về trang chủ
             </Button>
           }
@@ -65,10 +75,16 @@ export default function ClassDetailPage() {
 
   const statusMeta = getClassStatusMeta(classData.status);
 
+  const onTabChange = (key: string) => {
+    const next = new URLSearchParams(searchParams.toString());
+    next.set('tab', key);
+    router.replace(`/class/${classId}?${next.toString()}`, { scroll: false });
+  };
+
   return (
     <div className={styles.pageContainer}>
       <Breadcrumb className={styles.breadcrumb}>
-        <Breadcrumb.Item href="/">
+        <Breadcrumb.Item href={homeHref}>
           <HomeOutlined />
         </Breadcrumb.Item>
         <Breadcrumb.Item href="/class">
@@ -108,11 +124,12 @@ export default function ClassDetailPage() {
       <Card
         className={styles.cardContainer}
         styles={{
-          body: { padding: '12px 24px' }, // Fix from padding '12px sm:24px' string notation tailwind -> regular string since dynamic css shouldn't apply here in tailwind syntax anyway
+          body: { padding: '12px 24px' },
         }}
       >
         <Tabs
-          defaultActiveKey="basic_info"
+          activeKey={activeTab}
+          onChange={onTabChange}
           size="small"
           className={styles.tabsContainer}
           items={[

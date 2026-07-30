@@ -9,7 +9,7 @@ export interface Class {
     start_date: string | null;
     end_date: string | null;
     schedule: string | null;
-    timetable: 'Sáng' | 'Chiều' | 'Tối' | null;
+    timetable: 'Sáng' | 'Chiều' | null;
     capacity: number | null;
     status: string | null;
     homeroom_teacher_id: string | null;
