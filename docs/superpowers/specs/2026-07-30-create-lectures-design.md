@@ -2,149 +2,177 @@
 
 **Date:** 2026-07-30  
 **Branch:** `feat/create-lectures`  
-**Status:** Approved for planning
+**Status:** Draft (revised to existing Supabase schema — pending re-approval)
 
 ## Goal
 
-Enable teachers (TEA) to create and manage lecture content at three independent scopes: course, class, and class session. Staff and enrolled students can view; only TEA can create/update/delete. Quiz linking is out of scope for phase 1.
+Teachers (TEA) create/edit **bài giảng buổi học** and (optionally later) **quiz** using tables already in Supabase. Staff + enrolled STU can view. No new `lectures` / `lecture_attachments` tables.
 
-## Requirements (confirmed)
+## Requirements (revised vs prior draft)
 
-| Topic | Decision |
-|-------|----------|
-| Scopes | Course, class, session — **independent** (no inherit/copy) |
-| Cardinality | **Many lectures** per scope at all three levels |
-| Content | Title + rich text + external links + file attachments |
-| Write roles | **TEA only** |
-| Read roles | Staff with LMS access + STU who can access the related course/class |
-| Approach | Single polymorphic `lectures` table + shared UI |
+| Topic | Prior draft | Revised (existing DB) |
+|-------|-------------|------------------------|
+| Scopes | course / class / session independent many-rows | **Session** content lives on `class_sessions`; **quiz** on `quizzes` (`class_id` + optional `session_id`) |
+| Cardinality | Many lectures per scope | **1 content payload per session** (`content` + `body_json` + `attachments`); many **quizzes** per class/session |
+| Course / class lecture lists | Planned | **Not in DB today** — `courses` only has `description`; `classes` has no content fields (see Open question) |
+| Write roles | TEA only | TEA only (unchanged) |
+| Read roles | Staff + enrolled STU | Unchanged; reuse `resolveClassViewer` |
+| Approach | New polymorphic tables | **Reuse remote schema**; sync TypeScript types in repo |
 
-## Data model
+## Data model (existing Supabase)
 
-### Table `lectures`
+### `class_sessions` — bài giảng buổi học
+
+| Column | Type | Role for lectures |
+|--------|------|-------------------|
+| `id` | uuid | Session PK |
+| `class_id` | uuid | Class FK |
+| `content` | text \| null | Short title / summary text |
+| `body_json` | jsonb | Rich body (default `{}`) — links, structured blocks, etc. |
+| `attachments` | jsonb | File list (default `[]`) — CDN URLs from `/api/upload` |
+| `has_content` | boolean | Flag when lecture content is present |
+| `has_quiz` | boolean | Flag when a quiz is linked/published for this session |
+| (+ existing) | | `session_number`, `date`, `teacher_id`, `room`, QR fields, timestamps |
+
+**Semantics:** editing “bài giảng buổi X” = `PATCH` that session’s `content` / `body_json` / `attachments` / `has_content`. Not a separate lecture row.
+
+**Suggested `attachments` item shape** (app convention; DB is free jsonb):
+
+```json
+{ "name": "slide.pdf", "url": "https://...", "mime_type": "application/pdf", "size": 12345 }
+```
+
+**Suggested `body_json` shape** (app convention):
+
+```json
+{
+  "html": "<p>...</p>",
+  "links": [{ "label": "Drive", "url": "https://..." }]
+}
+```
+
+(Exact keys can be refined in implementation; keep backward-compatible with `{}`.)
+
+### `quizzes` — quiz gắn lớp / buổi
 
 | Column | Type | Notes |
 |--------|------|-------|
-| `id` | uuid PK | |
-| `scope_type` | text | `course` \| `class` \| `session` |
-| `scope_id` | text/uuid | Matches `courses.id`, `classes.id`, or `class_sessions.id` |
+| `id` | uuid | PK |
+| `class_id` | uuid | Required FK → `classes` |
+| `session_id` | uuid \| null | Optional FK → `class_sessions` |
 | `title` | text | Required |
-| `content` | text | Nullable; HTML or plain/markdown (phase 1: textarea / light markdown) |
-| `links` | jsonb | Array of `{ label: string, url: string }`, default `[]` |
-| `sort_order` | int | Default 0; simple ordering |
-| `created_by` | uuid | FK → `users.id` (author TEA) |
-| `created_at` | timestamptz | |
-| `updated_at` | timestamptz | |
+| `duration_minutes` | int | Default 0 |
+| `passing_score` | int | Default 0 |
+| `is_published` | boolean | Default false |
+| `has_essay` | boolean | Default false |
+| `questions` | jsonb | Question bank payload |
+| `created_at` / `updated_at` | timestamptz | |
 
-Indexes: `(scope_type, scope_id, sort_order)`.
-
-Application-level validation that `scope_id` exists for the given `scope_type` (no polymorphic DB FK).
-
-### Table `lecture_attachments`
+### `quiz_attempts` — bài làm của học viên
 
 | Column | Type | Notes |
 |--------|------|-------|
-| `id` | uuid PK | |
-| `lecture_id` | uuid FK → lectures | ON DELETE CASCADE |
-| `name` | text | Display filename |
-| `url` | text | CDN URL from existing upload |
-| `mime_type` | text | Nullable |
-| `size` | int | Nullable (bytes) |
-| `sort_order` | int | Default 0 |
-| `created_at` | timestamptz | |
+| `id` | uuid | PK |
+| `quiz_id` | uuid | FK → `quizzes` |
+| `student_id` | uuid | FK → `users` |
+| `score`, `total_questions`, `correct_answers` | int | |
+| `is_passed` | boolean | |
+| `status` | text | Default `COMPLETED` |
+| `user_answers` | jsonb | |
+| `teacher_feedback` | text \| null | |
+| `graded_by` | uuid \| null | FK → `users` |
+| `submitted_at` | timestamptz | |
 
-## API
+### Not present (gap)
+
+- No `lectures` / `lecture_attachments` tables
+- No course-level or class-level lecture content columns beyond `courses.description`
+
+## API (revised)
+
+### Session lecture (phase 1 core)
 
 | Method | Path | Authz |
 |--------|------|-------|
-| GET | `/api/lectures?scope_type=&scope_id=` | Logged-in; viewer must pass scope access check |
-| POST | `/api/lectures` | TEA only |
-| GET | `/api/lectures/[id]` | Same as list for that lecture’s scope |
-| PATCH | `/api/lectures/[id]` | TEA only |
-| DELETE | `/api/lectures/[id]` | TEA only |
+| GET | `/api/classes/[classId]/sessions/[sessionId]/lecture` (or extend existing session GET) | Class viewer (staff / enrolled STU) |
+| PATCH | same | **TEA only** — body: `{ content?, body_json?, attachments?, has_content? }` |
 
-### Request / response shape (conceptual)
+Prefer extending existing session update route if it already allows TEA to PATCH `content`, then add `body_json` / `attachments` / `has_content` to validator + service + types.
 
-**Create body:** `{ scope_type, scope_id, title, content?, links?, attachments?: [{ name, url, mime_type?, size? }], sort_order? }`
+### Quiz (phase 1 optional / phase 1b)
 
-**List item:** lecture fields + `attachments[]` + optional author display name.
+| Method | Path | Authz |
+|--------|------|-------|
+| GET | `/api/quizzes?class_id=&session_id=` | Class viewer |
+| POST / PATCH / DELETE | `/api/quizzes`, `/api/quizzes/[id]` | TEA only |
+| POST | `/api/quizzes/[id]/attempts` | Enrolled STU |
+| GET / PATCH | attempts (grade) | TEA / owner STU as appropriate |
 
-### Authorization details
+### Authorization
 
-**Write:** role code `TEA`. Phase 1 does **not** restrict TEA to classes they teach (`subject_teachers`); can tighten later.
-
-**Read — by scope:**
-
-- `class`: reuse `resolveClassViewer` (staff OK; STU must be enrolled).
-- `session`: resolve session → `class_id`, then same class viewer check.
-- `course`: staff OK if authenticated for LMS; STU only if enrolled in at least one class of that course (or equivalent existing course-access rule if present).
+- **Write lecture/quiz:** `TEA`
+- **Read:** `resolveClassViewer` for the session’s `class_id`
+- Phase 1: do not restrict TEA to `subject_teachers` (same as prior)
 
 ### Errors
 
-- 401 unauthenticated
-- 403 not enrolled / not TEA on write
-- 404 missing scope or lecture
-- 400 validation (empty title, invalid URL in links, invalid `scope_type`)
-
-Follow existing `AppError` / `fail` / `handleRouteError` patterns.
+401 / 403 / 404 / 400 — existing `AppError` patterns.
 
 ## Services & hooks
 
-- `lib/services/lecture.service.ts` — CRUD + attachment sync
-- `lib/services/lecture_access.service.ts` (or extend class/course access helpers) — scope viewer resolution
-- `lib/validators/lecture.validator.ts`
-- `lib/hooks/use-lectures.ts` — React Query list/mutations keyed by `[scope_type, scope_id]`
-- Types under `lib/supabase/types/tables/`
+- Sync types: `lib/supabase/types/tables/class_sessions.ts` (+ add `quizzes.ts`, `quiz_attempts.ts` to `TablesMap`)
+- Extend `class_session.service` update path for lecture fields
+- `lib/services/quiz.service.ts` + validators + `use-quizzes` when quiz UI ships
+- **No** new migration for lectures tables (schema already on remote)
 
-## UI
+## UI (revised)
 
-### Shared `LecturePanel`
+1. **Buổi học** (`TabSchedule` session detail): form “Bài giảng” — title/`content`, rich/`body_json`, links, attachments upload; toggle/`has_content`
+2. **Quiz** (same session or class): create/publish quiz when in scope; set `has_quiz` on session when linked
+3. **Course / class lecture tabs:** deferred until product decides how to store them (no columns today)
 
-Props: `scopeType`, `scopeId`, `canEdit` (true for TEA).
+## Upload
 
-- List lectures (title, content preview, attachment/link counts)
-- Detail: content, links, download/open attachments
-- TEA: create/edit modal (title, content textarea, link list editor, file upload), delete confirm
-- Non-TEA: read-only
+Reuse `POST /api/upload`; push `{ name, url, ... }` into `class_sessions.attachments` jsonb array.
 
-### Placement
+## Out of scope until decided
 
-1. **Course** (`/course`): drawer (or modal) “Bài giảng” from course list row/actions
-2. **Class** (`/class/[id]`): new tab **Bài giảng** alongside basic_info / teachers / students / schedule
-3. **Session** (`TabSchedule`): from session detail → “Bài giảng buổi này” opening `LecturePanel` with `scope=session`
-
-### Upload
-
-Reuse `POST /api/upload` (CDN `cfig.ibytecdn.org`). Store returned URL on `lecture_attachments`. Phase 1 accepts types/sizes the CDN already allows (images today; extend upload API if PDF/video needed — note as implementation task if current endpoint is image-only).
-
-## Out of scope (phase 1)
-
-- Quiz create / attach
-- Inherit or copy lectures across scopes
-- Advanced rich-text editor / drag-and-drop reorder
-- Restrict TEA write to assigned classes only
-- Dedicated course detail page (unless already exists; MVP uses drawer from list)
+- Polymorphic `lectures` table (rejected — use existing)
+- Course-level / class-level multi-lecture lists without schema support
+- Inherit/copy across scopes
 
 ## Testing
 
-- API: TEA CRUD success; AO/STU write → 403; STU not enrolled → 403; staff/enrolled STU list → 200
-- UI smoke: class tab, course drawer, session modal
-- `tsc --noEmit` clean
+- TEA PATCH session lecture fields; AO/STU PATCH → 403
+- Enrolled STU GET lecture → 200; non-enrolled → 403
+- Types include new columns; `tsc --noEmit` clean
+- Quiz CRUD smoke when phase 1b included
 
 ## Architecture sketch
 
 ```
-UI LecturePanel
-    ↓ React Query
-/api/lectures[+id]
+UI (TabSchedule lecture form)
     ↓
-lecture.service + lecture_access
+existing / extended session API
     ↓
-Supabase: lectures, lecture_attachments
+class_session.service
+    ↓
+Supabase class_sessions (content, body_json, attachments, has_content, has_quiz)
+
+UI (quiz) ──► quizzes / quiz_attempts
 ```
 
-## Open implementation notes
+## Open question (need answer before planning)
 
-1. Confirm whether `/api/upload` must be extended beyond images for PDF/docs.
-2. SQL migration goes under `lib/supabase/migrations/` (same pattern as existing class/course migrations).
-3. Course-level STU access: implement via “enrolled in any class of course” unless a stronger rule already exists.
+**Khóa học / lớp học “bài giảng riêng”:** remote DB không có bảng/cột cho nhiều bài ở cấp course/class.
+
+A. **Phase 1 chỉ buổi học** (+ quiz trên `quizzes`) — course/class bỏ tạm  
+B. **Dùng `courses.description`** làm “bài” khóa (1 text, không file list)  
+C. **Vẫn cần nhiều bài ở course/class** → phải thêm migration (mâu thuẫn “chỉ bảng sẵn có”)
+
+## Changelog vs first approved draft
+
+- Removed proposed `lectures` + `lecture_attachments`
+- Mapped session lectures → `class_sessions` columns already on remote
+- Mapped quiz → `quizzes` + `quiz_attempts`
+- Marked course/class multi-lecture as blocked on schema
