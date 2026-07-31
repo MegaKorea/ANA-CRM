@@ -1,0 +1,26 @@
+export enum UserNotificationType {
+  LECTURE_CREATED = 'lecture_created',
+  QUIZ_PUBLISHED = 'quiz_published',
+}
+
+export enum NotificationPayloadKind {
+  LECTURE = 'lecture',
+  QUIZ = 'quiz',
+}
+
+export enum UserNotificationErrorCode {
+  FORBIDDEN = 'NOTIFICATION_FORBIDDEN',
+  NOT_FOUND = 'NOTIFICATION_NOT_FOUND',
+  FETCH_FAILED = 'NOTIFICATION_FETCH_FAILED',
+  CREATE_FAILED = 'NOTIFICATION_CREATE_FAILED',
+  UPDATE_FAILED = 'NOTIFICATION_UPDATE_FAILED',
+  INVALID_INPUT = 'NOTIFICATION_INVALID_INPUT',
+  INTERNAL = 'NOTIFICATION_INTERNAL_ERROR',
+}
+
+export enum UserNotificationLimit {
+  LIST_DEFAULT = 30,
+  LIST_MAX = 50,
+  PREVIEW_HTML_MAX = 2000,
+  POLL_INTERVAL_MS = 15_000,
+}

@@ -1,0 +1,61 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { ClassMemberRole, HttpStatusCode, QuizErrorCode } from '@/constants/enums';
+import {
+  assertQuizBelongsToSession,
+  assertQuizStudentSubmitter,
+  sessionContentErrorResponse,
+} from '@/lib/api/session-content-route';
+import { getCurrentUser } from '@/lib/services/auth.service';
+import { resolveClassViewer } from '@/lib/services/class_access.service';
+import { getSessionById } from '@/lib/services/class_session.service';
+import {
+  getMyQuizAttempt,
+  getQuizById,
+  listQuizAttemptsForTeacher,
+  submitQuizAttempt,
+} from '@/lib/services/quiz.service';
+import { validateSubmitAttemptInput } from '@/lib/validators/quiz.validator';
+
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ sessionId: string; quizId: string }> },
+): Promise<NextResponse> {
+  try {
+    const user = await getCurrentUser();
+    const { sessionId, quizId } = await params;
+    const session = await getSessionById(sessionId);
+    await resolveClassViewer(session.class_id);
+    const quiz = await getQuizById(quizId);
+    assertQuizBelongsToSession(quiz, sessionId);
+
+    if (user.roleCode === ClassMemberRole.TEA) {
+      const items = await listQuizAttemptsForTeacher(quizId);
+      return NextResponse.json({ items }, { status: HttpStatusCode.OK });
+    }
+
+    const attempt = await getMyQuizAttempt(quizId, user.id);
+    return NextResponse.json(attempt, { status: HttpStatusCode.OK });
+  } catch (error: unknown) {
+    return sessionContentErrorResponse(error, QuizErrorCode.INTERNAL);
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ sessionId: string; quizId: string }> },
+): Promise<NextResponse> {
+  try {
+    const user = await assertQuizStudentSubmitter();
+    const { sessionId, quizId } = await params;
+    const session = await getSessionById(sessionId);
+    await resolveClassViewer(session.class_id);
+    const quiz = await getQuizById(quizId);
+    assertQuizBelongsToSession(quiz, sessionId);
+    const body = await request.json();
+    const answers = validateSubmitAttemptInput(body);
+    const attempt = await submitQuizAttempt(quizId, user.id, answers);
+    return NextResponse.json(attempt, { status: HttpStatusCode.CREATED });
+  } catch (error: unknown) {
+    return sessionContentErrorResponse(error, QuizErrorCode.INTERNAL);
+  }
+}

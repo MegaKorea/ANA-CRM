@@ -950,6 +950,331 @@
     }
 }
 
+.lecturesPanel {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid #E5E9F0;
+}
+
+.lecturesHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.lecturesTitle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.lecturesList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.lectureItem {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #E5E9F0;
+    background: #fafbfc;
+    transition: border-color 0.15s, background 0.15s;
+
+    &:hover {
+        border-color: #c7d2fe;
+        background: #f8faff;
+    }
+}
+
+.lectureItemMain {
+    min-width: 0;
+    flex: 1;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+
+    &:focus-visible {
+        outline: 2px solid #2f6bff;
+        outline-offset: 2px;
+        border-radius: 6px;
+    }
+}
+
+.lectureItemTitle {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.lectureItemPreview {
+    margin: 4px 0 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #6b7280;
+    white-space: pre-wrap;
+}
+
+.lectureLinks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+
+    a {
+        font-size: 12px;
+    }
+}
+
+.lectureImages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+    align-items: center;
+}
+
+.lectureThumb {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #e5e9f0;
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+}
+
+.lectureThumbMore {
+    font-size: 12px;
+}
+
+.lectureLinkHint {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+}
+
+.lectureDetailBody {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: min(70vh, 560px);
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.lectureDetailContent {
+    font-size: 14px;
+    line-height: 1.65;
+    color: #374151;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.lectureDetailSection {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.lectureDetailImages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.lectureDetailLinks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    a {
+        font-size: 14px;
+    }
+}
+
+.lectureImagesForm {
+    margin-bottom: 16px;
+}
+
+.lectureImagesEdit {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.lectureImageChip {
+    position: relative;
+    width: 72px;
+    height: 72px;
+}
+
+.lectureImageRemove {
+    position: absolute !important;
+    top: -6px;
+    right: -6px;
+    z-index: 2;
+    background: #fff !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.lectureItemActions {
+    flex-shrink: 0;
+}
+
+.lectureLinksForm {
+    margin-top: 4px;
+}
+
+.quizStatusRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+}
+
+.quizEditorList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.quizEditorCard {
+    padding: 12px;
+    border: 1px solid #E5E9F0;
+    border-radius: 10px;
+    background: #FAFBFC;
+}
+
+.quizOptionsEditor {
+    margin-bottom: 8px;
+}
+
+.quizOptions {
+    width: 100%;
+}
+
+.quizOptionLabel {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.quizOptionVerdict {
+    margin-inline-end: 0 !important;
+}
+
+.quizTakeBody {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.quizTakeMeta {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.quizTimerBadge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1d4ed8;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+}
+
+.quizTimerBadgeUrgent {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #b91c1c;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+}
+
+.quizResultBanner {
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #F0F7FF;
+    border: 1px solid #D6E4FF;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.quizQuestionList {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.quizQuestionItem {
+    padding-bottom: 14px;
+    border-bottom: 1px solid #E5E9F0;
+
+    &:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+}
+
+.quizQuestionPrompt {
+    margin: 0 0 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1f2937;
+    line-height: 1.45;
+}
+
+.quizQuestionIndex {
+    color: #3B82F6;
+    margin-right: 4px;
+}
+
+.quizQuestionImage {
+    margin: 0 0 10px;
+}
+
 .qrWrapper {
     display: flex;
     flex-direction: column;
@@ -1210,6 +1535,83 @@
     .qrBox {
         border-color: #303030;
         box-shadow: 0 2px 16px rgba(0, 0, 0, 0.45);
+    }
+
+    .lecturesPanel {
+        border-top-color: #303030;
+    }
+
+    .lecturesTitle {
+        color: #F5F5F5;
+    }
+
+    .lectureItem {
+        border-color: #303030;
+        background: #1A1A1A;
+
+        &:hover {
+            border-color: rgba(59, 130, 246, 0.45);
+            background: #1F1F1F;
+        }
+    }
+
+    .lectureItemTitle {
+        color: #F5F5F5;
+    }
+
+    .lectureItemPreview {
+        color: #A6A6A6;
+    }
+
+    .lectureLinkHint,
+    .lectureThumbMore {
+        color: #8C8C8C !important;
+    }
+
+    .lectureThumb {
+        border-color: #303030;
+    }
+
+    .lectureDetailContent {
+        color: #D9D9D9;
+    }
+
+    .lectureDetailLinks a {
+        color: #91CAFF;
+    }
+
+    .lectureImageRemove {
+        background: #1F1F1F !important;
+    }
+
+    .quizEditorCard {
+        border-color: #303030;
+        background: #1A1A1A;
+    }
+
+    .quizResultBanner {
+        background: rgba(59, 130, 246, 0.12);
+        border-color: rgba(59, 130, 246, 0.35);
+    }
+
+    .quizTimerBadge {
+        color: #91CAFF;
+        background: rgba(59, 130, 246, 0.16);
+        border-color: rgba(59, 130, 246, 0.35);
+    }
+
+    .quizTimerBadgeUrgent {
+        color: #FFA39E;
+        background: rgba(245, 34, 45, 0.16);
+        border-color: rgba(245, 34, 45, 0.35);
+    }
+
+    .quizQuestionItem {
+        border-bottom-color: #303030;
+    }
+
+    .quizQuestionPrompt {
+        color: #F5F5F5;
     }
 }
 

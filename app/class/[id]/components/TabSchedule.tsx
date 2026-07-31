@@ -25,6 +25,7 @@ import { AttendanceModal, type AttendanceRecord } from './modals/AttendanceModal
 import { QrCodeModal } from './modals/QrCodeModal';
 import { StudentScannerModal } from './modals/StudentScannerModal';
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
+import { ClassMemberRole } from '@/constants/enums';
 import { normalizeClassTimetable } from '@/lib/validators/class.validator';
 import { createCalendarHeaderRender } from './ScheduleCalendarNav';
 import { ScheduleDayCell } from './ScheduleDayCell';
@@ -45,6 +46,8 @@ const STAFF_ROLES = ['ADMIN', 'AO', 'TEA'] as const;
 
 export function TabSchedule({ classData }: { classData: Class }) {
   const { hasPermission: canManage, isLoading: authLoading } = useAuthPermission([...STAFF_ROLES]);
+  const { hasPermission: canEditLectures } = useAuthPermission([ClassMemberRole.TEA]);
+  const { hasPermission: canTakeQuizzes } = useAuthPermission([ClassMemberRole.STU]);
   const isMobile = useIsMobile();
   const searchParams = useSearchParams();
 
@@ -359,9 +362,13 @@ export function TabSchedule({ classData }: { classData: Class }) {
 
         <aside className={styles.dayDetail} ref={detailRef}>
           <ScheduleDayDetail
+            classId={classId}
             selectedDate={selectedDate}
             selectedSession={selectedSession}
             canManage={canManage}
+            canEditLectures={canEditLectures}
+            canTakeQuizzes={canTakeQuizzes}
+            isMobile={isMobile}
             attendanceForSelf={!canManage}
             onEdit={setEditSession}
             onAttendance={setAttendanceSession}

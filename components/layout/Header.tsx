@@ -18,6 +18,7 @@ import { useLogout } from '@/lib/hooks/use-auth';
 import { ThemeMode } from '@/constants/enums/theme.enum';
 import { HeaderMenuText } from '@/constants/header';
 import { AppointmentReminder } from './AppointmentReminder';
+import { StudentNotificationBell } from './StudentNotificationBell';
 import { PushToggle } from './PushToggle';
 
 const { Header: AntHeader } = Layout;
@@ -91,6 +92,7 @@ export const Header = memo(function Header({ collapsed, onToggle }: HeaderProps)
 
       <Space size="middle">
         <PushToggle />
+        <StudentNotificationBell />
         <AppointmentReminder />
         <Button
           type="text"
