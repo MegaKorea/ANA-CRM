@@ -137,12 +137,7 @@ export function validateUpdateQuizInput(input: unknown): QuizUpdateInput {
   return result;
 }
 
-export function validateSubmitAttemptInput(input: unknown): Record<string, string[]> {
-  if (!input || typeof input !== 'object') {
-    throw new AppError(QuizErrorCode.INVALID_INPUT, HttpStatusCode.BAD_REQUEST);
-  }
-  const data = input as Record<string, unknown>;
-  const answers = data.answers;
+function parseAnswersRecord(answers: unknown): Record<string, string[]> {
   if (!answers || typeof answers !== 'object' || Array.isArray(answers)) {
     throw new AppError(QuizErrorCode.ANSWERS_REQUIRED, HttpStatusCode.BAD_REQUEST);
   }
@@ -157,4 +152,26 @@ export function validateSubmitAttemptInput(input: unknown): Record<string, strin
     }
   }
   return result;
+}
+
+export function isStartAttemptRequest(input: unknown): boolean {
+  return (
+    !!input &&
+    typeof input === 'object' &&
+    (input as Record<string, unknown>).action === 'start'
+  );
+}
+
+export function validateSubmitAttemptInput(input: unknown): Record<string, string[]> {
+  if (!input || typeof input !== 'object') {
+    throw new AppError(QuizErrorCode.INVALID_INPUT, HttpStatusCode.BAD_REQUEST);
+  }
+  return parseAnswersRecord((input as Record<string, unknown>).answers);
+}
+
+export function validateDraftAttemptInput(input: unknown): Record<string, string[]> {
+  if (!input || typeof input !== 'object') {
+    throw new AppError(QuizErrorCode.INVALID_INPUT, HttpStatusCode.BAD_REQUEST);
+  }
+  return parseAnswersRecord((input as Record<string, unknown>).answers);
 }

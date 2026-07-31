@@ -33,6 +33,7 @@ export enum QuizErrorCode {
   FETCH_FAILED = 'QUIZ_FETCH_FAILED',
   ATTEMPT_FETCH_FAILED = 'QUIZ_ATTEMPT_FETCH_FAILED',
   ATTEMPT_FAILED = 'QUIZ_ATTEMPT_FAILED',
+  ATTEMPT_NOT_STARTED = 'QUIZ_ATTEMPT_NOT_STARTED',
   HAS_QUIZ_SYNC_FAILED = 'QUIZ_HAS_QUIZ_SYNC_FAILED',
   INTERNAL = 'QUIZ_INTERNAL_ERROR',
 }
@@ -43,6 +44,7 @@ export enum QuizQuestionType {
 }
 
 export enum QuizAttemptStatus {
+  IN_PROGRESS = 'IN_PROGRESS',
   COMPLETED = 'COMPLETED',
 }
 
@@ -104,12 +106,21 @@ export enum QuizUiMessage {
   OPTION_REQUIRED = 'Nhập lựa chọn',
   CORRECT_MULTI_REQUIRED = 'Chọn ít nhất 1 đáp án đúng',
   CORRECT_SINGLE_REQUIRED = 'Chọn 1 đáp án đúng',
-  TAKE_HINT = 'Nhấn để làm bài',
+  TAKE_HINT = 'Nhấn để xem thông tin',
   VIEW_HINT = 'Nhấn để xem',
+  START_QUIZ = 'Làm bài',
+  CONTINUE_QUIZ = 'Tiếp tục làm bài',
+  VIEW_RESULT = 'Xem',
+  CLOSE = 'Đóng',
+  PREVIEW_READY = 'Xem thông tin rồi nhấn Làm bài để bắt đầu',
+  PREVIEW_IN_PROGRESS = 'Bạn đang làm bài — thời gian vẫn đang chạy',
+  PREVIEW_SUBMITTED_PREFIX = 'Bạn đã nộp bài',
+  CONTINUE_HINT = 'Nhấn để tiếp tục làm bài',
   UNANSWERED = 'Còn câu hỏi chưa trả lời',
   SUBMITTED = 'Đã nộp bài',
   TIMEOUT_SUBMITTED = 'Hết giờ — đã nộp bài',
   SUBMIT_FAILED = 'Nộp bài thất bại',
+  START_FAILED = 'Không bắt đầu được bài làm',
 }
 
 export enum LectureUiMessage {

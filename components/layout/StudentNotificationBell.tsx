@@ -14,7 +14,7 @@ import {
   theme,
 } from 'antd';
 import { BellOutlined, FormOutlined, ReadOutlined } from '@ant-design/icons';
-import { ClassMemberRole, UserNotificationType } from '@/constants/enums';
+import { ClassMemberRole, QuizUiMessage, UserNotificationType } from '@/constants/enums';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import {
   useMarkAllNotificationsRead,
@@ -31,6 +31,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchJson } from '@/lib/utils/fetchJson';
 import { formatViDateTime } from '@/lib/utils/format-vi-datetime';
 import type { Quiz } from '@/lib/types/quiz';
+import { isQuizAttemptCompleted, isQuizAttemptInProgress } from '@/lib/types/quiz';
 import { useMyQuizAttempt } from '@/lib/hooks/use-quizzes';
 import { useIsMobile } from '@/lib/hooks/use-mobile';
 
@@ -65,7 +66,13 @@ export function StudentNotificationBell() {
     quizPreviewOpen ? quizPayload.session_id : null,
     quizPreviewOpen ? quizPayload.quiz_id : null,
   );
-  const hasSubmittedPreview = !!previewAttempt;
+  const previewCompleted = isQuizAttemptCompleted(previewAttempt);
+  const previewInProgress = isQuizAttemptInProgress(previewAttempt);
+  const previewConfirmLabel = previewCompleted
+    ? QuizUiMessage.VIEW_RESULT
+    : previewInProgress
+      ? QuizUiMessage.CONTINUE_QUIZ
+      : QuizUiMessage.START_QUIZ;
 
   const quizQuery = useQuery({
     queryKey: ['notification-quiz', takingQuiz?.sessionId, takingQuiz?.quizId],
@@ -272,7 +279,7 @@ export function StudentNotificationBell() {
           <Space>
             <Button onClick={closePreview}>Đóng</Button>
             <Button type="primary" loading={previewAttemptLoading} onClick={startQuiz}>
-              {hasSubmittedPreview ? 'Xem' : 'Làm bài'}
+              {previewConfirmLabel}
             </Button>
           </Space>
         }

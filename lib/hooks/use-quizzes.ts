@@ -115,6 +115,61 @@ export function useTeacherQuizAttempts(
   });
 }
 
+function invalidateAttemptQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  sessionId: string,
+  quizId: string,
+) {
+  queryClient.invalidateQueries({
+    queryKey: [QUIZ_ATTEMPT_KEY, sessionId, quizId],
+  });
+  queryClient.invalidateQueries({
+    queryKey: [QUIZ_ATTEMPTS_REVIEW_KEY, sessionId, quizId],
+  });
+  queryClient.invalidateQueries({
+    queryKey: [SESSION_QUIZ_DETAIL_KEY, sessionId, quizId],
+  });
+  queryClient.invalidateQueries({ queryKey: [SESSION_QUIZZES_KEY, sessionId] });
+}
+
+export function useStartQuizAttempt() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sessionId, quizId }: { sessionId: string; quizId: string }) =>
+      fetchJson<QuizAttempt>(`/api/classes/sessions/${sessionId}/quizzes/${quizId}/attempts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start' }),
+      }),
+    onSuccess: (_data, variables) => {
+      invalidateAttemptQueries(queryClient, variables.sessionId, variables.quizId);
+    },
+  });
+}
+
+export function useSaveQuizAttemptDraft() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      sessionId,
+      quizId,
+      answers,
+    }: {
+      sessionId: string;
+      quizId: string;
+      answers: Record<string, string[]>;
+    }) =>
+      fetchJson<QuizAttempt>(`/api/classes/sessions/${sessionId}/quizzes/${quizId}/attempts`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers }),
+      }),
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData([QUIZ_ATTEMPT_KEY, variables.sessionId, variables.quizId], data);
+    },
+  });
+}
+
 export function useSubmitQuizAttempt() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -133,16 +188,7 @@ export function useSubmitQuizAttempt() {
         body: JSON.stringify({ answers }),
       }),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUIZ_ATTEMPT_KEY, variables.sessionId, variables.quizId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QUIZ_ATTEMPTS_REVIEW_KEY, variables.sessionId, variables.quizId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [SESSION_QUIZ_DETAIL_KEY, variables.sessionId, variables.quizId],
-      });
-      queryClient.invalidateQueries({ queryKey: [SESSION_QUIZZES_KEY, variables.sessionId] });
+      invalidateAttemptQueries(queryClient, variables.sessionId, variables.quizId);
     },
   });
 }

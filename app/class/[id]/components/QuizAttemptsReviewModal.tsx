@@ -76,7 +76,7 @@ export function QuizAttemptsReviewModal({ sessionId, quiz, open, isMobile, onClo
         dataIndex: 'submitted_at',
         key: 'submitted_at',
         width: 160,
-        render: (value: string) => formatViDateTime(value),
+        render: (value: string | null) => (value ? formatViDateTime(value) : '—'),
       },
       {
         title: '',
@@ -144,8 +144,10 @@ export function QuizAttemptsReviewModal({ sessionId, quiz, open, isMobile, onClo
                 {selected.is_passed ? 'Đạt' : 'Chưa đạt'} · {selected.score}%
               </Typography.Title>
               <Typography.Text type="secondary">
-                Đúng {selected.correct_answers}/{selected.total_questions} · Nộp{' '}
-                {formatViDateTime(selected.submitted_at)}
+                Đúng {selected.correct_answers}/{selected.total_questions}
+                {selected.submitted_at
+                  ? ` · Nộp ${formatViDateTime(selected.submitted_at)}`
+                  : null}
               </Typography.Text>
             </div>
 

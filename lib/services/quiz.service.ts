@@ -34,6 +34,16 @@ function mapQuiz(row: Record<string, unknown>): Quiz {
 }
 
 function mapAttempt(row: Record<string, unknown>): QuizAttempt {
+  const status = (row.status as string) || QuizAttemptStatus.COMPLETED;
+  const submittedRaw =
+    typeof row.submitted_at === 'string' && row.submitted_at ? row.submitted_at : null;
+  const startedRaw =
+    typeof row.started_at === 'string' && row.started_at ? row.started_at : null;
+  // Until a dedicated started_at column exists, IN_PROGRESS rows store the clock in submitted_at.
+  const started_at =
+    startedRaw ?? (status === QuizAttemptStatus.IN_PROGRESS ? submittedRaw : null);
+  const submitted_at = status === QuizAttemptStatus.COMPLETED ? submittedRaw : null;
+
   return {
     id: row.id as string,
     quiz_id: row.quiz_id as string,
@@ -42,14 +52,15 @@ function mapAttempt(row: Record<string, unknown>): QuizAttempt {
     total_questions: Number(row.total_questions ?? 0),
     correct_answers: Number(row.correct_answers ?? 0),
     is_passed: Boolean(row.is_passed),
-    status: (row.status as string) ?? QuizAttemptStatus.COMPLETED,
+    status,
     user_answers:
       row.user_answers && typeof row.user_answers === 'object' && !Array.isArray(row.user_answers)
         ? (row.user_answers as Record<string, string[]>)
         : {},
     teacher_feedback: (row.teacher_feedback as string | null) ?? null,
     graded_by: (row.graded_by as string | null) ?? null,
-    submitted_at: row.submitted_at as string,
+    started_at,
+    submitted_at,
   };
 }
 
@@ -199,7 +210,9 @@ export async function listQuizAttemptsForTeacher(
     .order('submitted_at', { ascending: false });
 
   throwIfSupabaseError(error, QuizErrorCode.ATTEMPT_FETCH_FAILED);
-  const attempts = ((data as unknown as Record<string, unknown>[]) || []).map(mapAttempt);
+  const attempts = ((data as unknown as Record<string, unknown>[]) || [])
+    .map(mapAttempt)
+    .filter((item) => item.status === QuizAttemptStatus.COMPLETED);
   if (attempts.length === 0) return [];
 
   const studentIds = [...new Set(attempts.map((item) => item.student_id))];
@@ -226,6 +239,70 @@ export async function listQuizAttemptsForTeacher(
   });
 }
 
+export async function startQuizAttempt(
+  quizId: string,
+  studentId: string,
+): Promise<QuizAttempt> {
+  const quiz = await getQuizById(quizId);
+  if (!quiz.is_published) {
+    fail(QuizErrorCode.NOT_PUBLISHED, HttpStatusCode.FORBIDDEN);
+  }
+
+  const existing = await getMyQuizAttempt(quizId, studentId);
+  if (existing?.status === QuizAttemptStatus.COMPLETED) {
+    fail(QuizErrorCode.ALREADY_SUBMITTED, HttpStatusCode.CONFLICT);
+  }
+  if (existing?.status === QuizAttemptStatus.IN_PROGRESS) {
+    return existing;
+  }
+
+  const startedAt = new Date().toISOString();
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from('quiz_attempts')
+    .insert({
+      quiz_id: quizId,
+      student_id: studentId,
+      score: 0,
+      total_questions: 0,
+      correct_answers: 0,
+      is_passed: false,
+      status: QuizAttemptStatus.IN_PROGRESS,
+      user_answers: {},
+      submitted_at: startedAt,
+    } as never)
+    .select('*')
+    .single();
+
+  throwIfSupabaseError(error, QuizErrorCode.ATTEMPT_FAILED);
+  if (!data) fail(QuizErrorCode.ATTEMPT_FAILED, HttpStatusCode.INTERNAL_SERVER_ERROR);
+  return mapAttempt(data as unknown as Record<string, unknown>);
+}
+
+export async function saveQuizAttemptDraft(
+  quizId: string,
+  studentId: string,
+  answers: Record<string, string[]>,
+): Promise<QuizAttempt> {
+  const existing = await getMyQuizAttempt(quizId, studentId);
+  if (!existing || existing.status !== QuizAttemptStatus.IN_PROGRESS) {
+    fail(QuizErrorCode.ATTEMPT_NOT_STARTED, HttpStatusCode.CONFLICT);
+  }
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from('quiz_attempts')
+    .update({ user_answers: answers } as never)
+    .eq('id', existing.id)
+    .eq('status', QuizAttemptStatus.IN_PROGRESS)
+    .select('*')
+    .single();
+
+  throwIfSupabaseError(error, QuizErrorCode.ATTEMPT_FAILED);
+  if (!data) fail(QuizErrorCode.ATTEMPT_FAILED, HttpStatusCode.INTERNAL_SERVER_ERROR);
+  return mapAttempt(data as unknown as Record<string, unknown>);
+}
+
 export async function submitQuizAttempt(
   quizId: string,
   studentId: string,
@@ -237,14 +314,40 @@ export async function submitQuizAttempt(
   }
 
   const existing = await getMyQuizAttempt(quizId, studentId);
-  if (existing) {
+  if (existing?.status === QuizAttemptStatus.COMPLETED) {
     fail(QuizErrorCode.ALREADY_SUBMITTED, HttpStatusCode.CONFLICT);
   }
 
   const { correct, total, score } = gradeQuizAnswers(quiz.questions, answers);
   const is_passed = score >= quiz.passing_score;
-
+  const submittedAt = new Date().toISOString();
   const supabase = createAdminClient();
+
+  if (existing?.status === QuizAttemptStatus.IN_PROGRESS) {
+    const { data, error } = await supabase
+      .from('quiz_attempts')
+      .update({
+        score,
+        total_questions: total,
+        correct_answers: correct,
+        is_passed,
+        status: QuizAttemptStatus.COMPLETED,
+        user_answers: answers,
+        submitted_at: submittedAt,
+      } as never)
+      .eq('id', existing.id)
+      .eq('status', QuizAttemptStatus.IN_PROGRESS)
+      .select('*')
+      .single();
+
+    throwIfSupabaseError(error, QuizErrorCode.ATTEMPT_FAILED);
+    if (!data) fail(QuizErrorCode.ATTEMPT_FAILED, HttpStatusCode.INTERNAL_SERVER_ERROR);
+    return mapAttempt({
+      ...(data as unknown as Record<string, unknown>),
+      started_at: existing.started_at,
+    });
+  }
+
   const { data, error } = await supabase
     .from('quiz_attempts')
     .insert({
@@ -256,7 +359,7 @@ export async function submitQuizAttempt(
       is_passed,
       status: QuizAttemptStatus.COMPLETED,
       user_answers: answers,
-      submitted_at: new Date().toISOString(),
+      submitted_at: submittedAt,
     } as never)
     .select('*')
     .single();

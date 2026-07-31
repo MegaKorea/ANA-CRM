@@ -3,15 +3,24 @@
 import { Button, Checkbox, Empty, Image, Modal, Radio, Space, Tag, Typography, message } from 'antd';
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { Quiz, QuizAttempt, QuizQuestion } from '@/lib/types/quiz';
-import { getQuestionImageUrls } from '@/lib/types/quiz';
+import {
+  getQuestionImageUrls,
+  getQuizAttemptRemainingSeconds,
+  isQuizAttemptCompleted,
+  isQuizAttemptInProgress,
+} from '@/lib/types/quiz';
 import { QuizLimit, QuizQuestionType, QuizUiMessage } from '@/constants/enums';
 import {
   useMyQuizAttempt,
+  useSaveQuizAttemptDraft,
   useSessionQuizDetail,
+  useStartQuizAttempt,
   useSubmitQuizAttempt,
 } from '@/lib/hooks/use-quizzes';
 import { getErrorMessage } from '@/lib/utils/get-error-message';
 import styles from './tab-schedule.module.scss';
+
+const DRAFT_SAVE_MS = 800;
 
 type Props = {
   sessionId: string;
@@ -88,13 +97,19 @@ export function QuizTakeModal({
     open && !readOnly ? sessionId : null,
     open && !readOnly ? quizId : null,
   );
+  const startAttempt = useStartQuizAttempt();
+  const saveDraft = useSaveQuizAttemptDraft();
   const submitAttempt = useSubmitQuizAttempt();
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [result, setResult] = useState<QuizAttempt | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
 
   const answersRef = useRef(answers);
   const submittingRef = useRef(false);
+  const startingRef = useRef(false);
+  const draftTimerRef = useRef<number | null>(null);
+  const hydratedAttemptIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     answersRef.current = answers;
@@ -105,36 +120,120 @@ export function QuizTakeModal({
       setAnswers({});
       setResult(null);
       setRemainingSeconds(null);
+      setSessionReady(false);
       submittingRef.current = false;
+      startingRef.current = false;
+      hydratedAttemptIdRef.current = null;
+      if (draftTimerRef.current !== null) {
+        window.clearTimeout(draftTimerRef.current);
+        draftTimerRef.current = null;
+      }
       return;
     }
     if (readOnly) {
       setResult(null);
       setAnswers({});
       setRemainingSeconds(null);
+      setSessionReady(true);
+    }
+  }, [open, readOnly]);
+
+  const startAttemptMutate = startAttempt.mutateAsync;
+  const onCloseEvent = useEffectEvent(onClose);
+
+  useEffect(() => {
+    if (!open || readOnly || attemptLoading || !quizId || !sessionId) return;
+
+    if (isQuizAttemptCompleted(attempt)) {
+      setResult(attempt!);
+      setAnswers(attempt!.user_answers ?? {});
+      setRemainingSeconds(null);
+      setSessionReady(true);
+      hydratedAttemptIdRef.current = attempt!.id;
       return;
     }
-    if (attempt) {
-      setResult(attempt);
-      setAnswers(attempt.user_answers ?? {});
-      setRemainingSeconds(null);
-    } else {
+
+    if (isQuizAttemptInProgress(attempt)) {
+      if (hydratedAttemptIdRef.current !== attempt!.id) {
+        setAnswers(attempt!.user_answers ?? {});
+        hydratedAttemptIdRef.current = attempt!.id;
+      }
       setResult(null);
-      setAnswers({});
-      const duration = quiz?.duration_minutes ?? 0;
       setRemainingSeconds(
-        duration > 0 ? duration * QuizLimit.SECONDS_PER_MINUTE : null,
+        getQuizAttemptRemainingSeconds(attempt!.started_at, quiz?.duration_minutes ?? 0),
       );
+      setSessionReady(true);
+      return;
     }
-  }, [open, attempt, quiz?.duration_minutes, readOnly]);
 
-  const setSingle = useCallback((questionId: string, optionId: string) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: [optionId] }));
-  }, []);
+    if (attempt || startingRef.current) return;
 
-  const setMultiple = useCallback((questionId: string, optionIds: string[]) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: optionIds }));
-  }, []);
+    startingRef.current = true;
+    void startAttemptMutate({ sessionId, quizId })
+      .catch((error: unknown) => {
+        message.error(getErrorMessage(error, QuizUiMessage.START_FAILED));
+        onCloseEvent();
+      })
+      .finally(() => {
+        startingRef.current = false;
+      });
+  }, [
+    open,
+    readOnly,
+    attempt,
+    attemptLoading,
+    quizId,
+    sessionId,
+    quiz?.duration_minutes,
+    startAttemptMutate,
+  ]);
+
+  const persistDraft = useCallback(
+    async (nextAnswers: Record<string, string[]>) => {
+      if (readOnly || !quizId || !sessionId || !isQuizAttemptInProgress(attempt)) return;
+      try {
+        await saveDraft.mutateAsync({ sessionId, quizId, answers: nextAnswers });
+      } catch {
+        // Draft save is best-effort; submit still sends latest answers.
+      }
+    },
+    [attempt, quizId, readOnly, saveDraft, sessionId],
+  );
+
+  const scheduleDraftSave = useCallback(
+    (nextAnswers: Record<string, string[]>) => {
+      if (!isQuizAttemptInProgress(attempt)) return;
+      if (draftTimerRef.current !== null) {
+        window.clearTimeout(draftTimerRef.current);
+      }
+      draftTimerRef.current = window.setTimeout(() => {
+        void persistDraft(nextAnswers);
+      }, DRAFT_SAVE_MS);
+    },
+    [attempt, persistDraft],
+  );
+
+  const setSingle = useCallback(
+    (questionId: string, optionId: string) => {
+      setAnswers((prev) => {
+        const next = { ...prev, [questionId]: [optionId] };
+        scheduleDraftSave(next);
+        return next;
+      });
+    },
+    [scheduleDraftSave],
+  );
+
+  const setMultiple = useCallback(
+    (questionId: string, optionIds: string[]) => {
+      setAnswers((prev) => {
+        const next = { ...prev, [questionId]: optionIds };
+        scheduleDraftSave(next);
+        return next;
+      });
+    },
+    [scheduleDraftSave],
+  );
 
   const submitAnswers = useCallback(
     async (nextAnswers: Record<string, string[]>, opts?: { force?: boolean }) => {
@@ -147,6 +246,10 @@ export function QuizTakeModal({
         }
       }
       submittingRef.current = true;
+      if (draftTimerRef.current !== null) {
+        window.clearTimeout(draftTimerRef.current);
+        draftTimerRef.current = null;
+      }
       try {
         const saved = await submitAttempt.mutateAsync({
           sessionId,
@@ -167,6 +270,17 @@ export function QuizTakeModal({
   const handleSubmit = useCallback(() => {
     void submitAnswers(answers);
   }, [answers, submitAnswers]);
+
+  const handleClose = useCallback(() => {
+    if (!readOnly && !result && isQuizAttemptInProgress(attempt)) {
+      if (draftTimerRef.current !== null) {
+        window.clearTimeout(draftTimerRef.current);
+        draftTimerRef.current = null;
+      }
+      void persistDraft(answersRef.current);
+    }
+    onClose();
+  }, [attempt, onClose, persistDraft, readOnly, result]);
 
   const onTimerTick = useEffectEvent((secondsLeft: number) => {
     if (secondsLeft > 0) return;
@@ -189,6 +303,8 @@ export function QuizTakeModal({
   const title = quiz?.title ?? 'Bài tập';
   const timerUrgent =
     remainingSeconds !== null && remainingSeconds <= QuizLimit.TIMER_WARN_SECONDS;
+  const loadingSession =
+    !readOnly && open && (!sessionReady || attemptLoading || startAttempt.isPending);
 
   return (
     <Modal
@@ -207,15 +323,15 @@ export function QuizTakeModal({
         </Space>
       }
       open={open}
-      onCancel={onClose}
+      onCancel={handleClose}
       footer={
         readOnly || done ? (
-          <Button type="primary" onClick={onClose}>
+          <Button type="primary" onClick={handleClose}>
             Đóng
           </Button>
         ) : (
           <Space>
-            <Button onClick={onClose}>Huỷ</Button>
+            <Button onClick={handleClose}>Đóng</Button>
             <Button type="primary" loading={submitAttempt.isPending} onClick={handleSubmit}>
               Nộp bài
             </Button>
@@ -227,7 +343,7 @@ export function QuizTakeModal({
     >
       {!quiz ? (
         <Empty description="Không có bài tập" />
-      ) : !readOnly && attemptLoading ? (
+      ) : loadingSession ? (
         <Typography.Text type="secondary">Đang tải…</Typography.Text>
       ) : (
         <div className={styles.quizTakeBody}>

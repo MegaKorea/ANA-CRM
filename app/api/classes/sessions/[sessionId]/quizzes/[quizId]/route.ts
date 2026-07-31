@@ -15,7 +15,7 @@ import {
   getQuizById,
   updateSessionQuiz,
 } from '@/lib/services/quiz.service';
-import { stripQuizAnswers } from '@/lib/types/quiz';
+import { isQuizAttemptCompleted, stripQuizAnswers } from '@/lib/types/quiz';
 import { notifyStudentsQuizPublishedSafe } from '@/lib/services/user-notification.service';
 import { validateUpdateQuizInput } from '@/lib/validators/quiz.validator';
 
@@ -35,7 +35,7 @@ export async function GET(
         fail(QuizErrorCode.NOT_PUBLISHED, HttpStatusCode.FORBIDDEN);
       }
       const attempt = await getMyQuizAttempt(quizId, user.id);
-      if (attempt) {
+      if (isQuizAttemptCompleted(attempt)) {
         return NextResponse.json(quiz, { status: HttpStatusCode.OK });
       }
       return NextResponse.json(stripQuizAnswers(quiz), { status: HttpStatusCode.OK });

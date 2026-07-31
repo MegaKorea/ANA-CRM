@@ -1,4 +1,4 @@
-import { QuizQuestionType } from '@/constants/enums';
+import { QuizAttemptStatus, QuizLimit, QuizQuestionType } from '@/constants/enums';
 
 export type QuizOption = {
   id: string;
@@ -41,8 +41,30 @@ export type QuizAttempt = {
   user_answers: Record<string, string[]>;
   teacher_feedback: string | null;
   graded_by: string | null;
-  submitted_at: string;
+  /** When the student started the attempt (timer clock). */
+  started_at: string | null;
+  /** Set when status is COMPLETED; null while in progress. */
+  submitted_at: string | null;
 };
+
+export function isQuizAttemptCompleted(attempt: QuizAttempt | null | undefined): boolean {
+  return !!attempt && attempt.status === QuizAttemptStatus.COMPLETED;
+}
+
+export function isQuizAttemptInProgress(attempt: QuizAttempt | null | undefined): boolean {
+  return !!attempt && attempt.status === QuizAttemptStatus.IN_PROGRESS;
+}
+
+export function getQuizAttemptRemainingSeconds(
+  startedAt: string | null | undefined,
+  durationMinutes: number,
+  nowMs: number = Date.now(),
+): number | null {
+  if (durationMinutes <= 0 || !startedAt) return null;
+  const endsAt =
+    new Date(startedAt).getTime() + durationMinutes * QuizLimit.SECONDS_PER_MINUTE * 1000;
+  return Math.max(0, Math.floor((endsAt - nowMs) / 1000));
+}
 
 export type QuizAttemptReview = QuizAttempt & {
   student_name: string;
