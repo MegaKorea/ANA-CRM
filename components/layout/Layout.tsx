@@ -18,9 +18,14 @@ interface CRMLayoutProps {
 
 export function CRMLayout({ children }: CRMLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const isMobile = useIsLayoutMobile();
   const { isNavigating } = useNavigation();
   const { themeMode } = useTheme();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (isMobile) {
@@ -49,7 +54,7 @@ export function CRMLayout({ children }: CRMLayoutProps) {
         placement="left"
         closable={false}
         onClose={handleClose}
-        open={isMobile && !collapsed}
+        open={mounted && isMobile && !collapsed}
         styles={{ body: { padding: 0 } }}
         size={260}
         rootClassName={themeMode}

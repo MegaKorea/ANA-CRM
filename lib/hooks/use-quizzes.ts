@@ -8,6 +8,43 @@ export const SESSION_QUIZ_DETAIL_KEY = 'session-quiz-detail';
 export const QUIZ_ATTEMPT_KEY = 'quiz-attempt';
 export const QUIZ_ATTEMPTS_REVIEW_KEY = 'quiz-attempts-review';
 
+type QuizDetailResponse = Quiz | { quiz: Quiz; attempt?: QuizAttempt | null };
+
+function applyQuizDetailResponse(
+  queryClient: ReturnType<typeof useQueryClient>,
+  sessionId: string,
+  quizId: string,
+  data: QuizDetailResponse,
+): Quiz {
+  if (data && typeof data === 'object' && 'quiz' in data && data.quiz) {
+    if ('attempt' in data) {
+      queryClient.setQueryData(
+        [QUIZ_ATTEMPT_KEY, sessionId, quizId],
+        data.attempt ?? null,
+      );
+    }
+    return data.quiz;
+  }
+  return data as Quiz;
+}
+
+export function prefetchSessionQuizDetail(
+  queryClient: ReturnType<typeof useQueryClient>,
+  sessionId: string,
+  quizId: string,
+) {
+  return queryClient.prefetchQuery({
+    queryKey: [SESSION_QUIZ_DETAIL_KEY, sessionId, quizId],
+    queryFn: async () => {
+      const data = await fetchJson<QuizDetailResponse>(
+        `/api/classes/sessions/${sessionId}/quizzes/${quizId}`,
+      );
+      return applyQuizDetailResponse(queryClient, sessionId, quizId, data);
+    },
+    staleTime: 30_000,
+  });
+}
+
 export function useSessionQuizzes(sessionId: string | null) {
   return useQuery({
     queryKey: [SESSION_QUIZZES_KEY, sessionId],
@@ -22,10 +59,15 @@ export function useSessionQuizDetail(
   quizId: string | null,
   enabled: boolean,
 ) {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: [SESSION_QUIZ_DETAIL_KEY, sessionId, quizId],
-    queryFn: () =>
-      fetchJson<Quiz>(`/api/classes/sessions/${sessionId}/quizzes/${quizId}`),
+    queryFn: async () => {
+      const data = await fetchJson<QuizDetailResponse>(
+        `/api/classes/sessions/${sessionId}/quizzes/${quizId}`,
+      );
+      return applyQuizDetailResponse(queryClient, sessionId!, quizId!, data);
+    },
     enabled: enabled && !!sessionId && !!quizId,
     staleTime: 30_000,
   });
@@ -99,7 +141,9 @@ export function useMyQuizAttempt(sessionId: string | null, quizId: string | null
         `/api/classes/sessions/${sessionId}/quizzes/${quizId}/attempts`,
       ),
     enabled: !!sessionId && !!quizId,
-    staleTime: 15_000,
+    staleTime: 30_000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 }
 

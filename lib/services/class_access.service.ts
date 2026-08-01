@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { fail, throwIfSupabaseError } from '@/errors';
 import { HttpStatusCode } from '@/constants/enums';
+import type { CurrentUser } from '@/lib/services/auth.service';
 
 export type ClassViewer =
     | { kind: 'staff' }
@@ -44,6 +45,21 @@ export async function resolveClassViewer(classId: string): Promise<ClassViewer> 
     };
     await assertStudentEnrolledInClass(classId, user.lead_id, user.phone);
     return { kind: 'student', userId: authUser.id };
+}
+
+/**
+ * Fast path when `getCurrentUser()` already ran in the same request.
+ * Skips a second auth.getUser + users/roles round-trip.
+ */
+export async function assertClassAccess(
+    classId: string,
+    user: Pick<CurrentUser, 'id' | 'roleCode' | 'leadId' | 'phone'>,
+): Promise<void> {
+    const role = user.roleCode?.trim().toUpperCase();
+    if (role !== 'STU') {
+        return;
+    }
+    await assertStudentEnrolledInClass(classId, user.leadId, user.phone);
 }
 
 /** Read-only enrollment check (no users.lead_id backfill). */

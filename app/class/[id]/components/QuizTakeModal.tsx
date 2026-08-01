@@ -1,6 +1,19 @@
 'use client';
 
-import { Button, Checkbox, Empty, Image, Input, Modal, Popconfirm, Radio, Space, Tag, Typography, message } from 'antd';
+import {
+  App,
+  Button,
+  Checkbox,
+  Empty,
+  Image,
+  Input,
+  Modal,
+  Popconfirm,
+  Radio,
+  Space,
+  Tag,
+  Typography,
+} from 'antd';
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { Quiz, QuizAttempt, QuizQuestion } from '@/lib/types/quiz';
 import {
@@ -97,10 +110,16 @@ export function QuizTakeModal({
   layout = 'modal',
   onClose,
 }: Props) {
+  const { message } = App.useApp();
   const quizId = quizProp?.id ?? null;
-  const { data: quizDetail } = useSessionQuizDetail(sessionId, quizId, open && !!quizId);
+  const hasPropQuestions =
+    Array.isArray(quizProp?.questions) && quizProp.questions.length > 0;
+  const { data: quizDetail } = useSessionQuizDetail(
+    sessionId,
+    quizId,
+    open && !!quizId && !hasPropQuestions,
+  );
   const quiz = quizDetail ?? quizProp;
-  // Page usually already has questions in cache/prop — don't wait on a second fetch.
   const quizContentReady = Array.isArray(quiz?.questions) && quiz.questions.length > 0;
 
   const { data: attempt, isLoading: attemptLoading } = useMyQuizAttempt(
@@ -159,7 +178,6 @@ export function QuizTakeModal({
 
   useEffect(() => {
     if (!open || readOnly || attemptLoading || !quizId || !sessionId) return;
-    // Do not start the server clock (or show countdown) until questions are on screen.
     if (!quizContentReady) {
       setSessionReady(false);
       return;
@@ -317,7 +335,9 @@ export function QuizTakeModal({
 
   const timedOut = remainingSeconds !== null && remainingSeconds <= 0;
   const done = !readOnly && result !== null;
-  const answersLocked = done || readOnly || timedOut;
+  const startingSession =
+    !readOnly && open && quizContentReady && (!sessionReady || startAttempt.isPending);
+  const answersLocked = done || readOnly || timedOut || startingSession;
 
   const handleSubmit = useCallback(() => {
     void submitAnswers(answers, timedOut ? { force: true } : undefined);
@@ -354,10 +374,9 @@ export function QuizTakeModal({
   const title = quiz?.title ?? 'Bài tập';
   const timerUrgent =
     remainingSeconds !== null && remainingSeconds <= QuizLimit.TIMER_WARN_SECONDS;
-  const loadingSession =
-    !readOnly &&
-    open &&
-    (!quizContentReady || !sessionReady || attemptLoading || startAttempt.isPending);
+  // Only hide the body while quiz content itself is unavailable. Starting an
+  // attempt may take ~1s; show the questions immediately and lock inputs instead.
+  const loadingSession = !readOnly && open && (!quizContentReady || attemptLoading);
 
   useEffect(() => {
     // Do not tick while the take UI is still loading (start is also deferred until ready).
@@ -404,9 +423,13 @@ export function QuizTakeModal({
           okText="Nộp bài"
           cancelText="Huỷ"
           onConfirm={handleSubmit}
-          disabled={submitAttempt.isPending}
+          disabled={submitAttempt.isPending || startingSession}
         >
-          <Button type="primary" loading={submitAttempt.isPending}>
+          <Button
+            type="primary"
+            loading={submitAttempt.isPending || startingSession}
+            disabled={startingSession}
+          >
             Nộp bài
           </Button>
         </Popconfirm>

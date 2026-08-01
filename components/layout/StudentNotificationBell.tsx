@@ -6,15 +6,16 @@ import {
   Button,
   Dropdown,
   Empty,
-  List,
   Space,
   Typography,
   theme,
 } from 'antd';
 import { BellOutlined, FormOutlined, ReadOutlined } from '@ant-design/icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { ClassMemberRole, UserNotificationType } from '@/constants/enums';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
+import { prefetchSessionQuizDetail } from '@/lib/hooks/use-quizzes';
 import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
@@ -27,6 +28,9 @@ import {
 } from '@/lib/types/user-notification';
 import { formatViDateTime } from '@/lib/utils/format-vi-datetime';
 import { useIsMobile } from '@/lib/hooks/use-mobile';
+import { SESSION_LECTURES_KEY } from '@/lib/hooks/use-class-sessions';
+import { fetchJson } from '@/lib/utils/fetchJson';
+import type { SessionLecture } from '@/lib/types/session-lecture';
 
 const { Text } = Typography;
 
@@ -50,6 +54,7 @@ function notificationHref(item: UserNotification): string | null {
 export function StudentNotificationBell() {
   const { token } = theme.useToken();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user } = useCurrentUser();
   const isStudent = (user?.roleCode ?? '').toUpperCase() === ClassMemberRole.STU;
   const isMobile = useIsMobile();
@@ -62,22 +67,46 @@ export function StudentNotificationBell() {
   const items = useMemo(() => data?.items ?? [], [data?.items]);
   const unreadCount = data?.unreadCount ?? 0;
 
-  const openNotification = useCallback(
-    async (item: UserNotification) => {
-      setDropdownOpen(false);
-      const href = notificationHref(item);
-      if (!item.read_at) {
-        try {
-          await markRead.mutateAsync(item.id);
-        } catch {
-          // Still navigate even if mark-read fails.
-        }
+  const prefetchNotificationTarget = useCallback(
+    (item: UserNotification) => {
+      const payload = item.payload;
+      if (isQuizNotificationPayload(payload)) {
+        void prefetchSessionQuizDetail(
+          queryClient,
+          payload.session_id,
+          payload.quiz_id,
+        );
+        return;
       }
-      if (href) {
-        router.push(href);
+      if (isLectureNotificationPayload(payload)) {
+        void queryClient.prefetchQuery({
+          queryKey: [SESSION_LECTURES_KEY, payload.session_id],
+          queryFn: () =>
+            fetchJson<SessionLecture[]>(
+              `/api/classes/sessions/${payload.session_id}/lectures`,
+            ),
+          staleTime: 30_000,
+        });
       }
     },
-    [markRead, router],
+    [queryClient],
+  );
+
+  const openNotification = useCallback(
+    (item: UserNotification) => {
+      setDropdownOpen(false);
+      const href = notificationHref(item);
+      prefetchNotificationTarget(item);
+      if (href) {
+        router.prefetch(href);
+        router.push(href);
+      }
+      if (!item.read_at) {
+        void markRead.mutateAsync(item.id).catch(() => {
+        });
+      }
+    },
+    [markRead, prefetchNotificationTarget, router],
   );
 
   if (!isStudent) return null;
@@ -121,47 +150,54 @@ export function StudentNotificationBell() {
       ) : items.length === 0 ? (
         <Empty description="Chưa có thông báo" image={Empty.PRESENTED_IMAGE_SIMPLE} />
       ) : (
-        <List
-          size="small"
-          dataSource={items}
-          rowKey={(item) => item.id}
-          renderItem={(item) => (
-            <List.Item
+        <div role="list">
+          {items.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="listitem"
               style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 12,
+                width: '100%',
+                border: 0,
                 cursor: 'pointer',
                 background: item.read_at ? undefined : token.colorPrimaryBg,
                 borderRadius: token.borderRadiusSM,
                 padding: '8px 10px',
+                color: 'inherit',
+                font: 'inherit',
+                textAlign: 'left',
               }}
+              onMouseEnter={() => prefetchNotificationTarget(item)}
               onClick={() => openNotification(item)}
             >
-              <List.Item.Meta
-                avatar={
-                  item.type === UserNotificationType.QUIZ_PUBLISHED ? (
-                    <FormOutlined />
-                  ) : (
-                    <ReadOutlined />
-                  )
-                }
-                title={
+              <span aria-hidden="true" style={{ paddingTop: 2 }}>
+                {item.type === UserNotificationType.QUIZ_PUBLISHED ? (
+                  <FormOutlined />
+                ) : (
+                  <ReadOutlined />
+                )}
+              </span>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: 'block' }}>
                   <Text strong={!item.read_at} style={{ fontSize: 13 }}>
                     {item.title}
                   </Text>
-                }
-                description={
-                  <Space direction="vertical" size={0}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      {item.body}
-                    </Text>
-                    <Text type="secondary" style={{ fontSize: 11 }}>
-                      {formatViDateTime(item.created_at)}
-                    </Text>
-                  </Space>
-                }
-              />
-            </List.Item>
-          )}
-        />
+                </span>
+                <Space direction="vertical" size={0}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    {item.body}
+                  </Text>
+                  <Text type="secondary" style={{ fontSize: 11 }}>
+                    {formatViDateTime(item.created_at)}
+                  </Text>
+                </Space>
+              </span>
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

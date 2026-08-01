@@ -5,7 +5,7 @@ import {
   sessionContentErrorResponse,
 } from '@/lib/api/session-content-route';
 import { getCurrentUser } from '@/lib/services/auth.service';
-import { resolveClassViewer } from '@/lib/services/class_access.service';
+import { assertClassAccess } from '@/lib/services/class_access.service';
 import { getSessionMetaById } from '@/lib/services/class_session.service';
 import { createSessionQuiz, listSessionQuizzes } from '@/lib/services/quiz.service';
 import { notifyStudentsQuizPublishedSafe } from '@/lib/services/user-notification.service';
@@ -21,7 +21,7 @@ export async function GET(
       getCurrentUser(),
       getSessionMetaById(sessionId),
     ]);
-    await resolveClassViewer(session.class_id);
+    await assertClassAccess(session.class_id, user);
     const forStudent = user.roleCode === ClassMemberRole.STU;
     const quizzes = await listSessionQuizzes(sessionId, {
       forStudent,
@@ -40,11 +40,11 @@ export async function POST(
 ): Promise<NextResponse> {
   try {
     const { sessionId } = await params;
-    const [, session] = await Promise.all([
+    const [user, session] = await Promise.all([
       assertQuizTeacherWriter(),
       getSessionMetaById(sessionId),
     ]);
-    await resolveClassViewer(session.class_id);
+    await assertClassAccess(session.class_id, user);
     const body = await request.json();
     const input = validateCreateQuizInput(body);
     const quiz = await createSessionQuiz(session.class_id, sessionId, input);

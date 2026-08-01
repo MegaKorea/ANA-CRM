@@ -6,7 +6,7 @@ import type { LoginInput } from '@/lib/validators/auth.validator';
 import type { Tables, UpdateTables } from '@/types/supabase';
 
 
-type UserData = Pick<Tables<'users'>, 'id' | 'email' | 'full_name' | 'status'> & {
+type UserData = Pick<Tables<'users'>, 'id' | 'email' | 'full_name' | 'status' | 'lead_id' | 'phone'> & {
   roles: Pick<Tables<'roles'>, 'code'> | null;
 };
 
@@ -29,6 +29,8 @@ export interface CurrentUser {
   fullName: string;
   status: string;
   roleCode: string | null;
+  leadId: number | null;
+  phone: string | null;
 }
 
 export async function loginWithEmailAndPassword(
@@ -118,7 +120,7 @@ export async function getCurrentUser(): Promise<CurrentUser> {
   const adminClient = createAdminClient();
   const { data: userData } = await adminClient
     .from('users')
-    .select('id, email, full_name, status, roles(code)')
+    .select('id, email, full_name, status, lead_id, phone, roles(code)')
     .eq('id', authUser.id)
     .maybeSingle() as { data: UserData | null, error: any };
 
@@ -129,6 +131,8 @@ export async function getCurrentUser(): Promise<CurrentUser> {
       fullName: userData.full_name,
       status: userData.status,
       roleCode: userData.roles?.code ?? null,
+      leadId: userData.lead_id ?? null,
+      phone: userData.phone ?? null,
     };
   }
 

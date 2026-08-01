@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Breadcrumb, Button, Result, Space, Spin, Typography } from 'antd';
 import { EditOutlined, HomeOutlined } from '@ant-design/icons';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -10,7 +10,6 @@ import { ClassMemberRole, QuizUiMessage } from '@/constants/enums';
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import { useUserRoleCode } from '@/lib/hooks/use-current-user';
 import { useClass } from '@/lib/hooks/use-classes';
-import { useClassSessions } from '@/lib/hooks/use-class-sessions';
 import { useMyQuizAttempt, useSessionQuizDetail } from '@/lib/hooks/use-quizzes';
 import {
   countQuizQuestionKinds,
@@ -35,25 +34,24 @@ export function QuizTakePage({ classId, sessionId, quizId }: Props) {
   const searchParams = useSearchParams();
   const dateQuery = searchParams.get('date');
   const isMobile = useIsMobile();
-  const { hasPermission: canTake } = useAuthPermission([ClassMemberRole.STU]);
+  const { hasPermission: canTake, isLoading: permissionLoading } = useAuthPermission([
+    ClassMemberRole.STU,
+  ]);
   const { hasPermission: canEdit } = useAuthPermission([ClassMemberRole.TEA]);
   const roleCode = useUserRoleCode();
   const homeHref = roleCode?.trim().toUpperCase() === 'STU' ? '/course' : '/';
 
   const { data: classData } = useClass(classId);
-  const { data: sessions = [] } = useClassSessions(classId);
   const {
     data: quiz,
     isLoading: quizLoading,
+    isSuccess: quizReady,
     isError: quizMissing,
   } = useSessionQuizDetail(sessionId, quizId, true);
-
-  const session = sessions.find((item) => item.id === sessionId) ?? null;
 
   const scheduleParams = new URLSearchParams();
   scheduleParams.set('tab', 'schedule');
   if (dateQuery) scheduleParams.set('date', dateQuery);
-  else if (session?.date) scheduleParams.set('date', session.date);
   const scheduleHref = `/class/${classId}?${scheduleParams.toString()}`;
   const scheduleQuery = dateQuery ? `?date=${encodeURIComponent(dateQuery)}` : '';
   const editHref = `/class/${classId}/sessions/${sessionId}/quizzes/${quizId}/edit${scheduleQuery}`;
@@ -63,12 +61,18 @@ export function QuizTakePage({ classId, sessionId, quizId }: Props) {
   };
 
   const readOnly = !canTake;
-  const [entered, setEntered] = useState(!canTake);
+  const [entered, setEntered] = useState(false);
 
-  // Keep attempt query warm so entering the take UI does not wait on another GET.
+  useEffect(() => {
+
+    if (!permissionLoading && !canTake) {
+      setEntered(true);
+    }
+  }, [canTake, permissionLoading]);
+
   const { data: attempt, isLoading: attemptLoading } = useMyQuizAttempt(
-    canTake ? sessionId : null,
-    canTake ? quizId : null,
+    canTake && quizReady ? sessionId : null,
+    canTake && quizReady ? quizId : null,
   );
   const completed = isQuizAttemptCompleted(attempt);
   const inProgress = isQuizAttemptInProgress(attempt);
@@ -81,15 +85,14 @@ export function QuizTakePage({ classId, sessionId, quizId }: Props) {
       : QuizUiMessage.START_QUIZ;
 
   // Don't block the take page on class/sessions — those only fill labels.
-  const loading = quizLoading;
+  const loading = quizLoading || permissionLoading;
 
-  const sessionLabel = useMemo(
-    () =>
-      session
-        ? `Buổi ${session.session_number} · ${dayjs(session.date).format('dd, DD/MM/YYYY')}`
-        : sessionId,
-    [session, sessionId],
-  );
+  const sessionLabel = useMemo(() => {
+    if (dateQuery) {
+      return dayjs(dateQuery).format('dd, DD/MM/YYYY');
+    }
+    return 'Buổi học';
+  }, [dateQuery]);
 
   if (loading) {
     return (

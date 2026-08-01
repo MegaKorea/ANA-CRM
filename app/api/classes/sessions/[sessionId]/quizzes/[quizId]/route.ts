@@ -7,7 +7,7 @@ import {
   sessionContentErrorResponse,
 } from '@/lib/api/session-content-route';
 import { getCurrentUser } from '@/lib/services/auth.service';
-import { resolveClassViewer } from '@/lib/services/class_access.service';
+import { assertClassAccess } from '@/lib/services/class_access.service';
 import { getSessionMetaById } from '@/lib/services/class_session.service';
 import {
   deleteSessionQuiz,
@@ -25,9 +25,8 @@ export async function GET(
 ): Promise<NextResponse> {
   try {
     const { sessionId, quizId } = await params;
-    const [user, session, quiz] = await Promise.all([
+    const [user, quiz] = await Promise.all([
       getCurrentUser(),
-      getSessionMetaById(sessionId),
       getQuizById(quizId),
     ]);
     assertQuizBelongsToSession(quiz, sessionId);
@@ -36,18 +35,21 @@ export async function GET(
       if (!quiz.is_published) {
         fail(QuizErrorCode.NOT_PUBLISHED, HttpStatusCode.FORBIDDEN);
       }
+      // One enrollment check + attempt fetch (no second auth round-trip).
       const [, attempt] = await Promise.all([
-        resolveClassViewer(session.class_id),
+        assertClassAccess(quiz.class_id, user),
         getMyQuizAttempt(quizId, user.id),
       ]);
-      if (isQuizAttemptCompleted(attempt)) {
-        return NextResponse.json(quiz, { status: HttpStatusCode.OK });
-      }
-      return NextResponse.json(stripQuizAnswers(quiz), { status: HttpStatusCode.OK });
+      const payload = isQuizAttemptCompleted(attempt) ? quiz : stripQuizAnswers(quiz);
+      // Bundle attempt so the take page avoids a second ~1.5s GET /attempts.
+      return NextResponse.json(
+        { quiz: payload, attempt: attempt ?? null },
+        { status: HttpStatusCode.OK },
+      );
     }
 
-    await resolveClassViewer(session.class_id);
-    return NextResponse.json(quiz, { status: HttpStatusCode.OK });
+    await assertClassAccess(quiz.class_id, user);
+    return NextResponse.json({ quiz, attempt: null }, { status: HttpStatusCode.OK });
   } catch (error: unknown) {
     return sessionContentErrorResponse(error, QuizErrorCode.INTERNAL);
   }
@@ -59,12 +61,12 @@ export async function PATCH(
 ): Promise<NextResponse> {
   try {
     const { sessionId, quizId } = await params;
-    const [, session, existing] = await Promise.all([
+    const [user, session, existing] = await Promise.all([
       assertQuizTeacherWriter(),
       getSessionMetaById(sessionId),
       getQuizById(quizId),
     ]);
-    await resolveClassViewer(session.class_id);
+    await assertClassAccess(session.class_id, user);
     assertQuizBelongsToSession(existing, sessionId);
     const body = await request.json();
     const input = validateUpdateQuizInput(body);
@@ -97,11 +99,11 @@ export async function DELETE(
 ): Promise<NextResponse> {
   try {
     const { sessionId, quizId } = await params;
-    const [, session] = await Promise.all([
+    const [user, session] = await Promise.all([
       assertQuizTeacherWriter(),
       getSessionMetaById(sessionId),
     ]);
-    await resolveClassViewer(session.class_id);
+    await assertClassAccess(session.class_id, user);
     await deleteSessionQuiz(quizId, sessionId);
     return NextResponse.json({ success: true }, { status: HttpStatusCode.OK });
   } catch (error: unknown) {

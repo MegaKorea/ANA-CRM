@@ -336,10 +336,13 @@ export async function startQuizAttempt(
   quizId: string,
   studentId: string,
   knownQuiz?: Quiz,
+  knownAttempt?: QuizAttempt | null,
 ): Promise<QuizAttempt> {
   const [quiz, existing] = await Promise.all([
     knownQuiz ? Promise.resolve(knownQuiz) : getQuizById(quizId),
-    getMyQuizAttempt(quizId, studentId),
+    knownAttempt !== undefined
+      ? Promise.resolve(knownAttempt)
+      : getMyQuizAttempt(quizId, studentId),
   ]);
   if (!quiz.is_published) {
     fail(QuizErrorCode.NOT_PUBLISHED, HttpStatusCode.FORBIDDEN);
@@ -379,8 +382,12 @@ export async function saveQuizAttemptDraft(
   quizId: string,
   studentId: string,
   answers: Record<string, string[]>,
+  knownAttempt?: QuizAttempt | null,
 ): Promise<QuizAttempt> {
-  const existing = await getMyQuizAttempt(quizId, studentId);
+  const existing =
+    knownAttempt !== undefined
+      ? knownAttempt
+      : await getMyQuizAttempt(quizId, studentId);
   if (!existing || existing.status !== QuizAttemptStatus.IN_PROGRESS) {
     fail(QuizErrorCode.ATTEMPT_NOT_STARTED, HttpStatusCode.CONFLICT);
   }
@@ -404,10 +411,13 @@ export async function submitQuizAttempt(
   studentId: string,
   answers: Record<string, string[]>,
   knownQuiz?: Quiz,
+  knownAttempt?: QuizAttempt | null,
 ): Promise<QuizAttempt> {
   const [quiz, existing] = await Promise.all([
     knownQuiz ? Promise.resolve(knownQuiz) : getQuizById(quizId),
-    getMyQuizAttempt(quizId, studentId),
+    knownAttempt !== undefined
+      ? Promise.resolve(knownAttempt)
+      : getMyQuizAttempt(quizId, studentId),
   ]);
   if (!quiz.is_published) {
     fail(QuizErrorCode.NOT_PUBLISHED, HttpStatusCode.FORBIDDEN);

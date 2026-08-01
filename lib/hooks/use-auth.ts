@@ -26,6 +26,8 @@ function toCurrentUser(loginUser: LoginResponse['user']): CurrentUser {
     fullName: loginUser.fullName,
     status: UserStatusDb.ACTIVE,
     roleCode: loginUser.roleCode ?? null,
+    leadId: null,
+    phone: null,
   };
 }
 

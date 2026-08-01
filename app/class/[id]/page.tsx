@@ -84,33 +84,41 @@ export default function ClassDetailPage() {
 
   return (
     <div className={styles.pageContainer}>
-      <Breadcrumb className={styles.breadcrumb}>
-        <Breadcrumb.Item href={homeHref}>
-          <HomeOutlined />
-        </Breadcrumb.Item>
-        {isStudent ? (
-          <Breadcrumb.Item href="/course">
-            <span className={styles.breadcrumbTextDesktop}>Khóa học</span>
-            <span className={styles.breadcrumbTextMobile}>Khóa học</span>
-          </Breadcrumb.Item>
-        ) : (
-          <Breadcrumb.Item href="/class">
-            <span className={styles.breadcrumbTextDesktop}>Danh sách lớp học</span>
-            <span className={styles.breadcrumbTextMobile}>Lớp học</span>
-          </Breadcrumb.Item>
-        )}
-        <Breadcrumb.Item>
-          <span
-            className={styles.breadcrumbClassName}
-            title={`${classData.name}${classData.code ? ` (${classData.code})` : ''}`}
-          >
-            {classData.name}
-            {classData.code ? (
-              <span className={styles.breadcrumbClassCode}> ({classData.code})</span>
-            ) : null}
-          </span>
-        </Breadcrumb.Item>
-      </Breadcrumb>
+      <Breadcrumb
+        className={styles.breadcrumb}
+        items={[
+          {
+            href: homeHref,
+            title: <HomeOutlined />,
+          },
+          {
+            href: isStudent ? '/course' : '/class',
+            title: (
+              <>
+                <span className={styles.breadcrumbTextDesktop}>
+                  {isStudent ? 'Khóa học' : 'Danh sách lớp học'}
+                </span>
+                <span className={styles.breadcrumbTextMobile}>
+                  {isStudent ? 'Khóa học' : 'Lớp học'}
+                </span>
+              </>
+            ),
+          },
+          {
+            title: (
+              <span
+                className={styles.breadcrumbClassName}
+                title={`${classData.name}${classData.code ? ` (${classData.code})` : ''}`}
+              >
+                {classData.name}
+                {classData.code ? (
+                  <span className={styles.breadcrumbClassCode}> ({classData.code})</span>
+                ) : null}
+              </span>
+            ),
+          },
+        ]}
+      />
 
       <div className={styles.headerContainer}>
         <div className={styles.titleRow}>
@@ -146,7 +154,7 @@ export default function ClassDetailPage() {
           onChange={onTabChange}
           size="small"
           className={styles.tabsContainer}
-          destroyInactiveTabPane
+          destroyOnHidden
           items={[
             {
               label: 'Thông tin cơ bản',
