@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Checkbox, Empty, Image, Modal, Radio, Space, Tag, Typography, message } from 'antd';
+import { Button, Checkbox, Empty, Image, Modal, Popconfirm, Radio, Space, Tag, Typography, message } from 'antd';
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { Quiz, QuizAttempt, QuizQuestion } from '@/lib/types/quiz';
 import {
@@ -18,6 +18,7 @@ import {
   useSubmitQuizAttempt,
 } from '@/lib/hooks/use-quizzes';
 import { getErrorMessage } from '@/lib/utils/get-error-message';
+import { ScheduleLoading } from './ScheduleLoading';
 import styles from './tab-schedule.module.scss';
 
 const DRAFT_SAVE_MS = 800;
@@ -332,9 +333,18 @@ export function QuizTakeModal({
         ) : (
           <Space>
             <Button onClick={handleClose}>Đóng</Button>
-            <Button type="primary" loading={submitAttempt.isPending} onClick={handleSubmit}>
-              Nộp bài
-            </Button>
+            <Popconfirm
+              title="Nộp bài này?"
+              description="Sau khi nộp bạn không thể sửa câu trả lời."
+              okText="Nộp bài"
+              cancelText="Huỷ"
+              onConfirm={handleSubmit}
+              disabled={submitAttempt.isPending}
+            >
+              <Button type="primary" loading={submitAttempt.isPending}>
+                Nộp bài
+              </Button>
+            </Popconfirm>
           </Space>
         )
       }
@@ -344,7 +354,7 @@ export function QuizTakeModal({
       {!quiz ? (
         <Empty description="Không có bài tập" />
       ) : loadingSession ? (
-        <Typography.Text type="secondary">Đang tải…</Typography.Text>
+        <ScheduleLoading tip="Đang tải…" />
       ) : (
         <div className={styles.quizTakeBody}>
           {done ? (

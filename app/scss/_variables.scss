@@ -1,65 +1,158 @@
-$color-primary: #ec008c;
-$color-white: #ffffff;
-$color-black: #000000;
-$color-success: #52c41a;
-$color-warning: #faad14;
-$color-error: #ff4d4f;
-$color-info: #1890ff;
-$color-bg-layout-light: #f5f5f5;
-$color-header-bg-light: #001529;
-$color-body-bg-light: #f0f2f5;
-$color-table-header-bg-light: #fafafa;
-$color-transparent: transparent;
-$color-hover-bg: rgba(255, 255, 255, 0.08);
-$color-text-primary-light: #000000;
-$color-text-secondary-light: #666666;
-$color-border-light: #d9d9d9;
-$color-surface-light: #ffffff;
-$color-divider-light: rgba(0, 0, 0, 0.06);
-$shadow-header-light: 0 1px 4px rgba(0, 21, 41, 0.08);
-
-$color-bg-layout-dark: #000000;
-$color-header-bg-dark: #000000;
-$color-body-bg-dark: #000000;
-$color-table-header-bg-dark: #000000;
-$color-text-primary-dark: #ffffff;
-$color-text-secondary-dark: #bfbfbf;
-$color-border-dark: #434343;
-$color-surface-dark: #000000;
-$color-divider-dark: rgba(255, 255, 255, 0.12);
-$shadow-header-dark: 0 1px 4px rgba(0, 0, 0, 0.35);
+// ART LANCE — Design Tokens v2.0 (see DESIGN_TOKEN.md)
 
 :root {
-  --color-primary: #{$color-primary};
-  --color-white: #{$color-white};
-  --color-black: #{$color-black};
-  --color-success: #{$color-success};
-  --color-warning: #{$color-warning};
-  --color-error: #{$color-error};
-  --color-info: #{$color-info};
-  --color-bg-layout: #{$color-bg-layout-light};
-  --color-header-bg: #{$color-header-bg-light};
-  --color-body-bg: #{$color-body-bg-light};
-  --color-table-header-bg: #{$color-table-header-bg-light};
-  --color-transparent: #{$color-transparent};
-  --color-hover-bg: #{$color-hover-bg};
-  --color-text-primary: #{$color-text-primary-light};
-  --color-text-secondary: #{$color-text-secondary-light};
-  --color-border: #{$color-border-light};
-  --color-surface: #{$color-surface-light};
-  --color-divider: #{$color-divider-light};
-  --shadow-header: #{$shadow-header-light};
+  // 1. Neutral scale
+  --neutral-0: #ffffff;
+  --neutral-25: #fcfcfd;
+  --neutral-50: #f8f9fb;
+  --neutral-100: #f1f2f6;
+  --neutral-200: #e6e8ef;
+  --neutral-300: #d5d8e2;
+  --neutral-400: #a6abbd;
+  --neutral-500: #71768a;
+  --neutral-600: #545a6e;
+  --neutral-700: #3b4051;
+  --neutral-800: #262a37;
+  --neutral-900: #14161f;
+
+  // 2. Accent scale — brand purple, constant across themes
+  --accent-50: #f4effb;
+  --accent-100: #e9ddf7;
+  --accent-200: #d4bcef;
+  --accent-300: #b792e2;
+  --accent-400: #9564d3;
+  --accent-500: #7b43c4;
+  --accent-600: #6e34bb;
+  --accent-700: #5b2b9b;
+  --accent-800: #47257a;
+
+  // 3. Semantic status
+  --success: #16a34a;
+  --success-bg: #eaf7ef;
+  --success-text: #0f7a3d;
+  --warning: #d9880f;
+  --warning-bg: #fbf2e2;
+  --warning-text: #935b06;
+  --error: #e5484d;
+  --error-bg: #fdecec;
+  --error-text: #c0353a;
+  --info: #3e7bfa;
+  --info-bg: #eaf1fe;
+  --info-text: #295fd0;
+
+  // 4. Role aliases — the only tokens that flip between light/dark
+  --bg-app: var(--neutral-50);
+  --bg-surface: var(--neutral-0);
+  --bg-sunken: var(--neutral-100);
+  --bg-hover: var(--neutral-100);
+  --bg-selected: var(--accent-50);
+
+  --text-primary: var(--neutral-900);
+  --text-secondary: var(--neutral-600);
+  --text-tertiary: var(--neutral-500);
+  --text-disabled: var(--neutral-400);
+  --text-on-accent: #ffffff;
+
+  --border: var(--neutral-200);
+  --border-strong: var(--neutral-300);
+  --border-focus: var(--accent-600);
+
+  // 5. Typography
+  --font-sans:
+    'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
+  --fs-display: clamp(30px, 4vw, 40px);
+  --fs-h1: 24px;
+  --fs-h2: 20px;
+  --fs-h3: 16px;
+  --fs-h4: 14px;
+  --fs-body: 14px;
+  --fs-sm: 13px;
+  --fs-xs: 12px;
+
+  // 6. Spacing (4px base)
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  // 7. Radius
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  // 8. Shadows
+  --shadow-xs: 0 1px 2px rgba(20, 22, 31, 0.06);
+  --shadow-sm:
+    0 1px 2px rgba(20, 22, 31, 0.06),
+    0 1px 3px rgba(20, 22, 31, 0.04);
+  --shadow-md:
+    0 4px 12px rgba(20, 22, 31, 0.08),
+    0 2px 4px rgba(20, 22, 31, 0.04);
+  --shadow-lg: 0 12px 28px rgba(20, 22, 31, 0.14);
+  --shadow-focus: 0 0 0 3px rgba(110, 52, 187, 0.18);
+
+  // 9. Layout & app shell
+  --sidebar-w: 264px;
+  --sidebar-w-collapsed: 76px;
+  --topbar-h: 64px;
+  --container-max: 1440px;
+
+  // --- v1 names kept as aliases onto v2 values (DESIGN_TOKEN.md §14) ---
+  // existing components referencing these keep working, re-skinned for free.
+  --color-primary: var(--accent-600);
+  --color-white: var(--neutral-0);
+  --color-black: #000000;
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+  --color-bg-layout: var(--bg-app);
+  --color-header-bg: var(--bg-surface);
+  --color-body-bg: var(--bg-app);
+  --color-table-header-bg: var(--bg-sunken);
+  --color-transparent: transparent;
+  --color-hover-bg: var(--bg-hover);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-border: var(--border);
+  --color-surface: var(--bg-surface);
+  --color-divider: var(--border);
+  --shadow-header: var(--shadow-sm);
 }
 
 :root.dark {
-  --color-bg-layout: #{$color-bg-layout-dark};
-  --color-header-bg: #{$color-header-bg-dark};
-  --color-body-bg: #{$color-body-bg-dark};
-  --color-table-header-bg: #{$color-table-header-bg-dark};
-  --color-text-primary: #{$color-text-primary-dark};
-  --color-text-secondary: #{$color-text-secondary-dark};
-  --color-border: #{$color-border-dark};
-  --color-surface: #{$color-surface-dark};
-  --color-divider: #{$color-divider-dark};
-  --shadow-header: #{$shadow-header-dark};
+  --bg-app: #14161f;
+  --bg-surface: #1c1f2a;
+  --bg-sunken: #232633;
+  --bg-hover: #262a37;
+  --bg-selected: rgba(110, 52, 187, 0.18);
+
+  --text-primary: #f1f2f6;
+  --text-secondary: #a6abbd;
+  --text-tertiary: #71768a;
+  --text-disabled: #545a6e;
+
+  --border: #2e3240;
+  --border-strong: #3b4051;
+
+  --success-bg: rgba(22, 163, 74, 0.16);
+  --success-text: #4ade80;
+  --warning-bg: rgba(217, 136, 15, 0.18);
+  --warning-text: #f5a524;
+  --error-bg: rgba(229, 72, 77, 0.18);
+  --error-text: #fca5a5;
+  --info-bg: rgba(62, 123, 250, 0.18);
+  --info-text: #93c5fd;
+
+  --shadow-header: 0 1px 4px rgba(0, 0, 0, 0.35);
 }

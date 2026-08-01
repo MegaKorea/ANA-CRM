@@ -2,7 +2,7 @@
 
 import {
   Typography, Button, Modal, Calendar,
-  message, Spin, Empty,
+  message, Empty,
 } from 'antd';
 import type { CalendarProps } from 'antd';
 import { ClockCircleOutlined, SyncOutlined, ScanOutlined } from '@ant-design/icons';
@@ -27,7 +27,9 @@ import { StudentScannerModal } from './modals/StudentScannerModal';
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import { ClassMemberRole } from '@/constants/enums';
 import { normalizeClassTimetable } from '@/lib/validators/class.validator';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 import { createCalendarHeaderRender } from './ScheduleCalendarNav';
+import { ScheduleLoading } from './ScheduleLoading';
 import { ScheduleDayCell } from './ScheduleDayCell';
 import { ScheduleDayDetail } from './ScheduleDayDetail';
 import {
@@ -178,7 +180,7 @@ export function TabSchedule({ classData }: { classData: Class }) {
           message.success('Đã tạo lịch học thành công!');
           resetToToday();
         } catch (e: unknown) {
-          message.error(e instanceof Error ? e.message : 'Tạo lịch thất bại.');
+          message.error(getErrorMessage(e, 'Tạo lịch thất bại.'));
         }
       },
     });
@@ -191,7 +193,7 @@ export function TabSchedule({ classData }: { classData: Class }) {
       message.success('Đã cập nhật buổi học.');
       setEditSession(null);
     } catch (e: unknown) {
-      message.error(e instanceof Error ? e.message : 'Cập nhật thất bại.');
+      message.error(getErrorMessage(e, 'Cập nhật thất bại.'));
     }
   }, [editSession, updateSession]);
 
@@ -202,7 +204,7 @@ export function TabSchedule({ classData }: { classData: Class }) {
       message.success('Đã lưu điểm danh.');
       setAttendanceSession(null);
     } catch (e: unknown) {
-      message.error(e instanceof Error ? e.message : 'Lưu điểm danh thất bại.');
+      message.error(getErrorMessage(e, 'Lưu điểm danh thất bại.'));
     }
   }, [attendanceSession, bulkUpsert]);
 
@@ -211,7 +213,7 @@ export function TabSchedule({ classData }: { classData: Class }) {
       const result = await generateQr.mutateAsync(session.id);
       setQrModal({ open: true, token: result.token, expiresAt: result.expiresAt });
     } catch (e: unknown) {
-      message.error(e instanceof Error ? e.message : 'Tạo mã QR thất bại.');
+      message.error(getErrorMessage(e, 'Tạo mã QR thất bại.'));
     }
   }, [generateQr]);
 
@@ -270,14 +272,7 @@ export function TabSchedule({ classData }: { classData: Class }) {
   }
 
   if (sessionsLoading || authLoading) {
-    return (
-      <div className={styles.stateBlockLarge}>
-        <Spin size="large" />
-        <Typography.Text type="secondary" className={styles.stateHint}>
-          Đang tải lịch học...
-        </Typography.Text>
-      </div>
-    );
+    return <ScheduleLoading tip="Đang tải lịch học…" size="large" />;
   }
 
   if (!hasSessions) {
@@ -344,9 +339,9 @@ export function TabSchedule({ classData }: { classData: Class }) {
         )}
       </div>
 
-      <div className={styles.calendarLayout}>
+      <div className={cx(styles.calendarLayout, isMobile && styles.calendarLayoutMobile)}>
         <div className={styles.calendarPanel}>
-          <div className={styles.panelLabel}>Thời khóa biểu</div>
+          <div className={styles.panelLabel}>{isMobile ? 'Chọn ngày' : 'Thời khóa biểu'}</div>
           <div className={styles.calendarScroll}>
             <Calendar
               fullscreen

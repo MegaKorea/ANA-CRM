@@ -3,6 +3,7 @@ import { useCreateClass } from '@/lib/hooks/use-classes';
 import { useCourses } from '@/lib/hooks/use-courses';
 import type { CreateClassInput } from '@/lib/validators/class.validator';
 import { CLASS_STATUS_OPTIONS } from '@/lib/constants/classStatus';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 
 interface CreateClassModalProps {
   open: boolean;
@@ -26,8 +27,8 @@ export function CreateClassModal({ open, onClose }: CreateClassModalProps) {
         message.success('Tạo lớp học thành công!');
         handleClose();
       },
-      onError: (error: any) => {
-        message.error('Lỗi khi tạo lớp học: ' + error.message);
+      onError: (error: unknown) => {
+        message.error(getErrorMessage(error, 'Lỗi khi tạo lớp học'));
       },
     });
   };

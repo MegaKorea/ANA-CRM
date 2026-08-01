@@ -5,6 +5,7 @@ import type { Class } from '@/lib/services/class.service';
 import type { UpdateClassInput } from '@/lib/validators/class.validator';
 import { useEffect } from 'react';
 import { CLASS_STATUS_OPTIONS } from '@/lib/constants/classStatus';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 
 interface UpdateClassModalProps {
   open: boolean;
@@ -45,8 +46,8 @@ export function UpdateClassModal({ open, onClose, classData }: UpdateClassModalP
           message.success('Cập nhật lớp học thành công!');
           handleClose();
         },
-        onError: (error: any) => {
-          message.error('Lỗi khi cập nhật lớp học: ' + error.message);
+        onError: (error: unknown) => {
+          message.error(getErrorMessage(error, 'Lỗi khi cập nhật lớp học'));
         },
       },
     );

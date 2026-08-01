@@ -26,6 +26,7 @@ import {
   isLectureNotificationPayload,
   isQuizNotificationPayload,
 } from '@/lib/types/user-notification';
+import styles from './student-notification.module.scss';
 import { QuizTakeModal } from '@/app/class/[id]/components/QuizTakeModal';
 import { useQuery } from '@tanstack/react-query';
 import { fetchJson } from '@/lib/utils/fetchJson';
@@ -238,7 +239,10 @@ export function StudentNotificationBell() {
               Buổi {lecturePayload.session_number} · {lecturePayload.session_date}
             </Text>
             {lecturePayload.html ? (
-              <Text style={{ whiteSpace: 'pre-wrap' }}>{lecturePayload.html}</Text>
+              <div
+                className={styles.lectureHtml}
+                dangerouslySetInnerHTML={{ __html: lecturePayload.html }}
+              />
             ) : (
               <Text type="secondary">Không có nội dung mô tả</Text>
             )}

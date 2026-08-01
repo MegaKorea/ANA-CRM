@@ -7,6 +7,7 @@ import type { Quiz, QuizAttemptReview, QuizQuestion } from '@/lib/types/quiz';
 import { isQuizAnswerCorrect } from '@/lib/types/quiz';
 import { useTeacherQuizAttempts } from '@/lib/hooks/use-quizzes';
 import { formatViDateTime } from '@/lib/utils/format-vi-datetime';
+import { ScheduleLoading } from './ScheduleLoading';
 import styles from './tab-schedule.module.scss';
 
 type Props = {
@@ -107,7 +108,7 @@ export function QuizAttemptsReviewModal({ sessionId, quiz, open, isMobile, onClo
         destroyOnHidden
       >
         {isLoading ? (
-          <Typography.Text type="secondary">Đang tải bài làm…</Typography.Text>
+          <ScheduleLoading tip="Đang tải bài làm…" />
         ) : items.length === 0 ? (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}

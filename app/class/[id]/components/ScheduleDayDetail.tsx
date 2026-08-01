@@ -1,15 +1,10 @@
 'use client';
 
-import { Badge, Button, Empty } from 'antd';
+import { Badge, Button, Empty, Space } from 'antd';
 import {
-  CheckCircleFilled,
-  ClockCircleOutlined,
-  CloseCircleFilled,
   EditOutlined,
-  EnvironmentOutlined,
   QrcodeOutlined,
   TeamOutlined,
-  UserOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { ClassSession } from '@/lib/services/class_session.service';
@@ -18,10 +13,10 @@ import { SessionLecturesPanel } from './SessionLecturesPanel';
 import { SessionQuizzesPanel } from './SessionQuizzesPanel';
 import styles from './tab-schedule.module.scss';
 
-const STATUS_BADGE: Record<SessionStatus, string> = {
-  past: styles.dayStatus_past,
-  today: styles.dayStatus_today,
-  upcoming: styles.dayStatus_upcoming,
+const STATUS_TONE: Record<SessionStatus, string> = {
+  past: styles.dayTone_past,
+  today: styles.dayTone_today,
+  upcoming: styles.dayTone_upcoming,
 };
 
 type Props = {
@@ -53,31 +48,43 @@ export function ScheduleDayDetail({
 }: Props) {
   const date = dayjs(selectedDate);
   const isToday = date.isSame(dayjs(), 'day');
+  const showAttendance =
+    !!selectedSession &&
+    (selectedSession.status === 'past' || selectedSession.status === 'today');
 
   const attendanceLabel = selectedSession?.hasAttendance
     ? attendanceForSelf
       ? 'Bạn đã điểm danh'
-      : `${selectedSession.attendanceMarkedCount} học viên đã điểm danh`
+      : `${selectedSession.attendanceMarkedCount} đã điểm danh`
     : attendanceForSelf
       ? 'Bạn chưa điểm danh'
-      : 'Chưa có học viên điểm danh';
+      : 'Chưa điểm danh';
+
+  const metaParts = selectedSession
+    ? [
+        selectedSession.caLabel,
+        selectedSession.teacherName,
+        selectedSession.room || null,
+      ].filter(Boolean)
+    : [];
 
   return (
     <div className={styles.dayDetailInner}>
       <header className={styles.dayDetailHead}>
-        <div className={styles.dayDetailHeadTop}>
-          <span className={styles.dayDetailEyebrow}>Chi tiết ngày</span>
-          {selectedSession ? (
-            <span className={cx(styles.dayStatusBadge, STATUS_BADGE[selectedSession.status])}>
-              {STATUS_LABEL[selectedSession.status]}
-            </span>
-          ) : null}
-        </div>
-        <h3 className={styles.dayDetailTitle}>{date.format('dddd')}</h3>
         <p className={styles.dayDetailDate}>
           {isToday ? 'Hôm nay · ' : null}
-          {date.format('DD/MM/YYYY')}
+          {date.format('dddd, DD/MM/YYYY')}
         </p>
+        {selectedSession ? (
+          <div className={styles.dayDetailTitleRow}>
+            <h3 className={styles.dayDetailTitle}>{selectedSession.sessionLabel}</h3>
+            <span className={cx(styles.dayTone, STATUS_TONE[selectedSession.status])}>
+              {STATUS_LABEL[selectedSession.status]}
+            </span>
+          </div>
+        ) : (
+          <h3 className={styles.dayDetailTitle}>{date.format('dddd')}</h3>
+        )}
       </header>
 
       {!selectedSession ? (
@@ -89,91 +96,75 @@ export function ScheduleDayDetail({
         </div>
       ) : (
         <div className={styles.daySession}>
-          <div className={styles.daySessionHero}>
-            <div>
-              <p className={styles.dayFieldLabel}>Buổi học</p>
-              <p className={styles.daySessionName}>{selectedSession.sessionLabel}</p>
-            </div>
-            <div className={cx(styles.dayRoomChip, !selectedSession.room && styles.dayRoomChipMuted)}>
-              <EnvironmentOutlined />
-              <span>{selectedSession.room || 'Chưa gán phòng'}</span>
-            </div>
-          </div>
+          {metaParts.length > 0 ? (
+            <p className={styles.dayMetaLine}>{metaParts.join(' · ')}</p>
+          ) : null}
 
-          <dl className={styles.dayMetaList}>
-            {selectedSession.status === 'past' || selectedSession.status === 'today' ? (
-              <div className={styles.dayMetaRow}>
-                <dt>
-                  {selectedSession.hasAttendance ? (
-                    <CheckCircleFilled className={cx(styles.dayMetaRowIcon, styles.dayAttendOk)} />
-                  ) : (
-                    <CloseCircleFilled className={cx(styles.dayMetaRowIcon, styles.dayAttendMissing)} />
-                  )}
-                  Điểm danh
-                </dt>
-                <dd className={selectedSession.hasAttendance ? styles.dayAttendOk : styles.dayAttendMissing}>
-                  {attendanceLabel}
-                </dd>
-              </div>
-            ) : null}
-            <div className={styles.dayMetaRow}>
-              <dt>
-                <ClockCircleOutlined className={styles.dayMetaRowIcon} />
-                Ca học
-              </dt>
-              <dd>{selectedSession.caLabel}</dd>
-            </div>
-            <div className={styles.dayMetaRow}>
-              <dt>
-                <UserOutlined className={styles.dayMetaRowIcon} />
-                Giáo viên
-              </dt>
-              <dd>{selectedSession.teacherName}</dd>
-            </div>
-          </dl>
+          {showAttendance ? (
+            <p
+              className={cx(
+                styles.dayAttendLine,
+                selectedSession.hasAttendance ? styles.dayAttendOk : styles.dayAttendMissing,
+              )}
+            >
+              {attendanceLabel}
+            </p>
+          ) : null}
 
           {canManage ? (
             <div className={styles.dayActions}>
-              <Button icon={<EditOutlined />} onClick={() => onEdit(selectedSession.session)}>
-                Sửa
-              </Button>
-              <Button
-                icon={<TeamOutlined />}
-                danger={
-                  (selectedSession.status === 'past' || selectedSession.status === 'today')
-                  && !selectedSession.hasAttendance
-                }
-                onClick={() => onAttendance(selectedSession.session)}
-              >
-                Điểm danh
-              </Button>
-              <Button
-                type="primary"
-                icon={
-                  selectedSession.hasQr
-                    ? <Badge dot color="green"><QrcodeOutlined /></Badge>
-                    : <QrcodeOutlined />
-                }
-                onClick={() => onGenerateQr(selectedSession.session)}
-              >
-                Mã QR
-              </Button>
+              <Space wrap size={8}>
+                <Button
+                  type="primary"
+                  size="middle"
+                  icon={<TeamOutlined />}
+                  danger={showAttendance && !selectedSession.hasAttendance}
+                  onClick={() => onAttendance(selectedSession.session)}
+                >
+                  Điểm danh
+                </Button>
+                <Button
+                  size="middle"
+                  icon={
+                    selectedSession.hasQr ? (
+                      <Badge dot color="green">
+                        <QrcodeOutlined />
+                      </Badge>
+                    ) : (
+                      <QrcodeOutlined />
+                    )
+                  }
+                  onClick={() => onGenerateQr(selectedSession.session)}
+                >
+                  QR
+                </Button>
+                <Button
+                  type="text"
+                  size="middle"
+                  icon={<EditOutlined />}
+                  onClick={() => onEdit(selectedSession.session)}
+                >
+                  Sửa
+                </Button>
+              </Space>
             </div>
           ) : null}
 
-          <SessionLecturesPanel
-            classId={classId}
-            sessionId={selectedSession.session.id}
-            canEdit={canEditLectures}
-            isMobile={isMobile}
-          />
-          <SessionQuizzesPanel
-            classId={classId}
-            sessionId={selectedSession.session.id}
-            canEdit={canEditLectures}
-            canTake={canTakeQuizzes}
-            isMobile={isMobile}
-          />
+          <div className={styles.dayContent}>
+            <SessionLecturesPanel
+              classId={classId}
+              sessionId={selectedSession.session.id}
+              canEdit={canEditLectures}
+              isMobile={isMobile}
+            />
+            <SessionQuizzesPanel
+              classId={classId}
+              sessionId={selectedSession.session.id}
+              canEdit={canEditLectures}
+              canTake={canTakeQuizzes}
+              isMobile={isMobile}
+            />
+          </div>
         </div>
       )}
     </div>

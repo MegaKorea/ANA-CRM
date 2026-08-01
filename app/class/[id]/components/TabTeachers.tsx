@@ -5,6 +5,7 @@ import type { Class } from '@/lib/services/class.service';
 import { useUsers } from '@/lib/hooks/use-users';
 import { useUpdateClass, useSubjectTeachers, useAddSubjectTeacher, useRemoveSubjectTeacher } from '@/lib/hooks/use-classes';
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 
 const { Text, Title } = Typography;
 
@@ -28,7 +29,9 @@ export function TabTeachers({ classData }: { classData: Class }) {
       { id: classData.id, data: { homeroom_teacher_id: homeroomTeacherId } },
       {
         onSuccess: () => message.success('Cập nhật giáo viên chủ nhiệm thành công'),
-        onError: (e: any) => message.error('Lỗi khi cập nhật giáo viên chủ nhiệm: ' + e.message),
+        onError: (error: unknown) => {
+          message.error(getErrorMessage(error, 'Lỗi khi cập nhật giáo viên chủ nhiệm'));
+        },
       }
     );
   };
@@ -52,7 +55,9 @@ export function TabTeachers({ classData }: { classData: Class }) {
           message.success('Thêm giáo viên bộ môn thành công');
           form.resetFields();
         },
-        onError: (e: any) => message.error('Lỗi khi thêm giáo viên bộ môn: ' + e.message),
+        onError: (error: unknown) => {
+          message.error(getErrorMessage(error, 'Lỗi khi thêm giáo viên bộ môn'));
+        },
       }
     );
   };
@@ -60,7 +65,9 @@ export function TabTeachers({ classData }: { classData: Class }) {
   const handleRemoveSubjectTeacher = (id: string) => {
     removeSubjectTeacherMutation.mutate(id, {
       onSuccess: () => message.success('Đã xóa giáo viên bộ môn khỏi lớp'),
-      onError: (e: any) => message.error('Lỗi khi xóa giáo viên bộ môn: ' + e.message),
+      onError: (error: unknown) => {
+        message.error(getErrorMessage(error, 'Lỗi khi xóa giáo viên bộ môn'));
+      },
     });
   };
 

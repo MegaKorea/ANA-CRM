@@ -34,6 +34,7 @@ import { useIsMobile } from '@/lib/hooks/use-mobile';
 import type { Class } from '@/lib/services/class.service';
 import dayjs from 'dayjs';
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 import { StudentFinanceModal } from './StudentFinanceModal';
 
 const { Text } = Typography;
@@ -107,7 +108,9 @@ export function TabStudents({ classData }: { classData: Class }) {
           message.success('Thêm học viên vào lớp thành công');
           setSelectedLeadId(undefined);
         },
-        onError: (e: any) => message.error('Lỗi khi thêm học viên: ' + e.message),
+        onError: (error: unknown) => {
+          message.error(getErrorMessage(error, 'Lỗi khi thêm học viên'));
+        },
       },
     );
   }, [addStudentMutation, classData.capacity, classData.id, selectedLeadId, students]);
@@ -116,7 +119,9 @@ export function TabStudents({ classData }: { classData: Class }) {
     (studentId: string) => {
       removeStudentMutation.mutate(studentId, {
         onSuccess: () => message.success('Đã xóa học viên khỏi lớp'),
-        onError: (e: any) => message.error('Lỗi khi xóa học viên: ' + e.message),
+        onError: (error: unknown) => {
+          message.error(getErrorMessage(error, 'Lỗi khi xóa học viên'));
+        },
       });
     },
     [removeStudentMutation],

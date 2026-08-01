@@ -1,6 +1,6 @@
 .modal {
   :global(.ant-modal-content) {
-    border-radius: 16px;
+    border-radius: var(--radius-xl);
     overflow: hidden;
     padding: 0;
   }
@@ -21,8 +21,8 @@
     }
 
     &::-webkit-scrollbar-thumb {
-      background: rgba(0, 0, 0, 0.12);
-      border-radius: 4px;
+      background: color-mix(in srgb, var(--color-text-secondary) 35%, transparent);
+      border-radius: var(--radius-xs);
     }
   }
 }
@@ -32,19 +32,19 @@
 .summaryCard {
   position: relative;
   margin: 20px 24px 0;
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   overflow: hidden;
-  background: linear-gradient(135deg, #ec008c 0%, #b8006e 100%);
-  color: #fff;
+  background: linear-gradient(135deg, var(--accent-600) 0%, var(--accent-800) 100%);
+  color: var(--text-on-accent);
 }
 
 .summaryBg {
   position: absolute;
   inset: 0;
   opacity: 0.07;
-  background-image: radial-gradient(circle at 20% 80%, #fff 1px, transparent 1px),
-    radial-gradient(circle at 80% 20%, #fff 1px, transparent 1px),
-    radial-gradient(circle at 50% 50%, #fff 0.5px, transparent 0.5px);
+  background-image: radial-gradient(circle at 20% 80%, var(--text-on-accent) 1px, transparent 1px),
+    radial-gradient(circle at 80% 20%, var(--text-on-accent) 1px, transparent 1px),
+    radial-gradient(circle at 50% 50%, var(--text-on-accent) 0.5px, transparent 0.5px);
   background-size: 60px 60px, 80px 80px, 40px 40px;
   pointer-events: none;
 }
@@ -71,14 +71,14 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: rgba(255, 255, 255, 0.65);
+  color: color-mix(in srgb, var(--text-on-accent) 65%, transparent);
 }
 
 .summaryValue {
   font-size: 20px;
   font-weight: 700;
   line-height: 1.3;
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .summaryValueSmall {
@@ -86,13 +86,14 @@
 }
 
 .summaryValueDanger {
-  color: #ff9a9e;
+  // Lightened from --error so it stays readable on the dark accent gradient above.
+  color: color-mix(in srgb, var(--error) 60%, white);
 }
 
 .progressRow {
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  border-top: 1px solid color-mix(in srgb, var(--text-on-accent) 15%, transparent);
   display: flex;
   align-items: center;
   gap: 14px;
@@ -101,16 +102,16 @@
 .progressBar {
   flex: 1;
   height: 8px;
-  border-radius: 100px;
-  background: rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--text-on-accent) 18%, transparent);
   overflow: hidden;
   position: relative;
 }
 
 .progressFill {
   height: 100%;
-  border-radius: 100px;
-  background: linear-gradient(90deg, #6dd5fa, #2ecc71);
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--info), var(--success));
   transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
   position: relative;
 
@@ -121,16 +122,16 @@
     top: -1px;
     width: 10px;
     height: 10px;
-    border-radius: 50%;
-    background: #fff;
-    box-shadow: 0 0 6px rgba(46, 204, 113, 0.6);
+    border-radius: var(--radius-pill);
+    background: var(--text-on-accent);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--success) 60%, transparent);
   }
 }
 
 .progressPercent {
   font-size: 14px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-on-accent);
   min-width: 42px;
   text-align: right;
 }
@@ -153,7 +154,7 @@
 .ticketItem {
   position: relative;
   padding: 16px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
   border: 1px solid var(--color-divider);
   margin-bottom: 12px;
@@ -161,7 +162,7 @@
 
   &:hover {
     border-color: var(--color-border);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    box-shadow: var(--shadow-sm);
   }
 
   &:last-child {
@@ -219,24 +220,20 @@
 .ticketNote {
   margin-top: 10px;
   padding: 8px 12px;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.02);
+  border-radius: var(--radius-md);
+  background: var(--bg-sunken);
   font-size: 13px;
   color: var(--color-text-secondary);
   font-style: italic;
   line-height: 1.5;
 }
 
-:global(.dark) .ticketNote {
-  background: rgba(255, 255, 255, 0.04);
-}
-
 .ticketRejectReason {
   margin-top: 10px;
   padding: 8px 12px;
-  border-radius: 8px;
-  background: rgba(255, 77, 79, 0.06);
-  border: 1px solid rgba(255, 77, 79, 0.15);
+  border-radius: var(--radius-md);
+  background: var(--error-bg);
+  border: 1px solid color-mix(in srgb, var(--error) 15%, transparent);
   font-size: 13px;
   color: var(--color-error);
   font-style: italic;
@@ -251,7 +248,7 @@
 }
 
 .ticketImageWrap {
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid var(--color-divider);
   transition: transform 0.15s;

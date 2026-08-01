@@ -16,6 +16,7 @@ import {
 import { DeleteOutlined } from '@ant-design/icons';
 import UploadImage from '@/components/common/UploadImage';
 import { useUpdateClassStudent } from '@/lib/hooks/use-classes';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 import styles from './components.module.scss';
 
 const { Text } = Typography;
@@ -67,8 +68,8 @@ export function StudentFinanceModal({
             message.success('Cập nhật tài chính thành công!');
             onClose();
           },
-          onError: (error: any) => {
-            message.error(error?.message || 'Lỗi cập nhật');
+          onError: (error: unknown) => {
+            message.error(getErrorMessage(error, 'Lỗi cập nhật'));
           },
         },
       );

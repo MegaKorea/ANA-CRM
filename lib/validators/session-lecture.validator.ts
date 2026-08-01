@@ -1,6 +1,10 @@
 import { AppError } from '@/errors';
 import { HttpStatusCode, LectureErrorCode } from '@/constants/enums';
-import type { SessionLectureAttachment, SessionLectureLink } from '@/lib/types/session-lecture';
+import type {
+  SessionLectureAttachment,
+  SessionLectureLink,
+  SessionLectureStatus,
+} from '@/lib/types/session-lecture';
 import { assertAllowedHttpUrl } from '@/lib/utils/assert-http-url';
 
 export type SessionLectureInputValidated = {
@@ -9,7 +13,14 @@ export type SessionLectureInputValidated = {
   links?: SessionLectureLink[];
   attachments?: SessionLectureAttachment[];
   sort_order?: number;
+  status?: SessionLectureStatus;
 };
+
+function parseStatus(value: unknown): SessionLectureStatus | undefined {
+  if (value === undefined) return undefined;
+  if (value === 'draft' || value === 'published') return value;
+  throw new AppError(LectureErrorCode.INVALID_INPUT, HttpStatusCode.BAD_REQUEST, 'Trạng thái không hợp lệ.');
+}
 
 function parseLinks(value: unknown): SessionLectureLink[] {
   if (value === undefined) return [];
@@ -74,6 +85,8 @@ export function validateCreateSessionLectureInput(input: unknown): SessionLectur
   if (typeof data.sort_order === 'number') {
     result.sort_order = data.sort_order;
   }
+  const status = parseStatus(data.status);
+  if (status) result.status = status;
   return result;
 }
 
@@ -104,5 +117,7 @@ export function validateUpdateSessionLectureInput(
   if (typeof data.sort_order === 'number') {
     result.sort_order = data.sort_order;
   }
+  const status = parseStatus(data.status);
+  if (status) result.status = status;
   return result;
 }

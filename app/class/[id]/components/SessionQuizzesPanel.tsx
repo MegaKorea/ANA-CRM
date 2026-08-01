@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Empty, Popconfirm, Space, Tag, Typography, message } from 'antd';
+import { Button, Popconfirm, Space, Tag, Typography, message } from 'antd';
 import {
   DeleteOutlined,
   EditOutlined,
@@ -9,6 +9,7 @@ import {
   TeamOutlined,
 } from '@ant-design/icons';
 import { useCallback, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { QuizUiMessage } from '@/constants/enums';
 import type { Quiz } from '@/lib/types/quiz';
 import { isQuizAttemptCompleted, isQuizAttemptInProgress } from '@/lib/types/quiz';
@@ -20,8 +21,8 @@ import {
 import { getErrorMessage } from '@/lib/utils/get-error-message';
 import { QuizTakeModal } from './QuizTakeModal';
 import { QuizAttemptsReviewModal } from './QuizAttemptsReviewModal';
-import { QuizEditorModal } from './QuizEditorModal';
 import { QuizPreviewModal } from './QuizPreviewModal';
+import { ScheduleLoading } from './ScheduleLoading';
 import styles from './tab-schedule.module.scss';
 
 type Props = {
@@ -51,30 +52,33 @@ function StudentQuizActionHint({
 }
 
 export function SessionQuizzesPanel({ classId, sessionId, canEdit, canTake, isMobile }: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const dateQuery = searchParams.get('date');
   const { data: quizzes = [], isLoading } = useSessionQuizzes(sessionId);
   const deleteQuiz = useDeleteSessionQuiz(classId);
 
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editing, setEditing] = useState<Quiz | null>(null);
   const [previewQuiz, setPreviewQuiz] = useState<Quiz | null>(null);
   const [takingQuiz, setTakingQuiz] = useState<Quiz | null>(null);
   const [viewingQuiz, setViewingQuiz] = useState<Quiz | null>(null);
   const [reviewingQuiz, setReviewingQuiz] = useState<Quiz | null>(null);
 
+  const scheduleQuery = dateQuery ? `?date=${encodeURIComponent(dateQuery)}` : '';
+
   const openCreate = useCallback(() => {
-    setEditing(null);
-    setEditorOpen(true);
-  }, []);
+    if (!sessionId) return;
+    router.push(`/class/${classId}/sessions/${sessionId}/quizzes/new${scheduleQuery}`);
+  }, [router, classId, sessionId, scheduleQuery]);
 
-  const openEdit = useCallback((quiz: Quiz) => {
-    setEditing(quiz);
-    setEditorOpen(true);
-  }, []);
-
-  const closeEditor = useCallback(() => {
-    setEditorOpen(false);
-    setEditing(null);
-  }, []);
+  const openEdit = useCallback(
+    (quiz: Quiz) => {
+      if (!sessionId) return;
+      router.push(
+        `/class/${classId}/sessions/${sessionId}/quizzes/${quiz.id}/edit${scheduleQuery}`,
+      );
+    },
+    [router, classId, sessionId, scheduleQuery],
+  );
 
   const handleDelete = useCallback(
     async (quizId: string) => {
@@ -116,7 +120,7 @@ export function SessionQuizzesPanel({ classId, sessionId, canEdit, canTake, isMo
       <div className={styles.lecturesHead}>
         <div className={styles.lecturesTitle}>
           <FormOutlined />
-          <span>Bài tập</span>
+          <Typography.Text strong>Bài tập</Typography.Text>
           {quizzes.length > 0 ? (
             <Typography.Text type="secondary">({quizzes.length})</Typography.Text>
           ) : null}
@@ -129,12 +133,11 @@ export function SessionQuizzesPanel({ classId, sessionId, canEdit, canTake, isMo
       </div>
 
       {isLoading ? (
-        <Typography.Text type="secondary">Đang tải bài tập…</Typography.Text>
+        <ScheduleLoading tip="Đang tải bài tập…" />
       ) : quizzes.length === 0 ? (
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={canEdit ? 'Chưa có bài tập — nhấn Thêm để tạo' : 'Chưa có bài tập'}
-        />
+        <Typography.Text type="secondary" className={styles.panelEmptyHint}>
+          {canEdit ? 'Chưa có bài tập — nhấn Thêm để tạo' : 'Chưa có bài tập'}
+        </Typography.Text>
       ) : (
         <ul className={styles.lecturesList}>
           {quizzes.map((quiz) => (
@@ -223,23 +226,13 @@ export function SessionQuizzesPanel({ classId, sessionId, canEdit, canTake, isMo
       ) : null}
 
       {canEdit ? (
-        <>
-          <QuizEditorModal
-            classId={classId}
-            sessionId={sessionId}
-            open={editorOpen}
-            editing={editing}
-            isMobile={isMobile}
-            onClose={closeEditor}
-          />
-          <QuizAttemptsReviewModal
-            sessionId={sessionId}
-            quiz={reviewingQuiz}
-            open={reviewingQuiz !== null}
-            isMobile={isMobile}
-            onClose={() => setReviewingQuiz(null)}
-          />
-        </>
+        <QuizAttemptsReviewModal
+          sessionId={sessionId}
+          quiz={reviewingQuiz}
+          open={reviewingQuiz !== null}
+          isMobile={isMobile}
+          onClose={() => setReviewingQuiz(null)}
+        />
       ) : null}
     </section>
   );

@@ -18,15 +18,14 @@
 }
 
 .content {
-  margin: 24px;
-  background: var(--color-surface);
-  border-radius: 8px;
+  padding: var(--space-6);
+  background: var(--bg-app);
   min-height: calc(100vh - 64px - 48px - 53px);
   overflow: auto;
   -webkit-overflow-scrolling: touch;
 
   @media (max-width: 767px) {
-    margin: 12px;
+    padding: var(--space-3);
     // Primary page scroller on phone — avoid fighting child overflow.
     overscroll-behavior-y: contain;
     touch-action: pan-y;

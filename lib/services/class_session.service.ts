@@ -5,10 +5,12 @@ import { HttpStatusCode, LectureErrorCode } from '@/constants/enums';
 import { randomBytes, randomUUID } from 'crypto';
 import {
     buildBodyJsonWithLectures,
+    countPublishedLectures,
     parseSessionLectures,
     type SessionLecture,
     type SessionLectureAttachment,
     type SessionLectureLink,
+    type SessionLectureStatus,
 } from '@/lib/types/session-lecture';
 
 // ─── Types ───────────────────────────────────────────────────────────────
@@ -48,6 +50,7 @@ export type SessionLectureInput = {
     links?: SessionLectureLink[];
     attachments?: SessionLectureAttachment[];
     sort_order?: number;
+    status?: SessionLectureStatus;
 };
 
 export interface SessionAttendance {
@@ -143,7 +146,7 @@ function mapSessionRow(
         qr_code_expires_at: redactQr ? null : ((row.qr_code_expires_at as string | null) ?? null),
         body_json: bodyJson,
         attachments: Array.isArray(row.attachments) ? (row.attachments as unknown[]) : [],
-        has_content: Boolean(row.has_content) || lectures.length > 0,
+        has_content: Boolean(row.has_content) || countPublishedLectures(lectures) > 0,
         has_quiz: Boolean(row.has_quiz),
         lectures,
         created_at: row.created_at as string,
@@ -203,7 +206,7 @@ async function persistSessionLectures(
         .from('class_sessions')
         .update({
             body_json: nextBody,
-            has_content: lectures.length > 0,
+            has_content: countPublishedLectures(lectures) > 0,
             updated_at: new Date().toISOString(),
         } as never)
         .eq('id', sessionId)
@@ -217,9 +220,13 @@ async function persistSessionLectures(
     return mapSessionRow(data as unknown as Record<string, unknown>);
 }
 
-export async function listSessionLectures(sessionId: string): Promise<SessionLecture[]> {
+export async function listSessionLectures(
+    sessionId: string,
+    opts?: { includeDrafts?: boolean },
+): Promise<SessionLecture[]> {
     const session = await getSessionById(sessionId);
-    return session.lectures;
+    if (opts?.includeDrafts) return session.lectures;
+    return session.lectures.filter((item) => item.status !== 'draft');
 }
 
 export async function createSessionLecture(
@@ -236,6 +243,7 @@ export async function createSessionLecture(
         attachments: input.attachments ?? [],
         sort_order: input.sort_order ?? session.lectures.length,
         updated_at: now,
+        status: input.status === 'draft' ? 'draft' : 'published',
     };
     const next = [...session.lectures, lecture];
     const updated = await persistSessionLectures(sessionId, session.body_json, next);
@@ -265,6 +273,12 @@ export async function updateSessionLecture(
         links: input.links !== undefined ? input.links : current.links,
         attachments: input.attachments !== undefined ? input.attachments : current.attachments,
         sort_order: input.sort_order !== undefined ? input.sort_order : current.sort_order,
+        status:
+            input.status !== undefined
+                ? input.status === 'draft'
+                    ? 'draft'
+                    : 'published'
+                : current.status,
         updated_at: new Date().toISOString(),
     };
 

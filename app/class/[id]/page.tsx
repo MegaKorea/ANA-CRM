@@ -24,11 +24,11 @@ export default function ClassDetailPage() {
   const searchParams = useSearchParams();
   const classId = params.id as string;
 
-  const tabParam = searchParams.get('tab') || 'basic_info';
-  const activeTab = CLASS_TABS.has(tabParam) ? tabParam : 'basic_info';
-
   const roleCode = useUserStore((s) => s.user?.roleCode);
   const homeHref = roleCode === 'STU' ? '/course' : '/';
+  const defaultTab = roleCode === 'STU' ? 'schedule' : 'basic_info';
+  const tabParam = searchParams.get('tab') || defaultTab;
+  const activeTab = CLASS_TABS.has(tabParam) ? tabParam : defaultTab;
 
   const { hasPermission, isLoading: isAuthLoading } = useAuthPermission([
     'ADMIN',
@@ -92,8 +92,14 @@ export default function ClassDetailPage() {
           <span className={styles.breadcrumbTextMobile}>Lớp học</span>
         </Breadcrumb.Item>
         <Breadcrumb.Item>
-          <span className={styles.breadcrumbClassName}>
-            {classData.name} {classData.code ? `(${classData.code})` : ''}
+          <span
+            className={styles.breadcrumbClassName}
+            title={`${classData.name}${classData.code ? ` (${classData.code})` : ''}`}
+          >
+            {classData.name}
+            {classData.code ? (
+              <span className={styles.breadcrumbClassCode}> ({classData.code})</span>
+            ) : null}
           </span>
         </Breadcrumb.Item>
       </Breadcrumb>
@@ -132,26 +138,27 @@ export default function ClassDetailPage() {
           onChange={onTabChange}
           size="small"
           className={styles.tabsContainer}
+          destroyInactiveTabPane
           items={[
             {
               label: 'Thông tin cơ bản',
               key: 'basic_info',
-              children: <TabBasicInfo classData={classData} />,
+              children: activeTab === 'basic_info' ? <TabBasicInfo classData={classData} /> : null,
             },
             {
               label: 'Giáo viên',
               key: 'teachers',
-              children: <TabTeachers classData={classData} />,
+              children: activeTab === 'teachers' ? <TabTeachers classData={classData} /> : null,
             },
             {
               label: 'Học viên',
               key: 'students',
-              children: <TabStudents classData={classData} />,
+              children: activeTab === 'students' ? <TabStudents classData={classData} /> : null,
             },
             {
               label: 'Lịch học',
               key: 'schedule',
-              children: <TabSchedule classData={classData} />,
+              children: activeTab === 'schedule' ? <TabSchedule classData={classData} /> : null,
             },
           ]}
         />

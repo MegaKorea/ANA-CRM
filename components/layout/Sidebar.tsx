@@ -56,7 +56,7 @@ export function Sidebar({ collapsed, isMobile, onClose }: SidebarProps) {
       <div className={styles.logoContainer}>
         <Typography.Title level={1}>
           {(!collapsed || isMobile) ? (
-            <Image src={logo} alt="logo" width={70} height={40} className={styles.logoImage} />
+            <Image src={logo} alt="logo" width={98} height={56} className={styles.logoImage} />
           ) : (
             <HiViewGridAdd size={40} />
           )}

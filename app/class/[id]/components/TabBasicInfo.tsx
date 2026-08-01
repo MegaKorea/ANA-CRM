@@ -9,6 +9,7 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { CLASS_STATUS_OPTIONS } from '@/lib/constants/classStatus';
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 import styles from './components.module.scss';
 
 type ClassBasicInfoFormValues = Omit<UpdateClassInput, 'start_date' | 'end_date' | 'schedule' | 'timetable'> & {
@@ -60,7 +61,9 @@ export function TabBasicInfo({ classData }: { classData: Class }) {
           message.success('Cập nhật thông tin cơ bản thành công!');
           setIsEditing(false);
         },
-        onError: (e: any) => message.error('Lỗi khi cập nhật lớp học: ' + e.message),
+        onError: (error: unknown) => {
+          message.error(getErrorMessage(error, 'Lỗi khi cập nhật lớp học'));
+        },
       },
     );
   };

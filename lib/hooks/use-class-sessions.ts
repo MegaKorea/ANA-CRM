@@ -16,6 +16,7 @@ export type SessionLectureFormValues = {
   html?: string;
   links?: SessionLectureLink[];
   attachments?: SessionLectureAttachment[];
+  status?: 'draft' | 'published';
 };
 
 // ─── Sessions ────────────────────────────────────────────────────────────

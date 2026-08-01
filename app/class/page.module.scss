@@ -10,3 +10,62 @@
   height: 100%;
   overflow-y: auto;
 }
+
+.pageTitle {
+  margin: 0;
+}
+
+.filterRow {
+  margin-bottom: 16px;
+}
+
+.filterSelect {
+  width: 100%;
+}
+
+.classCard {
+  width: 100%;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.classCardTitle {
+  font-size: 15px;
+  white-space: normal;
+  word-break: break-word;
+  color: var(--ant-color-primary, var(--accent-600));
+}
+
+.classCardMetaRow {
+  font-size: 14px;
+  border-bottom: 1px solid var(--ant-color-split, var(--border));
+  padding-bottom: 8px;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.classCardMetaValue {
+  text-align: right;
+  margin-left: 16px;
+  min-width: 0;
+}
+
+.classCardAction {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  font-size: 16px;
+  color: inherit;
+}
+
+.classCardActionDanger {
+  color: var(--ant-color-error, var(--error));
+}

@@ -24,13 +24,16 @@ export function LectureDetailModal({ lecture, open, isMobile, onClose }: Props) 
         </Button>
       }
       destroyOnHidden
-      width={isMobile ? '95vw' : 640}
+      width={isMobile ? '95vw' : 720}
       className={styles.lectureDetailModal}
     >
       {lecture ? (
         <div className={styles.lectureDetailBody}>
           {lecture.html ? (
-            <div className={styles.lectureDetailContent}>{lecture.html}</div>
+            <div
+              className={styles.lectureDetailContent}
+              dangerouslySetInnerHTML={{ __html: lecture.html }}
+            />
           ) : (
             <Typography.Text type="secondary">Chưa có nội dung văn bản.</Typography.Text>
           )}

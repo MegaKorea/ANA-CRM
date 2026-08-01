@@ -1,3 +1,5 @@
+export type SessionLectureStatus = 'draft' | 'published';
+
 export type SessionLectureLink = {
   label: string;
   url: string;
@@ -18,11 +20,33 @@ export type SessionLecture = {
   attachments: SessionLectureAttachment[];
   sort_order: number;
   updated_at: string;
+  /** Missing/legacy → treated as published */
+  status: SessionLectureStatus;
 };
 
 export type SessionBodyJson = {
   lectures?: SessionLecture[];
 };
+
+function parseLectureStatus(value: unknown): SessionLectureStatus {
+  return value === 'draft' ? 'draft' : 'published';
+}
+
+export function isLecturePublished(lecture: Pick<SessionLecture, 'status'>): boolean {
+  return lecture.status !== 'draft';
+}
+
+export function filterLecturesForViewer(
+  lectures: SessionLecture[],
+  includeDrafts: boolean,
+): SessionLecture[] {
+  if (includeDrafts) return lectures;
+  return lectures.filter(isLecturePublished);
+}
+
+export function countPublishedLectures(lectures: SessionLecture[]): number {
+  return lectures.filter(isLecturePublished).length;
+}
 
 export function parseSessionLectures(bodyJson: unknown): SessionLecture[] {
   if (!bodyJson || typeof bodyJson !== 'object' || Array.isArray(bodyJson)) {
@@ -44,6 +68,7 @@ export function parseSessionLectures(bodyJson: unknown): SessionLecture[] {
       sort_order: typeof item.sort_order === 'number' ? item.sort_order : index,
       updated_at:
         typeof item.updated_at === 'string' ? item.updated_at : new Date(0).toISOString(),
+      status: parseLectureStatus((item as { status?: unknown }).status),
     }))
     .toSorted((a, b) => a.sort_order - b.sort_order);
 }

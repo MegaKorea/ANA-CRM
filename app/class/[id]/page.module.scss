@@ -43,9 +43,24 @@
 .breadcrumb {
   margin-bottom: 1rem;
   font-size: 0.75rem;
+  min-width: 0;
 
   @media (min-width: 640px) {
     font-size: 0.875rem;
+  }
+
+  :global(.ant-breadcrumb-ol) {
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+
+  :global(.ant-breadcrumb-li) {
+    min-width: 0;
+  }
+
+  :global(.ant-breadcrumb-li:last-child) {
+    flex: 1 1 auto;
+    overflow: hidden;
   }
 }
 
@@ -71,14 +86,21 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100px;
+  // Home + "Lớp học" + separators ≈ 8.5rem; rest for class name
+  max-width: min(16rem, calc(100vw - 8.5rem));
 
   @media (min-width: 640px) {
-    max-width: 200px;
+    max-width: min(22rem, 45vw);
   }
 
   @media (min-width: 768px) {
     max-width: none;
+  }
+}
+
+.breadcrumbClassCode {
+  @media (max-width: 639px) {
+    display: none;
   }
 }
 
@@ -151,15 +173,15 @@
 
 .cardContainer {
   height: 100%;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  border-radius: 0.5rem;
+  box-shadow: var(--shadow-xs);
+  border-radius: var(--radius-md);
 
   @media (max-width: 767px) {
     height: auto;
   }
 
   @media (min-width: 640px) {
-    border-radius: 0.75rem;
+    border-radius: var(--radius-lg);
   }
 }
 

@@ -1,11 +1,12 @@
 'use client';
 
-import { Modal, List, Select, Tag, Typography, Space, Spin, Empty } from 'antd';
+import { Modal, List, Select, Tag, Typography, Space, Empty } from 'antd';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
 import { useState, useMemo } from 'react';
 import type { ClassSession, SessionAttendance } from '@/lib/services/class_session.service';
 import type { AttendanceStatus } from '@/lib/supabase/types/tables/session_attendances';
+import { ScheduleLoading } from '../ScheduleLoading';
 
 dayjs.locale('vi');
 
@@ -100,12 +101,7 @@ export function AttendanceModal({
             destroyOnHidden
         >
             {attendanceLoading ? (
-                <div style={{ textAlign: 'center', padding: 40 }}>
-                    <Spin />
-                    <div style={{ marginTop: 8 }}>
-                        <Typography.Text type="secondary">Đang tải...</Typography.Text>
-                    </div>
-                </div>
+                <ScheduleLoading tip="Đang tải…" />
             ) : studentList.length === 0 ? (
                 <Empty description="Lớp chưa có học viên." />
             ) : (
