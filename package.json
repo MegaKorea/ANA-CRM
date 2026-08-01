@@ -28,6 +28,7 @@
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.19",
+    "isomorphic-dompurify": "^3.21.0",
     "jose": "^6.2.1",
     "lodash": "^4.17.23",
     "next": "16.1.4",

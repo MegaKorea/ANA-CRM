@@ -10,18 +10,12 @@ import {
 } from '@ant-design/icons';
 import { useCallback, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { QuizUiMessage } from '@/constants/enums';
+import { QuizAttemptStatus, QuizUiMessage } from '@/constants/enums';
 import type { Quiz } from '@/lib/types/quiz';
-import { isQuizAttemptCompleted, isQuizAttemptInProgress } from '@/lib/types/quiz';
-import {
-  useDeleteSessionQuiz,
-  useMyQuizAttempt,
-  useSessionQuizzes,
-} from '@/lib/hooks/use-quizzes';
+import { getQuizQuestionCount } from '@/lib/types/quiz';
+import { useDeleteSessionQuiz, useSessionQuizzes } from '@/lib/hooks/use-quizzes';
 import { getErrorMessage } from '@/lib/utils/get-error-message';
-import { QuizTakeModal } from './QuizTakeModal';
 import { QuizAttemptsReviewModal } from './QuizAttemptsReviewModal';
-import { QuizPreviewModal } from './QuizPreviewModal';
 import { ScheduleLoading } from './ScheduleLoading';
 import styles from './tab-schedule.module.scss';
 
@@ -33,22 +27,10 @@ type Props = {
   isMobile: boolean;
 };
 
-function StudentQuizActionHint({
-  sessionId,
-  quizId,
-}: {
-  sessionId: string;
-  quizId: string;
-}) {
-  const { data: attempt } = useMyQuizAttempt(sessionId, quizId);
-  let hint = QuizUiMessage.TAKE_HINT;
-  if (isQuizAttemptCompleted(attempt)) hint = QuizUiMessage.VIEW_HINT;
-  else if (isQuizAttemptInProgress(attempt)) hint = QuizUiMessage.CONTINUE_HINT;
-  return (
-    <Typography.Text type="secondary" className={styles.lectureLinkHint}>
-      {hint}
-    </Typography.Text>
-  );
+function studentAttemptHint(status: string | null | undefined): string {
+  if (status === QuizAttemptStatus.COMPLETED) return QuizUiMessage.VIEW_HINT;
+  if (status === QuizAttemptStatus.IN_PROGRESS) return QuizUiMessage.CONTINUE_HINT;
+  return QuizUiMessage.TAKE_HINT;
 }
 
 export function SessionQuizzesPanel({ classId, sessionId, canEdit, canTake, isMobile }: Props) {
@@ -58,9 +40,6 @@ export function SessionQuizzesPanel({ classId, sessionId, canEdit, canTake, isMo
   const { data: quizzes = [], isLoading } = useSessionQuizzes(sessionId);
   const deleteQuiz = useDeleteSessionQuiz(classId);
 
-  const [previewQuiz, setPreviewQuiz] = useState<Quiz | null>(null);
-  const [takingQuiz, setTakingQuiz] = useState<Quiz | null>(null);
-  const [viewingQuiz, setViewingQuiz] = useState<Quiz | null>(null);
   const [reviewingQuiz, setReviewingQuiz] = useState<Quiz | null>(null);
 
   const scheduleQuery = dateQuery ? `?date=${encodeURIComponent(dateQuery)}` : '';
@@ -80,6 +59,20 @@ export function SessionQuizzesPanel({ classId, sessionId, canEdit, canTake, isMo
     [router, classId, sessionId, scheduleQuery],
   );
 
+  const openQuiz = useCallback(
+    (quiz: Quiz) => {
+      if (!sessionId) return;
+      if (canEdit && !canTake) {
+        openEdit(quiz);
+        return;
+      }
+      router.push(
+        `/class/${classId}/sessions/${sessionId}/quizzes/${quiz.id}${scheduleQuery}`,
+      );
+    },
+    [router, classId, sessionId, scheduleQuery, canEdit, canTake, openEdit],
+  );
+
   const handleDelete = useCallback(
     async (quizId: string) => {
       if (!sessionId) return;
@@ -92,26 +85,6 @@ export function SessionQuizzesPanel({ classId, sessionId, canEdit, canTake, isMo
     },
     [sessionId, deleteQuiz],
   );
-
-  const openQuiz = useCallback(
-    (quiz: Quiz) => {
-      if (canTake) {
-        setPreviewQuiz(quiz);
-        return;
-      }
-      if (canEdit) {
-        openEdit(quiz);
-        return;
-      }
-      setViewingQuiz(quiz);
-    },
-    [canTake, canEdit, openEdit],
-  );
-
-  const confirmPreview = useCallback((quiz: Quiz) => {
-    setPreviewQuiz(null);
-    setTakingQuiz(quiz);
-  }, []);
 
   if (!sessionId) return null;
 
@@ -149,14 +122,16 @@ export function SessionQuizzesPanel({ classId, sessionId, canEdit, canTake, isMo
               >
                 <p className={styles.lectureItemTitle}>{quiz.title}</p>
                 <p className={styles.lectureItemPreview}>
-                  {quiz.questions.length} câu
+                  {getQuizQuestionCount(quiz)} câu
                   {quiz.duration_minutes > 0 ? ` · ${quiz.duration_minutes} phút` : ''}
                   {quiz.passing_score > 0 ? ` · Đạt ${quiz.passing_score}%` : ''}
                 </p>
                 <div className={styles.quizStatusRow}>
                   {quiz.is_published ? <Tag color="green">Đã mở</Tag> : <Tag>Nháp</Tag>}
                   {canTake ? (
-                    <StudentQuizActionHint sessionId={sessionId} quizId={quiz.id} />
+                    <Typography.Text type="secondary" className={styles.lectureLinkHint}>
+                      {studentAttemptHint(quiz.my_attempt_status)}
+                    </Typography.Text>
                   ) : !canEdit ? (
                     <Typography.Text type="secondary" className={styles.lectureLinkHint}>
                       {QuizUiMessage.VIEW_HINT}
@@ -193,37 +168,6 @@ export function SessionQuizzesPanel({ classId, sessionId, canEdit, canTake, isMo
           ))}
         </ul>
       )}
-
-      {canTake ? (
-        <>
-          <QuizPreviewModal
-            sessionId={sessionId}
-            quiz={previewQuiz}
-            open={previewQuiz !== null}
-            isMobile={isMobile}
-            onClose={() => setPreviewQuiz(null)}
-            onConfirm={confirmPreview}
-          />
-          <QuizTakeModal
-            sessionId={sessionId}
-            quiz={takingQuiz}
-            open={takingQuiz !== null}
-            isMobile={isMobile}
-            onClose={() => setTakingQuiz(null)}
-          />
-        </>
-      ) : null}
-
-      {!canTake && !canEdit ? (
-        <QuizTakeModal
-          sessionId={sessionId}
-          quiz={viewingQuiz}
-          open={viewingQuiz !== null}
-          isMobile={isMobile}
-          readOnly
-          onClose={() => setViewingQuiz(null)}
-        />
-      ) : null}
 
       {canEdit ? (
         <QuizAttemptsReviewModal

@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Collapse, Form } from 'antd';
+import { Button, Collapse, Form, Popconfirm } from 'antd';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import type { FormInstance, UploadProps } from 'antd';
 import { QuizQuestionEditor } from './QuizQuestionEditor';
@@ -58,24 +58,33 @@ export function QuizQuestionsSection({
                 <div className={styles.panelHeader}>
                   <span className={styles.panelTitle}>Câu {questionIndex + 1}</span>
                   {fields.length > 1 ? (
-                    <Button
-                      type="text"
-                      size="small"
-                      danger
-                      icon={<DeleteOutlined />}
-                      disabled={saving}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        remove(field.name);
-                        const removed = String(questionIndex);
-                        const filtered = activeKeys.filter((key) => key !== removed);
-                        if (filtered.length > 0) {
-                          onActiveKeysChange(filtered);
-                          return;
-                        }
-                        onActiveKeysChange([String(Math.max(0, fields.length - 2))]);
-                      }}
-                    />
+                    <span onClick={(event) => event.stopPropagation()}>
+                      <Popconfirm
+                        title="Xóa câu hỏi này?"
+                        description="Nội dung câu hỏi sẽ mất, không thể hoàn tác."
+                        okText="Xóa"
+                        cancelText="Hủy"
+                        okButtonProps={{ danger: true }}
+                        onConfirm={() => {
+                          remove(field.name);
+                          const removed = String(questionIndex);
+                          const filtered = activeKeys.filter((key) => key !== removed);
+                          if (filtered.length > 0) {
+                            onActiveKeysChange(filtered);
+                            return;
+                          }
+                          onActiveKeysChange([String(Math.max(0, fields.length - 2))]);
+                        }}
+                      >
+                        <Button
+                          type="text"
+                          size="small"
+                          danger
+                          icon={<DeleteOutlined />}
+                          disabled={saving}
+                        />
+                      </Popconfirm>
+                    </span>
                   ) : null}
                 </div>
               ),

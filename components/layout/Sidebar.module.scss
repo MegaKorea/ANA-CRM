@@ -1,6 +1,8 @@
 .sider {
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   height: 100vh;
+  height: 100dvh;
   position: fixed;
   left: 0;
   top: 0;

@@ -6,15 +6,14 @@ import {
   Button,
   Dropdown,
   Empty,
-  Image,
   List,
-  Modal,
   Space,
   Typography,
   theme,
 } from 'antd';
 import { BellOutlined, FormOutlined, ReadOutlined } from '@ant-design/icons';
-import { ClassMemberRole, QuizUiMessage, UserNotificationType } from '@/constants/enums';
+import { useRouter } from 'next/navigation';
+import { ClassMemberRole, UserNotificationType } from '@/constants/enums';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import {
   useMarkAllNotificationsRead,
@@ -26,25 +25,31 @@ import {
   isLectureNotificationPayload,
   isQuizNotificationPayload,
 } from '@/lib/types/user-notification';
-import styles from './student-notification.module.scss';
-import { QuizTakeModal } from '@/app/class/[id]/components/QuizTakeModal';
-import { useQuery } from '@tanstack/react-query';
-import { fetchJson } from '@/lib/utils/fetchJson';
 import { formatViDateTime } from '@/lib/utils/format-vi-datetime';
-import type { Quiz } from '@/lib/types/quiz';
-import { isQuizAttemptCompleted, isQuizAttemptInProgress } from '@/lib/types/quiz';
-import { useMyQuizAttempt } from '@/lib/hooks/use-quizzes';
 import { useIsMobile } from '@/lib/hooks/use-mobile';
 
 const { Text } = Typography;
 
-type TakingQuizContext = {
-  sessionId: string;
-  quizId: string;
-};
+function notificationHref(item: UserNotification): string | null {
+  const payload = item.payload;
+  if (isLectureNotificationPayload(payload)) {
+    const date = payload.session_date
+      ? `?date=${encodeURIComponent(payload.session_date)}`
+      : '';
+    return `/class/${payload.class_id}/sessions/${payload.session_id}/lectures/${payload.lecture_id}${date}`;
+  }
+  if (isQuizNotificationPayload(payload)) {
+    const date = payload.session_date
+      ? `?date=${encodeURIComponent(payload.session_date)}`
+      : '';
+    return `/class/${payload.class_id}/sessions/${payload.session_id}/quizzes/${payload.quiz_id}${date}`;
+  }
+  return null;
+}
 
 export function StudentNotificationBell() {
   const { token } = theme.useToken();
+  const router = useRouter();
   const { user } = useCurrentUser();
   const isStudent = (user?.roleCode ?? '').toUpperCase() === ClassMemberRole.STU;
   const isMobile = useIsMobile();
@@ -52,72 +57,27 @@ export function StudentNotificationBell() {
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
 
-  const [active, setActive] = useState<UserNotification | null>(null);
-  const [takingQuiz, setTakingQuiz] = useState<TakingQuizContext | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const items = useMemo(() => data?.items ?? [], [data?.items]);
   const unreadCount = data?.unreadCount ?? 0;
 
-  const lecturePayload = isLectureNotificationPayload(active?.payload) ? active.payload : null;
-  const quizPayload = isQuizNotificationPayload(active?.payload) ? active.payload : null;
-  const quizPreviewOpen = !!active && !!quizPayload;
-
-  const { data: previewAttempt, isLoading: previewAttemptLoading } = useMyQuizAttempt(
-    quizPreviewOpen ? quizPayload.session_id : null,
-    quizPreviewOpen ? quizPayload.quiz_id : null,
-  );
-  const previewCompleted = isQuizAttemptCompleted(previewAttempt);
-  const previewInProgress = isQuizAttemptInProgress(previewAttempt);
-  const previewConfirmLabel = previewCompleted
-    ? QuizUiMessage.VIEW_RESULT
-    : previewInProgress
-      ? QuizUiMessage.CONTINUE_QUIZ
-      : QuizUiMessage.START_QUIZ;
-
-  const quizQuery = useQuery({
-    queryKey: ['notification-quiz', takingQuiz?.sessionId, takingQuiz?.quizId],
-    queryFn: () =>
-      fetchJson<Quiz>(
-        `/api/classes/sessions/${takingQuiz!.sessionId}/quizzes/${takingQuiz!.quizId}`,
-      ),
-    enabled: !!takingQuiz,
-  });
-
   const openNotification = useCallback(
     async (item: UserNotification) => {
       setDropdownOpen(false);
-      setActive(item);
+      const href = notificationHref(item);
       if (!item.read_at) {
         try {
           await markRead.mutateAsync(item.id);
         } catch {
+          // Still navigate even if mark-read fails.
         }
       }
+      if (href) {
+        router.push(href);
+      }
     },
-    [markRead],
-  );
-
-  const closePreview = useCallback(() => {
-    setActive(null);
-  }, []);
-
-  const startQuiz = useCallback(() => {
-    if (!quizPayload) return;
-    setDropdownOpen(false);
-    setTakingQuiz({
-      sessionId: quizPayload.session_id,
-      quizId: quizPayload.quiz_id,
-    });
-    setActive(null);
-  }, [quizPayload]);
-
-  const handleDropdownOpenChange = useCallback(
-    (open: boolean) => {
-      if (open && (active || takingQuiz)) return;
-      setDropdownOpen(open);
-    },
-    [active, takingQuiz],
+    [markRead, router],
   );
 
   if (!isStudent) return null;
@@ -207,114 +167,17 @@ export function StudentNotificationBell() {
   );
 
   return (
-    <>
-      <Dropdown
-        open={dropdownOpen}
-        onOpenChange={handleDropdownOpenChange}
-        popupRender={() => dropdownContent}
-        trigger={['click']}
-        placement="bottomRight"
-        destroyOnHidden
-      >
-        <Badge count={unreadCount} size="small" offset={[-2, 2]}>
-          <Button type="text" icon={<BellOutlined />} aria-label="Thông báo học viên" />
-        </Badge>
-      </Dropdown>
-
-      <Modal
-        open={!!active && !!lecturePayload}
-        title={lecturePayload?.lecture_title ?? 'Bài giảng'}
-        onCancel={closePreview}
-        footer={
-          <Button type="primary" onClick={closePreview}>
-            Đóng
-          </Button>
-        }
-        width={isMobile ? '95vw' : 560}
-        destroyOnHidden
-      >
-        {lecturePayload ? (
-          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-            <Text type="secondary">
-              Buổi {lecturePayload.session_number} · {lecturePayload.session_date}
-            </Text>
-            {lecturePayload.html ? (
-              <div
-                className={styles.lectureHtml}
-                dangerouslySetInnerHTML={{ __html: lecturePayload.html }}
-              />
-            ) : (
-              <Text type="secondary">Không có nội dung mô tả</Text>
-            )}
-            {lecturePayload.attachments.length > 0 ? (
-              <Image.PreviewGroup>
-                <Space wrap>
-                  {lecturePayload.attachments.map((file) => (
-                    <Image
-                      key={file.url}
-                      src={file.url}
-                      alt={file.name}
-                      width={96}
-                      height={72}
-                      style={{ objectFit: 'cover', borderRadius: 6 }}
-                    />
-                  ))}
-                </Space>
-              </Image.PreviewGroup>
-            ) : null}
-            {lecturePayload.links.length > 0 ? (
-              <Space direction="vertical" size={4}>
-                {lecturePayload.links.map((link) => (
-                  <a key={link.url} href={link.url} target="_blank" rel="noreferrer">
-                    {link.label || link.url}
-                  </a>
-                ))}
-              </Space>
-            ) : null}
-          </Space>
-        ) : null}
-      </Modal>
-
-      <Modal
-        open={!!active && !!quizPayload}
-        title={quizPayload?.quiz_title ?? 'Bài tập'}
-        onCancel={closePreview}
-        footer={
-          <Space>
-            <Button onClick={closePreview}>Đóng</Button>
-            <Button type="primary" loading={previewAttemptLoading} onClick={startQuiz}>
-              {previewConfirmLabel}
-            </Button>
-          </Space>
-        }
-        width={isMobile ? '95vw' : 480}
-        destroyOnHidden
-      >
-        {quizPayload ? (
-          <Space direction="vertical" size="small">
-            <Text type="secondary">
-              Buổi {quizPayload.session_number} · {quizPayload.session_date}
-            </Text>
-            <Text>
-              {quizPayload.question_count} câu
-              {quizPayload.duration_minutes > 0
-                ? ` · ${quizPayload.duration_minutes} phút`
-                : ''}
-              {quizPayload.passing_score > 0 ? ` · Đạt ${quizPayload.passing_score}%` : ''}
-            </Text>
-          </Space>
-        ) : null}
-      </Modal>
-
-      {takingQuiz ? (
-        <QuizTakeModal
-          sessionId={takingQuiz.sessionId}
-          quiz={quizQuery.data ?? null}
-          open
-          isMobile={isMobile}
-          onClose={() => setTakingQuiz(null)}
-        />
-      ) : null}
-    </>
+    <Dropdown
+      open={dropdownOpen}
+      onOpenChange={setDropdownOpen}
+      popupRender={() => dropdownContent}
+      trigger={['click']}
+      placement="bottomRight"
+      destroyOnHidden
+    >
+      <Badge count={unreadCount} size="small" offset={[-2, 2]}>
+        <Button type="text" icon={<BellOutlined />} aria-label="Thông báo học viên" />
+      </Badge>
+    </Dropdown>
   );
 }

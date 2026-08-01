@@ -8,7 +8,7 @@ import {
 } from '@/lib/api/session-content-route';
 import { getCurrentUser } from '@/lib/services/auth.service';
 import { resolveClassViewer } from '@/lib/services/class_access.service';
-import { getSessionById } from '@/lib/services/class_session.service';
+import { getSessionMetaById } from '@/lib/services/class_session.service';
 import {
   deleteSessionQuiz,
   getMyQuizAttempt,
@@ -24,22 +24,29 @@ export async function GET(
   { params }: { params: Promise<{ sessionId: string; quizId: string }> },
 ): Promise<NextResponse> {
   try {
-    const user = await getCurrentUser();
     const { sessionId, quizId } = await params;
-    const session = await getSessionById(sessionId);
-    await resolveClassViewer(session.class_id);
-    const quiz = await getQuizById(quizId);
+    const [user, session, quiz] = await Promise.all([
+      getCurrentUser(),
+      getSessionMetaById(sessionId),
+      getQuizById(quizId),
+    ]);
     assertQuizBelongsToSession(quiz, sessionId);
+
     if (user.roleCode === ClassMemberRole.STU) {
       if (!quiz.is_published) {
         fail(QuizErrorCode.NOT_PUBLISHED, HttpStatusCode.FORBIDDEN);
       }
-      const attempt = await getMyQuizAttempt(quizId, user.id);
+      const [, attempt] = await Promise.all([
+        resolveClassViewer(session.class_id),
+        getMyQuizAttempt(quizId, user.id),
+      ]);
       if (isQuizAttemptCompleted(attempt)) {
         return NextResponse.json(quiz, { status: HttpStatusCode.OK });
       }
       return NextResponse.json(stripQuizAnswers(quiz), { status: HttpStatusCode.OK });
     }
+
+    await resolveClassViewer(session.class_id);
     return NextResponse.json(quiz, { status: HttpStatusCode.OK });
   } catch (error: unknown) {
     return sessionContentErrorResponse(error, QuizErrorCode.INTERNAL);
@@ -51,11 +58,13 @@ export async function PATCH(
   { params }: { params: Promise<{ sessionId: string; quizId: string }> },
 ): Promise<NextResponse> {
   try {
-    await assertQuizTeacherWriter();
     const { sessionId, quizId } = await params;
-    const session = await getSessionById(sessionId);
+    const [, session, existing] = await Promise.all([
+      assertQuizTeacherWriter(),
+      getSessionMetaById(sessionId),
+      getQuizById(quizId),
+    ]);
     await resolveClassViewer(session.class_id);
-    const existing = await getQuizById(quizId);
     assertQuizBelongsToSession(existing, sessionId);
     const body = await request.json();
     const input = validateUpdateQuizInput(body);
@@ -87,9 +96,11 @@ export async function DELETE(
   { params }: { params: Promise<{ sessionId: string; quizId: string }> },
 ): Promise<NextResponse> {
   try {
-    await assertQuizTeacherWriter();
     const { sessionId, quizId } = await params;
-    const session = await getSessionById(sessionId);
+    const [, session] = await Promise.all([
+      assertQuizTeacherWriter(),
+      getSessionMetaById(sessionId),
+    ]);
     await resolveClassViewer(session.class_id);
     await deleteSessionQuiz(quizId, sessionId);
     return NextResponse.json({ success: true }, { status: HttpStatusCode.OK });

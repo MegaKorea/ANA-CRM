@@ -6,7 +6,7 @@ import { HomeOutlined } from '@ant-design/icons';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useClass } from '@/lib/hooks/use-classes';
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
-import { useUserStore } from '@/lib/stores/user.store';
+import { useUserRoleCode } from '@/lib/hooks/use-current-user';
 
 import { TabBasicInfo } from './components/TabBasicInfo';
 import { TabTeachers } from './components/TabTeachers';
@@ -24,9 +24,10 @@ export default function ClassDetailPage() {
   const searchParams = useSearchParams();
   const classId = params.id as string;
 
-  const roleCode = useUserStore((s) => s.user?.roleCode);
-  const homeHref = roleCode === 'STU' ? '/course' : '/';
-  const defaultTab = roleCode === 'STU' ? 'schedule' : 'basic_info';
+  const roleCode = useUserRoleCode();
+  const isStudent = roleCode?.trim().toUpperCase() === 'STU';
+  const homeHref = isStudent ? '/course' : '/';
+  const defaultTab = isStudent ? 'schedule' : 'basic_info';
   const tabParam = searchParams.get('tab') || defaultTab;
   const activeTab = CLASS_TABS.has(tabParam) ? tabParam : defaultTab;
 
@@ -87,10 +88,17 @@ export default function ClassDetailPage() {
         <Breadcrumb.Item href={homeHref}>
           <HomeOutlined />
         </Breadcrumb.Item>
-        <Breadcrumb.Item href="/class">
-          <span className={styles.breadcrumbTextDesktop}>Danh sách lớp học</span>
-          <span className={styles.breadcrumbTextMobile}>Lớp học</span>
-        </Breadcrumb.Item>
+        {isStudent ? (
+          <Breadcrumb.Item href="/course">
+            <span className={styles.breadcrumbTextDesktop}>Khóa học</span>
+            <span className={styles.breadcrumbTextMobile}>Khóa học</span>
+          </Breadcrumb.Item>
+        ) : (
+          <Breadcrumb.Item href="/class">
+            <span className={styles.breadcrumbTextDesktop}>Danh sách lớp học</span>
+            <span className={styles.breadcrumbTextMobile}>Lớp học</span>
+          </Breadcrumb.Item>
+        )}
         <Breadcrumb.Item>
           <span
             className={styles.breadcrumbClassName}

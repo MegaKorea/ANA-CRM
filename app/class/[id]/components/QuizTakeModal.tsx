@@ -1,13 +1,15 @@
 'use client';
 
-import { Button, Checkbox, Empty, Image, Modal, Popconfirm, Radio, Space, Tag, Typography, message } from 'antd';
+import { Button, Checkbox, Empty, Image, Input, Modal, Popconfirm, Radio, Space, Tag, Typography, message } from 'antd';
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { Quiz, QuizAttempt, QuizQuestion } from '@/lib/types/quiz';
 import {
   getQuestionImageUrls,
   getQuizAttemptRemainingSeconds,
+  isQuestionAnswered,
   isQuizAttemptCompleted,
   isQuizAttemptInProgress,
+  buildQuizResultSummary,
 } from '@/lib/types/quiz';
 import { QuizLimit, QuizQuestionType, QuizUiMessage } from '@/constants/enums';
 import {
@@ -22,6 +24,8 @@ import { ScheduleLoading } from './ScheduleLoading';
 import styles from './tab-schedule.module.scss';
 
 const DRAFT_SAVE_MS = 800;
+const TIMEOUT_SUBMIT_RETRY_MS = 5000;
+const TIMEOUT_SUBMIT_MAX_RETRIES = 6;
 
 type Props = {
   sessionId: string;
@@ -29,6 +33,8 @@ type Props = {
   open: boolean;
   isMobile: boolean;
   readOnly?: boolean;
+
+  layout?: 'modal' | 'page';
   onClose: () => void;
 };
 
@@ -88,11 +94,14 @@ export function QuizTakeModal({
   open,
   isMobile,
   readOnly = false,
+  layout = 'modal',
   onClose,
 }: Props) {
   const quizId = quizProp?.id ?? null;
   const { data: quizDetail } = useSessionQuizDetail(sessionId, quizId, open && !!quizId);
   const quiz = quizDetail ?? quizProp;
+  // Page usually already has questions in cache/prop — don't wait on a second fetch.
+  const quizContentReady = Array.isArray(quiz?.questions) && quiz.questions.length > 0;
 
   const { data: attempt, isLoading: attemptLoading } = useMyQuizAttempt(
     open && !readOnly ? sessionId : null,
@@ -111,6 +120,9 @@ export function QuizTakeModal({
   const startingRef = useRef(false);
   const draftTimerRef = useRef<number | null>(null);
   const hydratedAttemptIdRef = useRef<string | null>(null);
+  const draftSaveFailedRef = useRef(false);
+  const timeoutRetryCountRef = useRef(0);
+  const timeoutFailNotifiedRef = useRef(false);
 
   useEffect(() => {
     answersRef.current = answers;
@@ -125,6 +137,9 @@ export function QuizTakeModal({
       submittingRef.current = false;
       startingRef.current = false;
       hydratedAttemptIdRef.current = null;
+      draftSaveFailedRef.current = false;
+      timeoutRetryCountRef.current = 0;
+      timeoutFailNotifiedRef.current = false;
       if (draftTimerRef.current !== null) {
         window.clearTimeout(draftTimerRef.current);
         draftTimerRef.current = null;
@@ -144,6 +159,11 @@ export function QuizTakeModal({
 
   useEffect(() => {
     if (!open || readOnly || attemptLoading || !quizId || !sessionId) return;
+    // Do not start the server clock (or show countdown) until questions are on screen.
+    if (!quizContentReady) {
+      setSessionReady(false);
+      return;
+    }
 
     if (isQuizAttemptCompleted(attempt)) {
       setResult(attempt!);
@@ -185,6 +205,7 @@ export function QuizTakeModal({
     attemptLoading,
     quizId,
     sessionId,
+    quizContentReady,
     quiz?.duration_minutes,
     startAttemptMutate,
   ]);
@@ -194,8 +215,12 @@ export function QuizTakeModal({
       if (readOnly || !quizId || !sessionId || !isQuizAttemptInProgress(attempt)) return;
       try {
         await saveDraft.mutateAsync({ sessionId, quizId, answers: nextAnswers });
+        draftSaveFailedRef.current = false;
       } catch {
-        // Draft save is best-effort; submit still sends latest answers.
+        if (!draftSaveFailedRef.current) {
+          draftSaveFailedRef.current = true;
+          message.warning(QuizUiMessage.DRAFT_SAVE_FAILED);
+        }
       }
     },
     [attempt, quizId, readOnly, saveDraft, sessionId],
@@ -236,14 +261,31 @@ export function QuizTakeModal({
     [scheduleDraftSave],
   );
 
+  const setEssay = useCallback(
+    (questionId: string, text: string) => {
+      setAnswers((prev) => {
+        const next = {
+          ...prev,
+          [questionId]: [text.slice(0, QuizLimit.MAX_ESSAY_LENGTH)],
+        };
+        scheduleDraftSave(next);
+        return next;
+      });
+    },
+    [scheduleDraftSave],
+  );
+
   const submitAnswers = useCallback(
-    async (nextAnswers: Record<string, string[]>, opts?: { force?: boolean }) => {
-      if (readOnly || !quiz || !sessionId || submittingRef.current) return;
+    async (
+      nextAnswers: Record<string, string[]>,
+      opts?: { force?: boolean; silent?: boolean },
+    ): Promise<boolean> => {
+      if (readOnly || !quiz || !sessionId || submittingRef.current) return false;
       if (!opts?.force) {
-        const unanswered = quiz.questions.filter((q) => !(nextAnswers[q.id]?.length > 0));
+        const unanswered = quiz.questions.filter((q) => !isQuestionAnswered(q, nextAnswers));
         if (unanswered.length > 0) {
           message.warning(QuizUiMessage.UNANSWERED);
-          return;
+          return false;
         }
       }
       submittingRef.current = true;
@@ -259,18 +301,27 @@ export function QuizTakeModal({
         });
         setResult(saved);
         setRemainingSeconds(null);
+        timeoutRetryCountRef.current = 0;
         message.success(opts?.force ? QuizUiMessage.TIMEOUT_SUBMITTED : QuizUiMessage.SUBMITTED);
+        return true;
       } catch (error: unknown) {
         submittingRef.current = false;
-        message.error(getErrorMessage(error, QuizUiMessage.SUBMIT_FAILED));
+        if (!opts?.silent) {
+          message.error(getErrorMessage(error, QuizUiMessage.SUBMIT_FAILED));
+        }
+        return false;
       }
     },
     [quiz, sessionId, submitAttempt, readOnly],
   );
 
+  const timedOut = remainingSeconds !== null && remainingSeconds <= 0;
+  const done = !readOnly && result !== null;
+  const answersLocked = done || readOnly || timedOut;
+
   const handleSubmit = useCallback(() => {
-    void submitAnswers(answers);
-  }, [answers, submitAnswers]);
+    void submitAnswers(answers, timedOut ? { force: true } : undefined);
+  }, [answers, submitAnswers, timedOut]);
 
   const handleClose = useCallback(() => {
     if (!readOnly && !result && isQuizAttemptInProgress(attempt)) {
@@ -283,173 +334,239 @@ export function QuizTakeModal({
     onClose();
   }, [attempt, onClose, persistDraft, readOnly, result]);
 
-  const onTimerTick = useEffectEvent((secondsLeft: number) => {
+  const onTimerTick = useEffectEvent(async (secondsLeft: number, silent?: boolean) => {
     if (secondsLeft > 0) return;
-    void submitAnswers(answersRef.current, { force: true });
+    if (timeoutRetryCountRef.current >= TIMEOUT_SUBMIT_MAX_RETRIES) {
+      if (!timeoutFailNotifiedRef.current) {
+        timeoutFailNotifiedRef.current = true;
+        message.error(QuizUiMessage.SUBMIT_FAILED);
+      }
+      return;
+    }
+    timeoutRetryCountRef.current += 1;
+    const ok = await submitAnswers(answersRef.current, { force: true, silent });
+    if (ok) {
+      timeoutRetryCountRef.current = 0;
+      timeoutFailNotifiedRef.current = false;
+    }
   });
 
+  const title = quiz?.title ?? 'Bài tập';
+  const timerUrgent =
+    remainingSeconds !== null && remainingSeconds <= QuizLimit.TIMER_WARN_SECONDS;
+  const loadingSession =
+    !readOnly &&
+    open &&
+    (!quizContentReady || !sessionReady || attemptLoading || startAttempt.isPending);
+
   useEffect(() => {
-    if (readOnly || !open || result !== null || remainingSeconds === null) return;
-    if (remainingSeconds <= 0) {
-      onTimerTick(0);
+    // Do not tick while the take UI is still loading (start is also deferred until ready).
+    if (readOnly || !open || result !== null || remainingSeconds === null || loadingSession) {
       return;
+    }
+    if (remainingSeconds <= 0) {
+      void onTimerTick(0);
+      const retryId = window.setInterval(() => {
+        void onTimerTick(0, true);
+      }, TIMEOUT_SUBMIT_RETRY_MS);
+      return () => window.clearInterval(retryId);
     }
     const timerId = window.setTimeout(() => {
       setRemainingSeconds((prev) => (prev === null ? prev : prev - 1));
     }, 1000);
     return () => window.clearTimeout(timerId);
-  }, [open, result, remainingSeconds, onTimerTick, readOnly]);
+  }, [open, result, remainingSeconds, onTimerTick, readOnly, loadingSession]);
 
-  const done = !readOnly && result !== null;
-  const title = quiz?.title ?? 'Bài tập';
-  const timerUrgent =
-    remainingSeconds !== null && remainingSeconds <= QuizLimit.TIMER_WARN_SECONDS;
-  const loadingSession =
-    !readOnly && open && (!sessionReady || attemptLoading || startAttempt.isPending);
+  const titleNode = (
+    <Space wrap size="middle">
+      <span>{title}</span>
+      {!readOnly && !done && !loadingSession && remainingSeconds !== null ? (
+        <span
+          className={timerUrgent ? styles.quizTimerBadgeUrgent : styles.quizTimerBadge}
+        >
+          Còn {formatCountdown(remainingSeconds)}
+        </span>
+      ) : null}
+    </Space>
+  );
+
+  const footerNode =
+    readOnly || done ? (
+      <Button type="primary" onClick={handleClose}>
+        {layout === 'page' ? 'Quay lại' : 'Đóng'}
+      </Button>
+    ) : (
+      <Space>
+        <Button onClick={handleClose}>{layout === 'page' ? 'Quay lại' : 'Đóng'}</Button>
+        <Popconfirm
+          title="Nộp bài này?"
+          description="Sau khi nộp bạn không thể sửa câu trả lời."
+          okText="Nộp bài"
+          cancelText="Huỷ"
+          onConfirm={handleSubmit}
+          disabled={submitAttempt.isPending}
+        >
+          <Button type="primary" loading={submitAttempt.isPending}>
+            Nộp bài
+          </Button>
+        </Popconfirm>
+      </Space>
+    );
+
+  const bodyNode = !quiz ? (
+    <Empty description="Không có bài tập" />
+  ) : loadingSession ? (
+    <ScheduleLoading tip="Đang tải…" />
+  ) : (
+    <div className={styles.quizTakeBody}>
+      {done ? (
+        <div className={styles.quizResultBanner}>
+          {(() => {
+            const summary = buildQuizResultSummary({
+              questions: quiz.questions,
+              score: result.score,
+              correct: result.correct_answers,
+              total: result.total_questions,
+              isPassed: result.is_passed,
+              passingScore: quiz.passing_score,
+            });
+            return (
+              <>
+                <Typography.Title level={4} style={{ margin: 0 }}>
+                  {summary.title}
+                </Typography.Title>
+                <Typography.Text type="secondary">{summary.detail}</Typography.Text>
+              </>
+            );
+          })()}
+        </div>
+      ) : (
+        <Typography.Text type="secondary" className={styles.quizTakeMeta}>
+          {quiz.questions.length} câu
+          {quiz.duration_minutes > 0 ? ` · ${quiz.duration_minutes} phút` : null}
+          {quiz.passing_score > 0 ? ` · Đạt từ ${quiz.passing_score}%` : null}
+          {readOnly ? ' · Chỉ xem' : null}
+        </Typography.Text>
+      )}
+
+      <ol className={styles.quizQuestionList}>
+        {quiz.questions.map((q, index) => {
+          const correctIds = q.correct_option_ids ?? [];
+          const given = readOnly
+            ? correctIds
+            : (answers[q.id] ?? []);
+          const essayText = readOnly ? '' : (answers[q.id]?.[0] ?? '');
+          return (
+            <li key={q.id} className={styles.quizQuestionItem}>
+              <p className={styles.quizQuestionPrompt}>
+                <span className={styles.quizQuestionIndex}>{index + 1}.</span> {q.prompt}{' '}
+                {q.type === QuizQuestionType.ESSAY ? (
+                  <Tag>{QuizUiMessage.ESSAY_TAG}</Tag>
+                ) : null}
+              </p>
+              {(() => {
+                const imageUrls = getQuestionImageUrls(q);
+                if (imageUrls.length === 0) return null;
+                return (
+                  <div className={styles.quizQuestionImage}>
+                    <Image.PreviewGroup>
+                      <Space wrap>
+                        {imageUrls.map((url) => (
+                          <Image
+                            key={url}
+                            src={url}
+                            alt=""
+                            width={isMobile ? '100%' : 200}
+                          />
+                        ))}
+                      </Space>
+                    </Image.PreviewGroup>
+                  </div>
+                );
+              })()}
+              {q.type === QuizQuestionType.ESSAY ? (
+                done || readOnly ? (
+                  <Typography.Paragraph className={styles.quizEssayAnswer}>
+                    {(answers[q.id]?.[0] ?? '').trim() || QuizUiMessage.ESSAY_EMPTY}
+                  </Typography.Paragraph>
+                ) : (
+                  <Input.TextArea
+                    rows={4}
+                    maxLength={QuizLimit.MAX_ESSAY_LENGTH}
+                    showCount
+                    placeholder={QuizUiMessage.ESSAY_PLACEHOLDER}
+                    value={essayText}
+                    disabled={answersLocked}
+                    onChange={(event) => setEssay(q.id, event.target.value)}
+                  />
+                )
+              ) : q.type === QuizQuestionType.MULTIPLE ? (
+                <Checkbox.Group
+                  disabled={answersLocked}
+                  value={given}
+                  onChange={(vals) => setMultiple(q.id, vals as string[])}
+                  className={styles.quizOptions}
+                >
+                  <Space direction="vertical">
+                    {q.options.map((opt) => (
+                      <Checkbox key={opt.id} value={opt.id}>
+                        <OptionLabel
+                          text={opt.text}
+                          verdict={selectedOptionVerdict(done, opt.id, q, given)}
+                          showAnswerKey={readOnly && correctIds.includes(opt.id)}
+                        />
+                      </Checkbox>
+                    ))}
+                  </Space>
+                </Checkbox.Group>
+              ) : (
+                <Radio.Group
+                  disabled={answersLocked}
+                  value={given[0]}
+                  onChange={(e) => setSingle(q.id, e.target.value)}
+                  className={styles.quizOptions}
+                >
+                  <Space direction="vertical">
+                    {q.options.map((opt) => (
+                      <Radio key={opt.id} value={opt.id}>
+                        <OptionLabel
+                          text={opt.text}
+                          verdict={selectedOptionVerdict(done, opt.id, q, given)}
+                          showAnswerKey={readOnly && correctIds.includes(opt.id)}
+                        />
+                      </Radio>
+                    ))}
+                  </Space>
+                </Radio.Group>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+
+  if (layout === 'page') {
+    if (!open) return null;
+    return (
+      <div className={styles.quizTakePagePanel}>
+        <div className={styles.quizTakePageHead}>{titleNode}</div>
+        {bodyNode}
+        <div className={styles.quizTakePageFooter}>{footerNode}</div>
+      </div>
+    );
+  }
 
   return (
     <Modal
-      title={
-        <Space wrap size="middle">
-          <span>{title}</span>
-          {!readOnly && !done && remainingSeconds !== null ? (
-            <span
-              className={
-                timerUrgent ? styles.quizTimerBadgeUrgent : styles.quizTimerBadge
-              }
-            >
-              Còn {formatCountdown(remainingSeconds)}
-            </span>
-          ) : null}
-        </Space>
-      }
+      title={titleNode}
       open={open}
       onCancel={handleClose}
-      footer={
-        readOnly || done ? (
-          <Button type="primary" onClick={handleClose}>
-            Đóng
-          </Button>
-        ) : (
-          <Space>
-            <Button onClick={handleClose}>Đóng</Button>
-            <Popconfirm
-              title="Nộp bài này?"
-              description="Sau khi nộp bạn không thể sửa câu trả lời."
-              okText="Nộp bài"
-              cancelText="Huỷ"
-              onConfirm={handleSubmit}
-              disabled={submitAttempt.isPending}
-            >
-              <Button type="primary" loading={submitAttempt.isPending}>
-                Nộp bài
-              </Button>
-            </Popconfirm>
-          </Space>
-        )
-      }
+      footer={footerNode}
       width={isMobile ? '95vw' : 640}
       destroyOnHidden
     >
-      {!quiz ? (
-        <Empty description="Không có bài tập" />
-      ) : loadingSession ? (
-        <ScheduleLoading tip="Đang tải…" />
-      ) : (
-        <div className={styles.quizTakeBody}>
-          {done ? (
-            <div className={styles.quizResultBanner}>
-              <Typography.Title level={4} style={{ margin: 0 }}>
-                {result.is_passed ? 'Đạt' : 'Chưa đạt'} · {result.score}%
-              </Typography.Title>
-              <Typography.Text type="secondary">
-                Đúng {result.correct_answers}/{result.total_questions} câu
-                {quiz.passing_score > 0 ? ` · Điểm đạt: ${quiz.passing_score}%` : null}
-              </Typography.Text>
-            </div>
-          ) : (
-            <Typography.Text type="secondary" className={styles.quizTakeMeta}>
-              {quiz.questions.length} câu
-              {quiz.duration_minutes > 0 ? ` · ${quiz.duration_minutes} phút` : null}
-              {quiz.passing_score > 0 ? ` · Đạt từ ${quiz.passing_score}%` : null}
-              {readOnly ? ' · Chỉ xem' : null}
-            </Typography.Text>
-          )}
-
-          <ol className={styles.quizQuestionList}>
-            {quiz.questions.map((q, index) => {
-              const correctIds = q.correct_option_ids ?? [];
-              const given = readOnly ? correctIds : (answers[q.id] ?? []);
-              return (
-                <li key={q.id} className={styles.quizQuestionItem}>
-                  <p className={styles.quizQuestionPrompt}>
-                    <span className={styles.quizQuestionIndex}>{index + 1}.</span> {q.prompt}
-                  </p>
-                  {(() => {
-                    const imageUrls = getQuestionImageUrls(q);
-                    if (imageUrls.length === 0) return null;
-                    return (
-                      <div className={styles.quizQuestionImage}>
-                        <Image.PreviewGroup>
-                          <Space wrap>
-                            {imageUrls.map((url) => (
-                              <Image
-                                key={url}
-                                src={url}
-                                alt=""
-                                width={isMobile ? '100%' : 200}
-                              />
-                            ))}
-                          </Space>
-                        </Image.PreviewGroup>
-                      </div>
-                    );
-                  })()}
-                  {q.type === QuizQuestionType.MULTIPLE ? (
-                    <Checkbox.Group
-                      disabled={done || readOnly}
-                      value={given}
-                      onChange={(vals) => setMultiple(q.id, vals as string[])}
-                      className={styles.quizOptions}
-                    >
-                      <Space direction="vertical">
-                        {q.options.map((opt) => (
-                          <Checkbox key={opt.id} value={opt.id}>
-                            <OptionLabel
-                              text={opt.text}
-                              verdict={selectedOptionVerdict(done, opt.id, q, given)}
-                              showAnswerKey={readOnly && correctIds.includes(opt.id)}
-                            />
-                          </Checkbox>
-                        ))}
-                      </Space>
-                    </Checkbox.Group>
-                  ) : (
-                    <Radio.Group
-                      disabled={done || readOnly}
-                      value={given[0]}
-                      onChange={(e) => setSingle(q.id, e.target.value)}
-                      className={styles.quizOptions}
-                    >
-                      <Space direction="vertical">
-                        {q.options.map((opt) => (
-                          <Radio key={opt.id} value={opt.id}>
-                            <OptionLabel
-                              text={opt.text}
-                              verdict={selectedOptionVerdict(done, opt.id, q, given)}
-                              showAnswerKey={readOnly && correctIds.includes(opt.id)}
-                            />
-                          </Radio>
-                        ))}
-                      </Space>
-                    </Radio.Group>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-        </div>
-      )}
+      {bodyNode}
     </Modal>
   );
 }

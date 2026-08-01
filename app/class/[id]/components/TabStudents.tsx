@@ -49,7 +49,7 @@ const formatCurrency = (val: number) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
 
 // ── Avatar màu từ tên ──────────────────────────────────────────────────────
-const AVATAR_COLORS = ['#1677ff', '#52c41a', '#faad14', '#f5222d', '#722ed1', '#13c2c2'];
+const AVATAR_COLORS = ['#1677ff', '#52c41a', '#faad14', '#f5222d', '#fa8c16', '#13c2c2'];
 function nameToColor(name: string) {
   let hash = 0;
   for (const c of name) hash = c.charCodeAt(0) + ((hash << 5) - hash);

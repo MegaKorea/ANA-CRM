@@ -26,20 +26,29 @@ export function newQuizEntityId(): string {
   return crypto.randomUUID();
 }
 
+function createDefaultOptions(): QuizOptionForm[] {
+  return [
+    { id: newQuizEntityId(), text: '' },
+    { id: newQuizEntityId(), text: '' },
+  ];
+}
+
 export function createEmptyQuizQuestion(): QuizQuestionForm {
-  const optionOneId = newQuizEntityId();
-  const optionTwoId = newQuizEntityId();
+  const options = createDefaultOptions();
   return {
     id: newQuizEntityId(),
     type: QuizQuestionType.SINGLE,
     prompt: '',
     image_urls: [],
-    options: [
-      { id: optionOneId, text: '' },
-      { id: optionTwoId, text: '' },
-    ],
-    correct_option_ids: [optionOneId],
+    options,
+    correct_option_ids: [options[0].id],
   };
+}
+
+function normalizeQuestionType(type: QuizQuestionType | string): QuizQuestionType {
+  if (type === QuizQuestionType.MULTIPLE) return QuizQuestionType.MULTIPLE;
+  if (type === QuizQuestionType.ESSAY) return QuizQuestionType.ESSAY;
+  return QuizQuestionType.SINGLE;
 }
 
 export function toQuizPayload(values: QuizFormValues): QuizCreateInput {
@@ -50,12 +59,21 @@ export function toQuizPayload(values: QuizFormValues): QuizCreateInput {
     is_published: Boolean(values.is_published),
     questions: values.questions.map((question) => {
       const image_urls = (question.image_urls ?? []).filter((url) => !!url.trim());
+      const type = normalizeQuestionType(question.type);
+      if (type === QuizQuestionType.ESSAY) {
+        return {
+          id: question.id || newQuizEntityId(),
+          type,
+          prompt: question.prompt.trim(),
+          image_url: image_urls[0] ?? null,
+          image_urls,
+          options: [],
+          correct_option_ids: [],
+        };
+      }
       return {
         id: question.id || newQuizEntityId(),
-        type:
-          question.type === QuizQuestionType.MULTIPLE
-            ? QuizQuestionType.MULTIPLE
-            : QuizQuestionType.SINGLE,
+        type,
         prompt: question.prompt.trim(),
         image_url: image_urls[0] ?? null,
         image_urls,
@@ -85,15 +103,64 @@ export function fillQuizForm(form: FormInstance<QuizFormValues>, quiz: Quiz | nu
     duration_minutes: quiz.duration_minutes,
     passing_score: quiz.passing_score,
     is_published: quiz.is_published,
-    questions: quiz.questions.map((question) => ({
-      id: question.id,
-      type: question.type,
-      prompt: question.prompt,
-      image_urls: getQuestionImageUrls(question),
-      options: question.options.map((option) => ({ id: option.id, text: option.text })),
-      correct_option_ids: question.correct_option_ids ?? [],
-    })),
+    questions: quiz.questions.map((question) => {
+      const type = normalizeQuestionType(question.type);
+      if (type === QuizQuestionType.ESSAY) {
+        return {
+          id: question.id,
+          type,
+          prompt: question.prompt,
+          image_urls: getQuestionImageUrls(question),
+          options: [],
+          correct_option_ids: [],
+        };
+      }
+      return {
+        id: question.id,
+        type,
+        prompt: question.prompt,
+        image_urls: getQuestionImageUrls(question),
+        options: question.options.map((option) => ({ id: option.id, text: option.text })),
+        correct_option_ids: question.correct_option_ids ?? [],
+      };
+    }),
   });
+}
+
+export function applyQuizQuestionTypeChange(
+  form: FormInstance<QuizFormValues>,
+  questionIndex: number,
+  type: QuizQuestionType,
+): void {
+  const questions = form.getFieldValue('questions') as QuizQuestionForm[];
+  const current = questions[questionIndex];
+  if (!current) return;
+
+  if (type === QuizQuestionType.ESSAY) {
+    const next = [...questions];
+    next[questionIndex] = {
+      ...current,
+      type,
+      options: [],
+      correct_option_ids: [],
+    };
+    form.setFieldsValue({ questions: next });
+    return;
+  }
+
+  const options =
+    current.options.length >= QuizLimit.MIN_OPTIONS ? current.options : createDefaultOptions();
+  const next = [...questions];
+  next[questionIndex] = {
+    ...current,
+    type,
+    options,
+    correct_option_ids: current.correct_option_ids.filter((id) =>
+      options.some((option) => option.id === id),
+    ),
+  };
+  form.setFieldsValue({ questions: next });
+  syncQuizCorrectIds(form, questionIndex, options, type);
 }
 
 export function syncQuizCorrectIds(
@@ -102,6 +169,10 @@ export function syncQuizCorrectIds(
   options: QuizOptionForm[],
   type: QuizQuestionType,
 ): void {
+  if (type === QuizQuestionType.ESSAY) {
+    form.setFieldValue(['questions', questionIndex, 'correct_option_ids'], []);
+    return;
+  }
   const optionIds = options.map((option) => option.id);
   const current =
     (form.getFieldValue(['questions', questionIndex, 'correct_option_ids']) as string[]) ?? [];

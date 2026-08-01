@@ -195,6 +195,35 @@ export async function getSessionById(sessionId: string): Promise<ClassSession> {
     return mapSessionRow(data as unknown as Record<string, unknown>);
 }
 
+/** Lightweight session fetch for APIs that only need class/date meta (avoids body_json). */
+export async function getSessionMetaById(
+    sessionId: string,
+): Promise<Pick<ClassSession, 'id' | 'class_id' | 'date' | 'session_number'>> {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+        .from('class_sessions')
+        .select('id, class_id, date, session_number')
+        .eq('id', sessionId)
+        .single();
+
+    throwIfSupabaseError(error);
+    if (!data) {
+        fail('SESSION_NOT_FOUND', HttpStatusCode.NOT_FOUND, 'Không tìm thấy buổi học.');
+    }
+    const row = data as unknown as {
+        id: string;
+        class_id: string;
+        date: string;
+        session_number: number;
+    };
+    return {
+        id: row.id,
+        class_id: row.class_id,
+        date: row.date,
+        session_number: row.session_number,
+    };
+}
+
 async function persistSessionLectures(
     sessionId: string,
     bodyJson: unknown,

@@ -1,12 +1,23 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Button, Empty, Modal, Space, Table, Tag, Typography } from 'antd';
+import { Button, Empty, Input, Modal, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { QuizUiMessage } from '@/constants/enums';
 import type { Quiz, QuizAttemptReview, QuizQuestion } from '@/lib/types/quiz';
-import { isQuizAnswerCorrect } from '@/lib/types/quiz';
-import { useTeacherQuizAttempts } from '@/lib/hooks/use-quizzes';
+import {
+  buildQuizResultSummary,
+  isAutoGradableQuestion,
+  isQuizAnswerCorrect,
+  countQuizQuestionKinds,
+} from '@/lib/types/quiz';
+import {
+  useTeacherQuizAttempts,
+  useSessionQuizDetail,
+  useGradeQuizAttempt,
+} from '@/lib/hooks/use-quizzes';
 import { formatViDateTime } from '@/lib/utils/format-vi-datetime';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 import { ScheduleLoading } from './ScheduleLoading';
 import styles from './tab-schedule.module.scss';
 
@@ -26,18 +37,62 @@ function optionLabels(question: QuizQuestion, optionIds: string[]): string {
 
 export function QuizAttemptsReviewModal({ sessionId, quiz, open, isMobile, onClose }: Props) {
   const quizId = quiz?.id ?? null;
+  const needsDetail = open && !!quizId && (quiz?.questions.length ?? 0) === 0;
+  const { data: quizDetail, isLoading: detailLoading } = useSessionQuizDetail(
+    sessionId,
+    quizId,
+    needsDetail,
+  );
+  const resolvedQuiz = quizDetail ?? quiz;
   const { data, isLoading } = useTeacherQuizAttempts(sessionId, quizId, open && !!quizId);
   const [selected, setSelected] = useState<QuizAttemptReview | null>(null);
+  const [feedbackDraft, setFeedbackDraft] = useState('');
+  const gradeAttempt = useGradeQuizAttempt();
 
   const items = data?.items ?? [];
+  const questionKinds = resolvedQuiz
+    ? countQuizQuestionKinds(resolvedQuiz.questions)
+    : { auto: 0, essay: 0 };
+  const essayOnly = questionKinds.auto === 0 && questionKinds.essay > 0;
+  const loading = isLoading || (needsDetail && detailLoading);
 
   const closeList = () => {
     setSelected(null);
     onClose();
   };
 
-  const columns: ColumnsType<QuizAttemptReview> = useMemo(
-    () => [
+  const openDetail = (row: QuizAttemptReview) => {
+    setSelected(row);
+    setFeedbackDraft(row.teacher_feedback ?? '');
+  };
+
+  const handleSaveFeedback = async () => {
+    if (!selected || !quizId) return;
+    const feedback = feedbackDraft.trim();
+    if (!feedback) {
+      message.warning(QuizUiMessage.FEEDBACK_REQUIRED);
+      return;
+    }
+    try {
+      const updated = await gradeAttempt.mutateAsync({
+        sessionId,
+        quizId,
+        attemptId: selected.id,
+        feedback,
+      });
+      setSelected({
+        ...selected,
+        teacher_feedback: updated.teacher_feedback,
+        graded_by: updated.graded_by,
+      });
+      message.success(QuizUiMessage.FEEDBACK_SAVED);
+    } catch (error: unknown) {
+      message.error(getErrorMessage(error, QuizUiMessage.FEEDBACK_SAVE_FAILED));
+    }
+  };
+
+  const columns: ColumnsType<QuizAttemptReview> = useMemo(() => {
+    const base: ColumnsType<QuizAttemptReview> = [
       {
         title: 'Học viên',
         dataIndex: 'student_name',
@@ -53,25 +108,62 @@ export function QuizAttemptsReviewModal({ sessionId, quiz, open, isMobile, onClo
           </Space>
         ),
       },
-      {
-        title: 'Điểm',
-        key: 'score',
-        width: 100,
-        render: (_, row) => `${row.score}%`,
-      },
-      {
-        title: 'Đúng',
-        key: 'correct',
-        width: 90,
-        render: (_, row) => `${row.correct_answers}/${row.total_questions}`,
-      },
-      {
-        title: 'Kết quả',
-        key: 'passed',
-        width: 100,
+    ];
+
+    if (essayOnly) {
+      base.push({
+        title: 'Trạng thái',
+        key: 'status',
+        width: 160,
         render: (_, row) =>
-          row.is_passed ? <Tag color="green">Đạt</Tag> : <Tag color="red">Chưa đạt</Tag>,
-      },
+          row.graded_by ? (
+            <Tag color="green">{QuizUiMessage.GRADED_TAG}</Tag>
+          ) : (
+            <Tag color="blue">{QuizUiMessage.ESSAY_SUBMITTED_TITLE}</Tag>
+          ),
+      });
+    } else {
+      base.push(
+        {
+          title: questionKinds.essay > 0 ? 'Điểm TN' : 'Điểm',
+          key: 'score',
+          width: 100,
+          render: (_, row) => `${row.score}%`,
+        },
+        {
+          title: 'Đúng',
+          key: 'correct',
+          width: 90,
+          render: (_, row) => `${row.correct_answers}/${row.total_questions}`,
+        },
+        {
+          title: 'Kết quả',
+          key: 'passed',
+          width: 110,
+          render: (_, row) =>
+            row.is_passed ? (
+              <Tag color="green">{QuizUiMessage.RESULT_PASSED}</Tag>
+            ) : (
+              <Tag color="red">{QuizUiMessage.RESULT_FAILED}</Tag>
+            ),
+        },
+      );
+      if (questionKinds.essay > 0) {
+        base.push({
+          title: 'Tự luận',
+          key: 'essay',
+          width: 120,
+          render: (_, row) =>
+            row.graded_by ? (
+              <Tag color="green">{QuizUiMessage.GRADED_TAG}</Tag>
+            ) : (
+              <Tag>{QuizUiMessage.ESSAY_AWAITING_REVIEW}</Tag>
+            ),
+        });
+      }
+    }
+
+    base.push(
       {
         title: 'Nộp lúc',
         dataIndex: 'submitted_at',
@@ -84,19 +176,20 @@ export function QuizAttemptsReviewModal({ sessionId, quiz, open, isMobile, onClo
         key: 'actions',
         width: 90,
         render: (_, row) => (
-          <Button type="link" size="small" onClick={() => setSelected(row)}>
+          <Button type="link" size="small" onClick={() => openDetail(row)}>
             Chi tiết
           </Button>
         ),
       },
-    ],
-    [],
-  );
+    );
+
+    return base;
+  }, [essayOnly, questionKinds.essay]);
 
   return (
     <>
       <Modal
-        title={quiz ? `Bài làm · ${quiz.title}` : 'Bài làm'}
+        title={resolvedQuiz ? `Bài làm · ${resolvedQuiz.title}` : 'Bài làm'}
         open={open}
         onCancel={closeList}
         footer={
@@ -107,7 +200,7 @@ export function QuizAttemptsReviewModal({ sessionId, quiz, open, isMobile, onClo
         width={isMobile ? '95vw' : 860}
         destroyOnHidden
       >
-        {isLoading ? (
+        {loading ? (
           <ScheduleLoading tip="Đang tải bài làm…" />
         ) : items.length === 0 ? (
           <Empty
@@ -128,7 +221,7 @@ export function QuizAttemptsReviewModal({ sessionId, quiz, open, isMobile, onClo
 
       <Modal
         title={selected ? `Chi tiết · ${selected.student_name}` : 'Chi tiết bài làm'}
-        open={!!selected && !!quiz}
+        open={!!selected && !!resolvedQuiz}
         onCancel={() => setSelected(null)}
         footer={
           <Button type="primary" onClick={() => setSelected(null)}>
@@ -138,23 +231,51 @@ export function QuizAttemptsReviewModal({ sessionId, quiz, open, isMobile, onClo
         width={isMobile ? '95vw' : 720}
         destroyOnHidden
       >
-        {selected && quiz ? (
+        {selected && resolvedQuiz ? (
           <div className={styles.quizTakeBody}>
             <div className={styles.quizResultBanner}>
-              <Typography.Title level={4} style={{ margin: 0 }}>
-                {selected.is_passed ? 'Đạt' : 'Chưa đạt'} · {selected.score}%
-              </Typography.Title>
-              <Typography.Text type="secondary">
-                Đúng {selected.correct_answers}/{selected.total_questions}
-                {selected.submitted_at
-                  ? ` · Nộp ${formatViDateTime(selected.submitted_at)}`
-                  : null}
-              </Typography.Text>
+              {(() => {
+                const summary = buildQuizResultSummary({
+                  questions: resolvedQuiz.questions,
+                  score: selected.score,
+                  correct: selected.correct_answers,
+                  total: selected.total_questions,
+                  isPassed: selected.is_passed,
+                  passingScore: resolvedQuiz.passing_score,
+                });
+                return (
+                  <>
+                    <Typography.Title level={4} style={{ margin: 0 }}>
+                      {summary.title}
+                    </Typography.Title>
+                    <Typography.Text type="secondary">
+                      {summary.detail}
+                      {selected.submitted_at
+                        ? ` · Nộp ${formatViDateTime(selected.submitted_at)}`
+                        : null}
+                    </Typography.Text>
+                  </>
+                );
+              })()}
             </div>
 
             <ol className={styles.quizQuestionList}>
-              {quiz.questions.map((question, index) => {
+              {resolvedQuiz.questions.map((question, index) => {
                 const given = selected.user_answers[question.id] ?? [];
+                if (!isAutoGradableQuestion(question)) {
+                  return (
+                    <li key={question.id} className={styles.quizQuestionItem}>
+                      <p className={styles.quizQuestionPrompt}>
+                        <span className={styles.quizQuestionIndex}>{index + 1}.</span>{' '}
+                        {question.prompt} <Tag>{QuizUiMessage.ESSAY_TAG}</Tag>
+                      </p>
+                      <Typography.Paragraph className={styles.quizEssayAnswer}>
+                        {(given[0] ?? '').trim() || QuizUiMessage.ESSAY_EMPTY}
+                      </Typography.Paragraph>
+                    </li>
+                  );
+                }
+
                 const correct = isQuizAnswerCorrect(question, given);
                 return (
                   <li key={question.id} className={styles.quizQuestionItem}>
@@ -174,6 +295,35 @@ export function QuizAttemptsReviewModal({ sessionId, quiz, open, isMobile, onClo
                 );
               })}
             </ol>
+
+            {questionKinds.essay > 0 ? (
+              <div className={styles.quizFeedbackBlock}>
+                <Space align="center" style={{ justifyContent: 'space-between', width: '100%' }}>
+                  <Typography.Text strong>{QuizUiMessage.FEEDBACK_LABEL}</Typography.Text>
+                  {selected.graded_by ? (
+                    <Tag color="green">{QuizUiMessage.GRADED_TAG}</Tag>
+                  ) : (
+                    <Tag>{QuizUiMessage.NOT_GRADED_TAG}</Tag>
+                  )}
+                </Space>
+                <Input.TextArea
+                  value={feedbackDraft}
+                  onChange={(e) => setFeedbackDraft(e.target.value)}
+                  placeholder={QuizUiMessage.FEEDBACK_PLACEHOLDER}
+                  autoSize={{ minRows: 3, maxRows: 6 }}
+                  maxLength={5000}
+                  disabled={gradeAttempt.isPending}
+                />
+                <Button
+                  type="primary"
+                  onClick={() => void handleSaveFeedback()}
+                  loading={gradeAttempt.isPending}
+                  style={{ marginTop: 8 }}
+                >
+                  {QuizUiMessage.SAVE_FEEDBACK}
+                </Button>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </Modal>

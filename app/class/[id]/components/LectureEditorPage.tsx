@@ -15,7 +15,8 @@ import { HomeOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
-import { LectureUiMessage } from '@/constants/enums';
+import { ClassMemberRole, LectureErrorCode, LectureUiMessage } from '@/constants/enums';
+import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import { useClass } from '@/lib/hooks/use-classes';
 import {
   useClassSessions,
@@ -23,6 +24,7 @@ import {
   useSessionLectures,
   useUpdateSessionLecture,
 } from '@/lib/hooks/use-class-sessions';
+import { useUserRoleCode } from '@/lib/hooks/use-current-user';
 import type {
   SessionLectureAttachment,
   SessionLectureLink,
@@ -30,6 +32,7 @@ import type {
 } from '@/lib/types/session-lecture';
 import { collectImageAttachmentsFromHtml } from '@/lib/utils/lecture-html-attachments';
 import { getErrorMessage } from '@/lib/utils/get-error-message';
+import { FetchJsonError } from '@/lib/utils/fetchJson';
 import type { UploadedImage } from '@/lib/utils/upload-session-image';
 import { assertAllowedHttpUrl } from '@/lib/utils/assert-http-url';
 import styles from './lecture-editor.module.scss';
@@ -37,6 +40,25 @@ import styles from './lecture-editor.module.scss';
 dayjs.locale('vi');
 
 const DRAFT_FALLBACK_TITLE = 'Bản nháp';
+
+// Server-thrown AppError codes without a custom message reach the client as
+// the raw code string (e.g. "LECTURE_FORBIDDEN") — map the known ones to copy.
+const LECTURE_ERROR_MESSAGES: Partial<Record<string, string>> = {
+  [LectureErrorCode.FORBIDDEN]: LectureUiMessage.FORBIDDEN,
+  [LectureErrorCode.TITLE_REQUIRED]: LectureUiMessage.TITLE_REQUIRED,
+  [LectureErrorCode.INVALID_LINK_URL]: LectureUiMessage.INVALID_URL,
+  [LectureErrorCode.NOT_FOUND]: LectureUiMessage.NOT_FOUND,
+};
+
+function resolveLectureErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof FetchJsonError) {
+    const code = (error.data as { code?: string } | undefined)?.code;
+    if (code && LECTURE_ERROR_MESSAGES[code]) {
+      return LECTURE_ERROR_MESSAGES[code]!;
+    }
+  }
+  return getErrorMessage(error, fallback);
+}
 
 const LectureTiptapEditor = dynamic(
   () => import('./LectureTiptapEditor').then((m) => m.LectureTiptapEditor),
@@ -136,6 +158,11 @@ export function LectureEditorPage({ mode, classId, sessionId, lectureId }: Props
   const router = useRouter();
   const searchParams = useSearchParams();
   const dateQuery = searchParams.get('date');
+  const roleCode = useUserRoleCode();
+  const homeHref = roleCode?.trim().toUpperCase() === 'STU' ? '/course' : '/';
+  const { hasPermission: canEdit, isLoading: permissionLoading } = useAuthPermission([
+    ClassMemberRole.TEA,
+  ]);
 
   const { data: classData, isLoading: classLoading } = useClass(classId);
   const { data: sessions = [], isLoading: sessionsLoading } = useClassSessions(classId);
@@ -232,9 +259,10 @@ export function LectureEditorPage({ mode, classId, sessionId, lectureId }: Props
   const flushSuddenExitSave = useCallback(() => {
     const s = draftStateRef.current;
     if (skipUnloadSaveRef.current || !s.isDirty) return;
+    // Never silently touch a lecture that's already live for students —
+    // an in-progress edit must only reach "published" via the explicit save button.
+    if (s.mode === 'edit' && s.existingStatus === 'published') return;
 
-    const exitStatus: SessionLectureStatus =
-      s.mode === 'edit' && s.existingStatus === 'published' ? 'published' : 'draft';
     const textOnly = s.html.replace(/<[^>]+>/g, '').trim();
     const isEmptyCreate =
       s.mode === 'create' &&
@@ -244,6 +272,8 @@ export function LectureEditorPage({ mode, classId, sessionId, lectureId }: Props
       s.attachments.length === 0;
     if (isEmptyCreate) return;
 
+    // pagehide + effect cleanup can both run on the same leave — only save once.
+    skipUnloadSaveRef.current = true;
     flushLectureBeacon({
       mode: s.mode,
       sessionId: s.sessionId,
@@ -253,7 +283,7 @@ export function LectureEditorPage({ mode, classId, sessionId, lectureId }: Props
         html: s.html,
         links: softNormalizeLinks(s.links),
         attachments: collectImageAttachmentsFromHtml(s.html, s.attachments),
-        status: exitStatus,
+        status: 'draft',
       },
     });
   }, []);
@@ -325,10 +355,10 @@ export function LectureEditorPage({ mode, classId, sessionId, lectureId }: Props
       goBack();
     } catch (error: unknown) {
       if (error instanceof Error && error.message === 'TITLE_REQUIRED') {
-        message.warning('Nhập tiêu đề bài giảng');
+        message.warning(LectureUiMessage.TITLE_REQUIRED);
         return;
       }
-      message.error(getErrorMessage(error, LectureUiMessage.SAVE_FAILED));
+      message.error(resolveLectureErrorMessage(error, LectureUiMessage.SAVE_FAILED));
     }
   }, [
     buildPayload,
@@ -342,17 +372,20 @@ export function LectureEditorPage({ mode, classId, sessionId, lectureId }: Props
 
   const leaveTo = useCallback(
     async (href: string) => {
-      if (!isDirty) {
+      // Editing an already-published lecture: "Hủy" must genuinely discard —
+      // never silently publish an unfinished edit to a record students can see.
+      const isPublishedEdit = mode === 'edit' && existing?.status === 'published';
+      if (!isDirty || isPublishedEdit) {
+        if (isDirty && isPublishedEdit) {
+          message.info(LectureUiMessage.DISCARDED_CHANGES);
+        }
         skipUnloadSaveRef.current = true;
         router.push(href);
         return;
       }
 
-      const exitStatus: SessionLectureStatus =
-        mode === 'edit' && existing?.status === 'published' ? 'published' : 'draft';
-
       try {
-        const payload = buildPayload({ requireTitle: false, status: exitStatus });
+        const payload = buildPayload({ requireTitle: false, status: 'draft' });
         // Skip empty create drafts (no meaningful content).
         const textOnly = payload.html.replace(/<[^>]+>/g, '').trim();
         const isEmptyCreate =
@@ -376,7 +409,7 @@ export function LectureEditorPage({ mode, classId, sessionId, lectureId }: Props
           }
         }
       } catch (error: unknown) {
-        message.error(getErrorMessage(error, LectureUiMessage.SAVE_FAILED));
+        message.error(resolveLectureErrorMessage(error, LectureUiMessage.SAVE_FAILED));
         return;
       }
       skipUnloadSaveRef.current = true;
@@ -397,13 +430,34 @@ export function LectureEditorPage({ mode, classId, sessionId, lectureId }: Props
   );
 
   const loading =
-    classLoading || sessionsLoading || (mode === 'edit' && (lecturesLoading || !hydrated));
+    classLoading ||
+    sessionsLoading ||
+    permissionLoading ||
+    (mode === 'edit' && (lecturesLoading || !hydrated));
 
   if (loading) {
     return (
       <div className={styles.page}>
         <div className={styles.loadingWrap}>
           <Spin size="large" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!canEdit) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.errorWrap}>
+          <Result
+            status="403"
+            title="Không có quyền truy cập"
+            extra={
+              <Button type="primary" onClick={() => void leaveTo(scheduleHref)}>
+                Về lịch học
+              </Button>
+            }
+          />
         </div>
       </div>
     );
@@ -441,7 +495,7 @@ export function LectureEditorPage({ mode, classId, sessionId, lectureId }: Props
         items={[
           {
             title: <HomeOutlined />,
-            onClick: () => void leaveTo('/'),
+            onClick: () => void leaveTo(homeHref),
           },
           {
             title: classData?.name || 'Lớp học',

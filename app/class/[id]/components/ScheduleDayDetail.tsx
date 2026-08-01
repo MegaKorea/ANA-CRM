@@ -155,7 +155,6 @@ export function ScheduleDayDetail({
               classId={classId}
               sessionId={selectedSession.session.id}
               canEdit={canEditLectures}
-              isMobile={isMobile}
             />
             <SessionQuizzesPanel
               classId={classId}

@@ -15,16 +15,16 @@
   --neutral-800: #262a37;
   --neutral-900: #14161f;
 
-  // 2. Accent scale — brand purple, constant across themes
-  --accent-50: #f4effb;
-  --accent-100: #e9ddf7;
-  --accent-200: #d4bcef;
-  --accent-300: #b792e2;
-  --accent-400: #9564d3;
-  --accent-500: #7b43c4;
-  --accent-600: #6e34bb;
-  --accent-700: #5b2b9b;
-  --accent-800: #47257a;
+  // 2. Accent scale — brand pink, constant across themes
+  --accent-50: #fef0f8;
+  --accent-100: #fcdcef;
+  --accent-200: #f8b8de;
+  --accent-300: #f384c6;
+  --accent-400: #ee55ac;
+  --accent-500: #f0009b;
+  --accent-600: #ec008c;
+  --accent-700: #b8006d;
+  --accent-800: #8a0052;
 
   // 3. Semantic status
   --success: #16a34a;
@@ -99,7 +99,7 @@
     0 4px 12px rgba(20, 22, 31, 0.08),
     0 2px 4px rgba(20, 22, 31, 0.04);
   --shadow-lg: 0 12px 28px rgba(20, 22, 31, 0.14);
-  --shadow-focus: 0 0 0 3px rgba(110, 52, 187, 0.18);
+  --shadow-focus: 0 0 0 3px rgba(236, 0, 140, 0.18);
 
   // 9. Layout & app shell
   --sidebar-w: 264px;
@@ -135,7 +135,7 @@
   --bg-surface: #1c1f2a;
   --bg-sunken: #232633;
   --bg-hover: #262a37;
-  --bg-selected: rgba(110, 52, 187, 0.18);
+  --bg-selected: rgba(236, 0, 140, 0.18);
 
   --text-primary: #f1f2f6;
   --text-secondary: #a6abbd;

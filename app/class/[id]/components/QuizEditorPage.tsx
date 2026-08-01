@@ -6,9 +6,10 @@ import {
   Form,
   Input,
   InputNumber,
+  Modal,
   Result,
   Spin,
-  Switch,
+  Checkbox,
   Typography,
   Upload,
   message,
@@ -19,9 +20,18 @@ import type { UploadProps } from 'antd';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
-import { QuizLimit, QuizUiMessage } from '@/constants/enums';
+import {
+  ClassMemberRole,
+  HttpStatusCode,
+  QuizErrorCode,
+  QuizLimit,
+  QuizUiMessage,
+} from '@/constants/enums';
+import { FetchJsonError } from '@/lib/utils/fetchJson';
+import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import { useClass } from '@/lib/hooks/use-classes';
 import { useClassSessions } from '@/lib/hooks/use-class-sessions';
+import { useUserRoleCode } from '@/lib/hooks/use-current-user';
 import {
   useCreateSessionQuiz,
   useSessionQuizDetail,
@@ -45,6 +55,29 @@ import formStyles from './quiz-editor.module.scss';
 
 dayjs.locale('vi');
 
+// Server-thrown AppError codes without a custom message reach the client as the
+// raw code string (e.g. "QUIZ_DUPLICATE_OPTION_TEXT") — map the known ones to copy.
+const QUIZ_ERROR_MESSAGES: Partial<Record<string, string>> = {
+  [QuizErrorCode.FORBIDDEN]: QuizUiMessage.FORBIDDEN,
+  [QuizErrorCode.TITLE_REQUIRED]: QuizUiMessage.TITLE_REQUIRED,
+  [QuizErrorCode.QUESTIONS_REQUIRED]: QuizUiMessage.QUESTIONS_REQUIRED,
+  [QuizErrorCode.QUESTION_PROMPT_REQUIRED]: QuizUiMessage.PROMPT_REQUIRED,
+  [QuizErrorCode.OPTION_TEXT_REQUIRED]: QuizUiMessage.OPTION_REQUIRED,
+  [QuizErrorCode.DUPLICATE_OPTION_TEXT]: QuizUiMessage.DUPLICATE_OPTION_TEXT,
+  [QuizErrorCode.CORRECT_ANSWER_REQUIRED]: QuizUiMessage.CORRECT_MULTI_REQUIRED,
+  [QuizErrorCode.SINGLE_ONE_ANSWER]: QuizUiMessage.CORRECT_SINGLE_REQUIRED,
+};
+
+function resolveQuizErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof FetchJsonError) {
+    const code = (error.data as { code?: string } | undefined)?.code;
+    if (code && QUIZ_ERROR_MESSAGES[code]) {
+      return QUIZ_ERROR_MESSAGES[code]!;
+    }
+  }
+  return getErrorMessage(error, fallback);
+}
+
 type Props = {
   mode: 'create' | 'edit';
   classId: string;
@@ -59,6 +92,11 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
   const isCreate = mode === 'create';
   const pageTitle = isCreate ? 'Thêm bài tập' : 'Sửa bài tập';
   const submitLabel = isCreate ? 'Đăng bài' : 'Cập nhật';
+  const roleCode = useUserRoleCode();
+  const homeHref = roleCode?.trim().toUpperCase() === 'STU' ? '/course' : '/';
+  const { hasPermission: canEdit, isLoading: permissionLoading } = useAuthPermission([
+    ClassMemberRole.TEA,
+  ]);
 
   const { data: classData, isLoading: classLoading } = useClass(classId);
   const { data: sessions = [], isLoading: sessionsLoading } = useClassSessions(classId);
@@ -85,9 +123,22 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
   else if (session?.date) scheduleParams.set('date', session.date);
   const scheduleHref = `/class/${classId}?${scheduleParams.toString()}`;
 
-  const goBack = () => {
-    router.push(scheduleHref);
+  const leaveTo = (href: string) => {
+    if (form.isFieldsTouched()) {
+      Modal.confirm({
+        title: QuizUiMessage.UNSAVED_TITLE,
+        content: QuizUiMessage.UNSAVED_CONTENT,
+        okText: QuizUiMessage.UNSAVED_LEAVE,
+        okButtonProps: { danger: true },
+        cancelText: QuizUiMessage.UNSAVED_STAY,
+        onOk: () => router.push(href),
+      });
+      return;
+    }
+    router.push(href);
   };
+
+  const goBack = () => leaveTo(scheduleHref);
 
   useEffect(() => {
     if (isCreate) {
@@ -151,11 +202,15 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
   const saving =
     createQuiz.isPending || updateQuiz.isPending || uploadingQuestionIndex !== null;
 
-  const handleSubmit = async (values: QuizFormValues) => {
+  const performSubmit = async (values: QuizFormValues) => {
     try {
       const payload = toQuizPayload(values);
       if (!isCreate && quizId) {
-        await updateQuiz.mutateAsync({ sessionId, quizId, data: payload });
+        await updateQuiz.mutateAsync({
+          sessionId,
+          quizId,
+          data: { ...payload, expected_updated_at: existing?.updated_at },
+        });
         message.success(QuizUiMessage.UPDATED);
       } else {
         await createQuiz.mutateAsync({ sessionId, data: payload });
@@ -163,18 +218,66 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
       }
       goBack();
     } catch (error: unknown) {
-      message.error(getErrorMessage(error, QuizUiMessage.SAVE_FAILED));
+      if (error instanceof FetchJsonError && error.status === HttpStatusCode.CONFLICT) {
+        Modal.confirm({
+          title: QuizUiMessage.CONFLICT_TITLE,
+          content: QuizUiMessage.CONFLICT_CONTENT,
+          okText: QuizUiMessage.CONFLICT_RELOAD,
+          cancelText: QuizUiMessage.CONFLICT_LATER,
+          onOk: () => window.location.reload(),
+        });
+        return;
+      }
+      message.error(resolveQuizErrorMessage(error, QuizUiMessage.SAVE_FAILED));
     }
   };
 
+  const handleSubmit = (values: QuizFormValues) => {
+    // Flipping a quiz to published fires an immediate notification to every
+    // student in the class — that's a one-way action worth a confirm step.
+    const willFirstPublish = Boolean(values.is_published) && !existing?.is_published;
+    if (willFirstPublish) {
+      Modal.confirm({
+        title: QuizUiMessage.PUBLISH_CONFIRM_TITLE,
+        content: QuizUiMessage.PUBLISH_CONFIRM_CONTENT,
+        okText: QuizUiMessage.PUBLISH_CONFIRM_OK,
+        cancelText: QuizUiMessage.PUBLISH_CONFIRM_CANCEL,
+        onOk: () => performSubmit(values),
+      });
+      return;
+    }
+    void performSubmit(values);
+  };
+
   const loading =
-    classLoading || sessionsLoading || (!isCreate && (quizLoading || !hydrated));
+    classLoading ||
+    sessionsLoading ||
+    permissionLoading ||
+    (!isCreate && (quizLoading || !hydrated));
 
   if (loading) {
     return (
       <div className={pageStyles.page}>
         <div className={pageStyles.loadingWrap}>
           <Spin size="large" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!canEdit) {
+    return (
+      <div className={pageStyles.page}>
+        <div className={pageStyles.errorWrap}>
+          <Result
+            status="403"
+            title="Không có quyền truy cập"
+            extra={
+              <Button type="primary" onClick={goBack}>
+                Về lịch học
+              </Button>
+            }
+          />
         </div>
       </div>
     );
@@ -207,9 +310,9 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
       <Breadcrumb
         className={pageStyles.breadcrumb}
         items={[
-          { href: '/', title: <HomeOutlined /> },
-          { href: `/class/${classId}`, title: classData?.name || 'Lớp học' },
-          { href: scheduleHref, title: 'Lịch học' },
+          { title: <HomeOutlined />, onClick: () => leaveTo(homeHref) },
+          { title: classData?.name || 'Lớp học', onClick: () => leaveTo(`/class/${classId}`) },
+          { title: 'Lịch học', onClick: () => leaveTo(scheduleHref) },
           { title: pageTitle },
         ]}
       />
@@ -223,7 +326,7 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
       <Form
         form={form}
         layout="vertical"
-        onFinish={(values) => void handleSubmit(values)}
+        onFinish={handleSubmit}
         disabled={saving}
       >
         <div className={pageStyles.layout}>
@@ -251,6 +354,7 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
                   <Form.Item
                     name="duration_minutes"
                     label="Thời gian (phút)"
+                    extra="Áp dụng cho cả bài (trắc nghiệm và tự luận). Để 0 nếu không giới hạn."
                     className={formStyles.metaItem}
                   >
                     <InputNumber
@@ -262,6 +366,7 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
                   <Form.Item
                     name="passing_score"
                     label="Điểm đạt (%)"
+                    extra="Chỉ tính câu trắc nghiệm. Bài chỉ tự luận không dùng điểm này."
                     className={formStyles.metaItem}
                   >
                     <InputNumber
@@ -272,11 +377,10 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
                   </Form.Item>
                   <Form.Item
                     name="is_published"
-                    label="Mở cho học viên"
                     valuePropName="checked"
                     className={formStyles.metaItem}
                   >
-                    <Switch />
+                    <Checkbox>Mở cho học viên</Checkbox>
                   </Form.Item>
                 </div>
               </div>

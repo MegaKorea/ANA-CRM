@@ -37,7 +37,7 @@
   :global(.ant-collapse-item) {
     margin-bottom: 10px;
     border: 1px solid var(--border) !important;
-    border-radius: var(--radius-lg) !important;
+    border-radius: var(--radius-xs) !important;
     overflow: hidden;
     background: var(--bg-sunken);
   }
@@ -92,7 +92,7 @@
 
 .imageChip :global(.ant-image-img) {
   object-fit: cover;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
 }
 
 .imageRemove {
@@ -102,6 +102,11 @@
   z-index: 2;
   background: var(--bg-surface) !important;
   box-shadow: var(--shadow-sm);
+}
+
+.essayHint {
+  display: block;
+  margin-bottom: 8px;
 }
 
 .optionsBlock {

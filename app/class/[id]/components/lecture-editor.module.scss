@@ -1,5 +1,6 @@
 .page {
-  min-height: 100%;
+  /* Grow with content; Layout .content is the only vertical scroller */
+  min-height: 0;
   padding: 12px 12px 32px;
   background: var(--bg-app);
 

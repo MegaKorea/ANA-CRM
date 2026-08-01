@@ -28,6 +28,7 @@ import {
   QuizUiMessage,
 } from '@/constants/enums';
 import {
+  applyQuizQuestionTypeChange,
   newQuizEntityId,
   syncQuizCorrectIds,
   type QuizFormValues,
@@ -61,11 +62,10 @@ export function QuizQuestionEditor({
           options={[
             { value: QuizQuestionType.SINGLE, label: 'Một đáp án' },
             { value: QuizQuestionType.MULTIPLE, label: 'Nhiều đáp án' },
+            { value: QuizQuestionType.ESSAY, label: 'Tự luận' },
           ]}
           onChange={(type: QuizQuestionType) => {
-            const questions = form.getFieldValue('questions') as QuizQuestionForm[];
-            const question = questions[questionIndex];
-            syncQuizCorrectIds(form, questionIndex, question.options, type);
+            applyQuizQuestionTypeChange(form, questionIndex, type);
           }}
         />
       </Form.Item>
@@ -139,126 +139,140 @@ export function QuizQuestionEditor({
         }}
       </Form.Item>
 
-      <Form.List name={[field.name, 'options']}>
-        {(optionFields, optionOperations) => (
-          <div className={styles.optionsBlock}>
-            <div className={styles.optionsHead}>
-              <span>Lựa chọn</span>
-              <Button
-                type="link"
-                size="small"
-                icon={<PlusOutlined />}
-                onClick={() => optionOperations.add({ id: newQuizEntityId(), text: '' })}
-              >
-                Thêm
-              </Button>
-            </div>
-            {optionFields.map((optionField) => (
-              <div key={optionField.key} className={styles.optionRow}>
-                <Form.Item name={[optionField.name, 'id']} hidden>
-                  <Input />
-                </Form.Item>
-                <Form.Item
-                  {...optionField}
-                  name={[optionField.name, 'text']}
-                  className={styles.optionText}
-                  rules={[{ required: true, message: QuizUiMessage.OPTION_REQUIRED }]}
-                >
-                  <Input placeholder="Nội dung lựa chọn" />
-                </Form.Item>
-                {optionFields.length > QuizLimit.MIN_OPTIONS ? (
-                  <Button
-                    type="text"
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => {
-                      optionOperations.remove(optionField.name);
-                      const questions = form.getFieldValue('questions') as QuizQuestionForm[];
-                      const question = questions[questionIndex];
-                      const options = question.options.filter(
-                        (_, index) => index !== optionField.name,
-                      );
-                      syncQuizCorrectIds(form, questionIndex, options, question.type);
-                    }}
-                  />
-                ) : null}
-              </div>
-            ))}
-          </div>
-        )}
-      </Form.List>
-
       <Form.Item shouldUpdate noStyle>
         {() => {
           const questions = form.getFieldValue('questions') as QuizQuestionForm[];
           const question = questions?.[questionIndex];
           if (!question) return null;
-          const type =
-            question.type === QuizQuestionType.MULTIPLE
-              ? QuizQuestionType.MULTIPLE
-              : QuizQuestionType.SINGLE;
-          return type === QuizQuestionType.MULTIPLE ? (
-            <Form.Item
-              name={[field.name, 'correct_option_ids']}
-              label="Đáp án đúng"
-              rules={[
-                {
-                  validator: async (_, value) => {
-                    const ids = Array.isArray(value) ? value : [];
-                    if (ids.length === 0) {
-                      throw new AppError(
-                        QuizErrorCode.CORRECT_ANSWER_REQUIRED,
-                        HttpStatusCode.BAD_REQUEST,
-                        QuizUiMessage.CORRECT_MULTI_REQUIRED,
-                      );
-                    }
-                  },
-                },
-              ]}
-            >
-              <Checkbox.Group className={styles.options}>
-                <Space direction="vertical">
-                  {(question.options ?? []).map((option) => (
-                    <Checkbox key={option.id} value={option.id}>
-                      {option.text || '(trống)'}
-                    </Checkbox>
-                  ))}
-                </Space>
-              </Checkbox.Group>
-            </Form.Item>
-          ) : (
-            <Form.Item
-              name={[field.name, 'correct_option_ids']}
-              label="Đáp án đúng"
-              getValueProps={(ids: string[] | undefined) => ({
-                value: Array.isArray(ids) ? ids[0] : undefined,
-              })}
-              getValueFromEvent={(event: { target: { value: string } }) => [event.target.value]}
-              rules={[
-                {
-                  validator: async (_, value) => {
-                    const ids = Array.isArray(value) ? value : [];
-                    if (ids.length !== 1) {
-                      throw new AppError(
-                        QuizErrorCode.SINGLE_ONE_ANSWER,
-                        HttpStatusCode.BAD_REQUEST,
-                        QuizUiMessage.CORRECT_SINGLE_REQUIRED,
-                      );
-                    }
-                  },
-                },
-              ]}
-            >
-              <Radio.Group className={styles.options}>
-                <Space direction="vertical">
-                  {(question.options ?? []).map((option) => (
-                    <Radio key={option.id} value={option.id}>
-                      {option.text || '(trống)'}
-                    </Radio>
-                  ))}
-                </Space>
-              </Radio.Group>
-            </Form.Item>
+          if (question.type === QuizQuestionType.ESSAY) {
+            return (
+              <Typography.Text type="secondary" className={styles.essayHint}>
+                {QuizUiMessage.ESSAY_HINT}
+              </Typography.Text>
+            );
+          }
+
+          return (
+            <>
+              <Form.List name={[field.name, 'options']}>
+                {(optionFields, optionOperations) => (
+                  <div className={styles.optionsBlock}>
+                    <div className={styles.optionsHead}>
+                      <span>Lựa chọn</span>
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<PlusOutlined />}
+                        onClick={() =>
+                          optionOperations.add({ id: newQuizEntityId(), text: '' })
+                        }
+                      >
+                        Thêm
+                      </Button>
+                    </div>
+                    {optionFields.map((optionField) => (
+                      <div key={optionField.key} className={styles.optionRow}>
+                        <Form.Item name={[optionField.name, 'id']} hidden>
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          {...optionField}
+                          name={[optionField.name, 'text']}
+                          className={styles.optionText}
+                          rules={[{ required: true, message: QuizUiMessage.OPTION_REQUIRED }]}
+                        >
+                          <Input placeholder="Nội dung lựa chọn" />
+                        </Form.Item>
+                        {optionFields.length > QuizLimit.MIN_OPTIONS ? (
+                          <Button
+                            type="text"
+                            danger
+                            icon={<DeleteOutlined />}
+                            onClick={() => {
+                              optionOperations.remove(optionField.name);
+                              const latest = form.getFieldValue(
+                                'questions',
+                              ) as QuizQuestionForm[];
+                              const current = latest[questionIndex];
+                              const options = current.options.filter(
+                                (_, index) => index !== optionField.name,
+                              );
+                              syncQuizCorrectIds(form, questionIndex, options, current.type);
+                            }}
+                          />
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Form.List>
+
+              {question.type === QuizQuestionType.MULTIPLE ? (
+                <Form.Item
+                  name={[field.name, 'correct_option_ids']}
+                  label="Đáp án đúng"
+                  rules={[
+                    {
+                      validator: async (_, value) => {
+                        const ids = Array.isArray(value) ? value : [];
+                        if (ids.length === 0) {
+                          throw new AppError(
+                            QuizErrorCode.CORRECT_ANSWER_REQUIRED,
+                            HttpStatusCode.BAD_REQUEST,
+                            QuizUiMessage.CORRECT_MULTI_REQUIRED,
+                          );
+                        }
+                      },
+                    },
+                  ]}
+                >
+                  <Checkbox.Group className={styles.options}>
+                    <Space direction="vertical">
+                      {(question.options ?? []).map((option) => (
+                        <Checkbox key={option.id} value={option.id}>
+                          {option.text || '(trống)'}
+                        </Checkbox>
+                      ))}
+                    </Space>
+                  </Checkbox.Group>
+                </Form.Item>
+              ) : (
+                <Form.Item
+                  name={[field.name, 'correct_option_ids']}
+                  label="Đáp án đúng"
+                  getValueProps={(ids: string[] | undefined) => ({
+                    value: Array.isArray(ids) ? ids[0] : undefined,
+                  })}
+                  getValueFromEvent={(event: { target: { value: string } }) => [
+                    event.target.value,
+                  ]}
+                  rules={[
+                    {
+                      validator: async (_, value) => {
+                        const ids = Array.isArray(value) ? value : [];
+                        if (ids.length !== 1) {
+                          throw new AppError(
+                            QuizErrorCode.SINGLE_ONE_ANSWER,
+                            HttpStatusCode.BAD_REQUEST,
+                            QuizUiMessage.CORRECT_SINGLE_REQUIRED,
+                          );
+                        }
+                      },
+                    },
+                  ]}
+                >
+                  <Radio.Group className={styles.options}>
+                    <Space direction="vertical">
+                      {(question.options ?? []).map((option) => (
+                        <Radio key={option.id} value={option.id}>
+                          {option.text || '(trống)'}
+                        </Radio>
+                      ))}
+                    </Space>
+                  </Radio.Group>
+                </Form.Item>
+              )}
+            </>
           );
         }}
       </Form.Item>

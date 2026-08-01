@@ -13,6 +13,7 @@ export function useSessionQuizzes(sessionId: string | null) {
     queryKey: [SESSION_QUIZZES_KEY, sessionId],
     queryFn: () => fetchJson<Quiz[]>(`/api/classes/sessions/${sessionId}/quizzes`),
     enabled: !!sessionId,
+    staleTime: 30_000,
   });
 }
 
@@ -26,6 +27,7 @@ export function useSessionQuizDetail(
     queryFn: () =>
       fetchJson<Quiz>(`/api/classes/sessions/${sessionId}/quizzes/${quizId}`),
     enabled: enabled && !!sessionId && !!quizId,
+    staleTime: 30_000,
   });
 }
 
@@ -97,6 +99,7 @@ export function useMyQuizAttempt(sessionId: string | null, quizId: string | null
         `/api/classes/sessions/${sessionId}/quizzes/${quizId}/attempts`,
       ),
     enabled: !!sessionId && !!quizId,
+    staleTime: 15_000,
   });
 }
 
@@ -126,9 +129,6 @@ function invalidateAttemptQueries(
   queryClient.invalidateQueries({
     queryKey: [QUIZ_ATTEMPTS_REVIEW_KEY, sessionId, quizId],
   });
-  queryClient.invalidateQueries({
-    queryKey: [SESSION_QUIZ_DETAIL_KEY, sessionId, quizId],
-  });
   queryClient.invalidateQueries({ queryKey: [SESSION_QUIZZES_KEY, sessionId] });
 }
 
@@ -141,8 +141,9 @@ export function useStartQuizAttempt() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'start' }),
       }),
-    onSuccess: (_data, variables) => {
-      invalidateAttemptQueries(queryClient, variables.sessionId, variables.quizId);
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData([QUIZ_ATTEMPT_KEY, variables.sessionId, variables.quizId], data);
+      queryClient.invalidateQueries({ queryKey: [SESSION_QUIZZES_KEY, variables.sessionId] });
     },
   });
 }
@@ -170,6 +171,34 @@ export function useSaveQuizAttemptDraft() {
   });
 }
 
+export function useGradeQuizAttempt() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      sessionId,
+      quizId,
+      attemptId,
+      feedback,
+    }: {
+      sessionId: string;
+      quizId: string;
+      attemptId: string;
+      feedback: string;
+    }) =>
+      fetchJson<QuizAttempt>(
+        `/api/classes/sessions/${sessionId}/quizzes/${quizId}/attempts/${attemptId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ feedback }),
+        },
+      ),
+    onSuccess: (_data, variables) => {
+      invalidateAttemptQueries(queryClient, variables.sessionId, variables.quizId);
+    },
+  });
+}
+
 export function useSubmitQuizAttempt() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -187,8 +216,16 @@ export function useSubmitQuizAttempt() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answers }),
       }),
-    onSuccess: (_data, variables) => {
-      invalidateAttemptQueries(queryClient, variables.sessionId, variables.quizId);
+    onSuccess: async (data, variables) => {
+      queryClient.setQueryData([QUIZ_ATTEMPT_KEY, variables.sessionId, variables.quizId], data);
+      // Skip invalidating attempt cache (already seeded) — avoids an extra ~1–2s GET.
+      queryClient.invalidateQueries({
+        queryKey: [SESSION_QUIZZES_KEY, variables.sessionId],
+      });
+      // After submit the API returns answer keys — refresh detail so Đúng/Sai tags appear.
+      await queryClient.invalidateQueries({
+        queryKey: [SESSION_QUIZ_DETAIL_KEY, variables.sessionId, variables.quizId],
+      });
     },
   });
 }

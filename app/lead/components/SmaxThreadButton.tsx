@@ -25,7 +25,7 @@ export function SmaxThreadButton({ lead, stopPropagation }: SmaxThreadButtonProp
       <Button
         size="small"
         type="text"
-        icon={<MessageOutlined style={{ fontSize: 15, color: '#7c3aed' }} />}
+        icon={<MessageOutlined style={{ fontSize: 15, color: 'var(--accent-600)' }} />}
         onClick={(e) => {
           if (stopPropagation) {
             e.stopPropagation();

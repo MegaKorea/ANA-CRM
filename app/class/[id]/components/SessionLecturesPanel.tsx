@@ -2,7 +2,7 @@
 
 import { Button, Popconfirm, Space, Typography, message } from 'antd';
 import { DeleteOutlined, EditOutlined, PlusOutlined, ReadOutlined } from '@ant-design/icons';
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { LectureUiMessage } from '@/constants/enums';
 import type { SessionLecture } from '@/lib/types/session-lecture';
@@ -11,7 +11,6 @@ import {
   useSessionLectures,
 } from '@/lib/hooks/use-class-sessions';
 import { getErrorMessage } from '@/lib/utils/get-error-message';
-import { LectureDetailModal } from './LectureDetailModal';
 import { ScheduleLoading } from './ScheduleLoading';
 import styles from './tab-schedule.module.scss';
 
@@ -19,10 +18,9 @@ type Props = {
   classId: string;
   sessionId: string | null;
   canEdit: boolean;
-  isMobile: boolean;
 };
 
-export function SessionLecturesPanel({ classId, sessionId, canEdit, isMobile }: Props) {
+export function SessionLecturesPanel({ classId, sessionId, canEdit }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dateQuery = searchParams.get('date');
@@ -30,17 +28,17 @@ export function SessionLecturesPanel({ classId, sessionId, canEdit, isMobile }: 
   const { data: lectures = [], isLoading } = useSessionLectures(sessionId);
   const deleteLecture = useDeleteSessionLecture(classId);
 
-  const [viewingLecture, setViewingLecture] = useState<SessionLecture | null>(null);
-
-  const openView = useCallback((lecture: SessionLecture) => {
-    setViewingLecture(lecture);
-  }, []);
-
-  const closeView = useCallback(() => {
-    setViewingLecture(null);
-  }, []);
-
   const scheduleQuery = dateQuery ? `?date=${encodeURIComponent(dateQuery)}` : '';
+
+  const openView = useCallback(
+    (lecture: SessionLecture) => {
+      if (!sessionId) return;
+      router.push(
+        `/class/${classId}/sessions/${sessionId}/lectures/${lecture.id}${scheduleQuery}`,
+      );
+    },
+    [router, classId, sessionId, scheduleQuery],
+  );
 
   const openCreate = useCallback(() => {
     if (!sessionId) return;
@@ -158,13 +156,6 @@ export function SessionLecturesPanel({ classId, sessionId, canEdit, isMobile }: 
           ))}
         </ul>
       )}
-
-      <LectureDetailModal
-        lecture={viewingLecture}
-        open={viewingLecture !== null}
-        isMobile={isMobile}
-        onClose={closeView}
-      />
     </section>
   );
 }

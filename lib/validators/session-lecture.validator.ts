@@ -1,3 +1,4 @@
+import DOMPurify from 'isomorphic-dompurify';
 import { AppError } from '@/errors';
 import { HttpStatusCode, LectureErrorCode } from '@/constants/enums';
 import type {
@@ -6,6 +7,18 @@ import type {
   SessionLectureStatus,
 } from '@/lib/types/session-lecture';
 import { assertAllowedHttpUrl } from '@/lib/utils/assert-http-url';
+const LECTURE_HTML_SANITIZE_CONFIG = {
+  ALLOWED_TAGS: [
+    'p', 'br', 'strong', 'em', 's', 'u', 'a', 'img',
+    'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote', 'hr',
+  ],
+  ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'style', 'class'],
+  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.:-]|$))/i,
+};
+
+function sanitizeLectureHtml(html: string): string {
+  return DOMPurify.sanitize(html, LECTURE_HTML_SANITIZE_CONFIG);
+}
 
 export type SessionLectureInputValidated = {
   title: string;
@@ -78,7 +91,7 @@ export function validateCreateSessionLectureInput(input: unknown): SessionLectur
   }
   const result: SessionLectureInputValidated = {
     title: data.title.trim(),
-    html: typeof data.html === 'string' ? data.html : '',
+    html: typeof data.html === 'string' ? sanitizeLectureHtml(data.html) : '',
     links: parseLinks(data.links),
     attachments: parseAttachments(data.attachments),
   };
@@ -106,7 +119,7 @@ export function validateUpdateSessionLectureInput(
     result.title = data.title.trim();
   }
   if (data.html !== undefined) {
-    result.html = typeof data.html === 'string' ? data.html : '';
+    result.html = typeof data.html === 'string' ? sanitizeLectureHtml(data.html) : '';
   }
   if (data.links !== undefined) {
     result.links = parseLinks(data.links);

@@ -1,17 +1,11 @@
 .pageContainer {
   padding: 0.75rem;
-  height: 100%;
-  overflow-y: auto;
+  // Single scroll owner: Layout .content — nested overflow causes dual scrollbars.
+  height: auto;
+  min-height: 0;
+  overflow: visible;
   -webkit-overflow-scrolling: touch;
-
-  // Mobile: one scroll owner (Layout .content). Nested overflow here
-  // fights the calendar touch target and feels "stuck".
-  @media (max-width: 767px) {
-    height: auto;
-    min-height: 0;
-    overflow: visible;
-    touch-action: pan-y;
-  }
+  touch-action: pan-y;
 
   @media (min-width: 640px) {
     padding: 1rem;
@@ -29,7 +23,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100%;
+  min-height: 40vh;
 }
 
 .errorContainer {
@@ -172,13 +166,8 @@
 }
 
 .cardContainer {
-  height: 100%;
   box-shadow: var(--shadow-xs);
   border-radius: var(--radius-md);
-
-  @media (max-width: 767px) {
-    height: auto;
-  }
 
   @media (min-width: 640px) {
     border-radius: var(--radius-lg);
