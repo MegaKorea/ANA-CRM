@@ -118,11 +118,6 @@ export const getLeadTableColumns = ({
         </Space>
       ),
     },
-    // {
-    //   title: LeadPageText.COLUMN_EMAIL,
-    //   dataIndex: 'email',
-    //   key: 'email',
-    // },
     {
       title: LeadPageText.COLUMN_PHONE_NUMBER,
       dataIndex: 'phone_number',
@@ -167,7 +162,6 @@ export const getLeadTableColumns = ({
       align: 'center',
       width: 72,
       render: (_: unknown, record: Lead) => {
-        // Chưa nhập tay thì dùng link Facebook khách lấy từ smax_log.
         const facebookUrl = getLeadFacebookUrl(record);
 
         return (
@@ -376,7 +370,6 @@ export const getLeadTableColumns = ({
       dataIndex: 'appointment_date',
       key: 'appointment_date',
       render: (_: unknown, record: Lead) => {
-        // No appointment yet — offer to book the first one.
         if (!record.appointment_date) {
           return (
             <Tooltip title="Đặt lịch hẹn">

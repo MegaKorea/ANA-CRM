@@ -21,8 +21,6 @@ export type CrmColors = Readonly<{
   borderStrong: string;
 }>;
 
-// ART LANCE design tokens v2.0 — see DESIGN_TOKEN.md (mirrors app/scss/_variables.scss
-// since antd's ConfigProvider reads plain JS values, not CSS custom properties).
 export const COLORS_LIGHT = {
   primary: '#EC008C',
   navActiveText: '#B8006D',

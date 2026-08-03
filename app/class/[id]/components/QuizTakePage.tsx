@@ -80,7 +80,6 @@ export function QuizTakePage({ classId, sessionId, quizId }: Props) {
     getQuizAttemptRemainingSeconds(attempt?.started_at, quiz.duration_minutes) === 0;
   const questionKinds = countQuizQuestionKinds(quiz?.questions ?? []);
   const essayOnly = questionKinds.auto === 0 && questionKinds.essay > 0;
-  // Hết giờ coi như đã nộp → chỉ xem kết quả.
   const confirmLabel =
     completed || timeExpired
       ? QuizUiMessage.VIEW_RESULT
@@ -102,7 +101,6 @@ export function QuizTakePage({ classId, sessionId, quizId }: Props) {
     }
   };
 
-  // Don't block the take page on class/sessions — those only fill labels.
   const loading = quizLoading || permissionLoading;
 
   const sessionLabel = useMemo(() => {

@@ -36,7 +36,6 @@ export default function AccountingPage() {
   const tickets = data?.data || [];
   const total = data?.total || 0;
 
-  // Compute stats from current filtered list
   const pendingCount = tickets.filter((t) => t.status === 'pending').length;
   const approvedTotal = tickets
     .filter((t) => t.status === 'approved')

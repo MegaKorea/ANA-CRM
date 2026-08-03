@@ -40,8 +40,6 @@ export function MediaPreviewModal({
           className={styles.mediaPreviewMedia}
         />
       ) : (
-        // External Smax media URLs have unknown dimensions and hosts.
-        // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt={alt} className={styles.mediaPreviewMedia} />
       )}
     </Modal>

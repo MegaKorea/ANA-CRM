@@ -4,7 +4,6 @@ import { getCurrentUser } from '@/lib/services/auth.service';
 import { HttpStatusCode, PushErrorCode } from '@/constants/enums';
 import { handleRouteError } from '@/lib/utils/route-handler';
 
-/** Stores the caller's browser push subscription. */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const currentUser = await getCurrentUser();

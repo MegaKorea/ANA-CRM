@@ -14,8 +14,6 @@ interface NoteHistoryModalProps {
 export function NoteHistoryModal({ open, lead, onClose }: NoteHistoryModalProps) {
   const { token } = theme.useToken();
   const notes: NoteItem[] = Array.isArray(lead?.note) ? lead.note : [];
-
-  // Sort notes by created_at descending (newest first)
   const sortedNotes = [...notes].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );

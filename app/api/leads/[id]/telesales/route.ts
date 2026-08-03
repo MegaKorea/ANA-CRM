@@ -5,13 +5,6 @@ import { HttpStatusCode, LeadErrorCode } from '@/constants/enums';
 import { handleRouteError } from '@/lib/utils/route-handler';
 import { createAdminClient } from '@/lib/supabase/admin';
 
-/**
- * PATCH /api/leads/[id]/telesales
- * Body: { telesales_id: string | null }
- *
- * Gán hoặc gỡ user có role TELESALES khỏi một lead.
- * Truyền telesales_id = null để gỡ (unassign).
- */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -23,7 +16,6 @@ export async function PATCH(
     const body = await request.json();
     const { telesales_id } = body as { telesales_id: string | null };
 
-    // Nếu có telesales_id, kiểm tra user tồn tại và có role TELESALES
     if (telesales_id !== null && telesales_id !== undefined) {
       const supabase = createAdminClient();
 

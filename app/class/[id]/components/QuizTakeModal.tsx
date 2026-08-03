@@ -132,10 +132,6 @@ export function QuizTakeModal({
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [result, setResult] = useState<QuizAttempt | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
-  // Derived (not mirrored into its own state) so it can never fall out of
-  // sync with `attempt`: once `useStartQuizAttempt` writes the freshly
-  // created attempt into the query cache, this flips true on the very same
-  // render instead of waiting for a follow-up effect to catch up.
   const attemptResolved =
     readOnly || (!attemptLoading && (isQuizAttemptCompleted(attempt) || isQuizAttemptInProgress(attempt)));
 
@@ -154,8 +150,6 @@ export function QuizTakeModal({
 
   useEffect(() => {
     if (!open) {
-      // Reset local session state when the modal closes.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAnswers({});
       setResult(null);
       setRemainingSeconds(null);
@@ -186,7 +180,6 @@ export function QuizTakeModal({
     if (!quizContentReady) return;
 
     if (isQuizAttemptCompleted(attempt)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResult(attempt!);
       setAnswers(attempt!.user_answers ?? {});
       setRemainingSeconds(null);
@@ -337,7 +330,6 @@ export function QuizTakeModal({
 
   const timedOut = remainingSeconds !== null && remainingSeconds <= 0;
   const done = !readOnly && result !== null;
-  // Hết giờ = đã nộp: chuyển sang chế độ xem ngay, không còn nút nộp bài.
   const viewMode = done || timedOut;
   const startingSession =
     !readOnly && open && quizContentReady && (!attemptResolved || startAttempt.isPending);
@@ -348,7 +340,6 @@ export function QuizTakeModal({
   }, [answers, submitAnswers]);
 
   const handleClose = useCallback(() => {
-    // Timed-out attempts are auto-submitted; skip draft save in that case.
     if (!readOnly && !result && !timedOut && isQuizAttemptInProgress(attempt)) {
       if (draftTimerRef.current !== null) {
         window.clearTimeout(draftTimerRef.current);
@@ -379,12 +370,9 @@ export function QuizTakeModal({
   const title = quiz?.title ?? 'Bài tập';
   const timerUrgent =
     remainingSeconds !== null && remainingSeconds <= QuizLimit.TIMER_WARN_SECONDS;
-  // Only hide the body while quiz content itself is unavailable. Starting an
-  // attempt may take ~1s; show the questions immediately and lock inputs instead.
   const loadingSession = !readOnly && open && (!quizContentReady || attemptLoading);
 
-  useEffect(() => {
-    // Do not tick while the take UI is still loading (start is also deferred until ready).
+  useEffect(() => {     
     if (readOnly || !open || result !== null || remainingSeconds === null || loadingSession) {
       return;
     }

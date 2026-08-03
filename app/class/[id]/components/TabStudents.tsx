@@ -209,10 +209,9 @@ export function TabStudents({ classData }: { classData: Class }) {
     return cols;
   }, [handleRemoveStudent, isManager, resolveContact]);
 
-  // ── Toolbar (dùng chung mobile + desktop) ─────────────────────────────
+  // ── Toolbar─────────────────────────────
   const toolbar = (
     <div style={{ marginBottom: 16 }}>
-      {/* Sĩ số */}
       <div style={{ marginBottom: isManager ? 12 : 0 }}>
         <Space wrap>
           <Text strong>Sĩ số hiện tại:</Text>
@@ -228,7 +227,6 @@ export function TabStudents({ classData }: { classData: Class }) {
         </Space>
       </div>
 
-      {/* Thêm học viên — chỉ manager */}
       {isManager && (
         <Space.Compact style={{ width: '100%' }}>
           <Select

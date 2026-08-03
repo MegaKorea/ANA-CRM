@@ -52,7 +52,6 @@ export function LeadDetailModal({ open, lead, onClose }: LeadDetailModalProps): 
           {formatLocationValue(placeOfOrigin) || '-'}
         </Descriptions.Item>
         <Descriptions.Item label={LeadPageText.COLUMN_CURRENT_ADDRESS}>
-          {/* Ưu tiên field mới (new API), fallback về field cũ */}
           {formatLocationValueV2(currentAddressTemp) || formatLocationValue(currentAddress) || '-'}
         </Descriptions.Item>
         <Descriptions.Item label={LeadPageText.COLUMN_CITIZEN_ID}>

@@ -14,7 +14,6 @@ export interface CreateLeadInput {
   place_of_birth?: LocationValue;
   place_of_origin?: LocationValue;
   current_address?: LocationValue;
-  /** New field – uses provinces.open-api.vn numeric codes */
   current_address_temp?: LocationValueV2;
   citizen_id?: string;
   nationality?: string;
@@ -67,15 +66,12 @@ export interface UpdateLeadInput {
   created_at?: string;
 }
 
-/** Public lead-form payload — only the fields a visitor may submit (no auth). */
 export interface LeadFormInput {
   full_name: string;
   phone_number: string;
   smax_log?: Record<string, unknown>;
-  /** Năm sinh dạng chuỗi 4 chữ số, cùng quy ước với cột `date_of_birth`. */
   date_of_birth?: string;
   status?: LeadStatus;
-  /** Ghi chú đã được đóng gói thành mảng NoteItem để lưu thẳng vào cột `note`. */
   note?: NoteItem[];
 }
 
@@ -227,7 +223,6 @@ function validateOptionalNumberField(value: unknown): number | null | undefined 
   return numericValue;
 }
 
-/** Customer potential rating: an integer 0–5. Undefined when not provided. */
 function validateRateField(value: unknown): number | undefined {
   if (value === undefined || value === null || value === '') {
     return undefined;
@@ -294,13 +289,6 @@ function validateOptionalNoteArrayField(value: unknown): NoteItem[] | undefined 
   return result.length > 0 ? result : undefined;
 }
 
-/**
- * Năm sinh cho form nhập lead.
- *
- * Cột `date_of_birth` đã được chuyển sang kiểu text chỉ chứa năm
- * (migration 20260304100500), nên ở đây chỉ nhận chuỗi 4 chữ số hợp lý thay vì
- * một ngày đầy đủ — đúng với Select năm ở màn hình quản lý lead.
- */
 function validateBirthYearField(value: unknown): string | undefined {
   if (value === undefined || value === null || value === '') {
     return undefined;
@@ -316,12 +304,6 @@ function validateBirthYearField(value: unknown): string | undefined {
   return year;
 }
 
-/**
- * Ghi chú nhập từ form: người dùng gõ một đoạn text, nhưng cột `note` lưu mảng
- * `NoteItem[]` (lịch sử ghi chú). Bọc lại thành đúng một phần tử với thời điểm
- * do server sinh, để client không tự đặt được `created_at`.
- * Vẫn chấp nhận sẵn dạng mảng để dùng chung với các luồng khác.
- */
 function validateFormNoteField(value: unknown): NoteItem[] | undefined {
   if (value === undefined || value === null) {
     return undefined;
@@ -468,12 +450,7 @@ export function validateCreateLeadInput(input: unknown): CreateLeadInput {
     created_at: validateOptionalDateField(data.created_at) as string | undefined,
   };
 }
-
-/**
- * Validates the public lead-form payload. Restricts input to full name, phone
- * number and the Smax customer object so the unauthenticated endpoint cannot be
- * used to set privileged lead fields (status, telesales_id, ...).
- */
+    
 export function validateLeadFormInput(input: unknown): LeadFormInput {
   if (!input || typeof input !== 'object') {
     throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);

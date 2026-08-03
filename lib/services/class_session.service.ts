@@ -36,7 +36,6 @@ export interface ClassSession {
     attachments: unknown[] | null;
     has_content: boolean;
     has_quiz: boolean;
-    /** STU: chưa xem thông báo bài giảng/bài tập của buổi này. Staff: mới đăng/sửa gần đây. */
     has_new_lecture: boolean;
     has_new_quiz: boolean;
     lectures: SessionLecture[];

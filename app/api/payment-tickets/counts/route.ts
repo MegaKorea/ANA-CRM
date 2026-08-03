@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getCurrentUser } from '@/lib/services/auth.service';
 import { HttpStatusCode } from '@/constants/enums';
+import { fail } from '@/errors';
+import { handleRouteError } from '@/lib/utils/route-handler';
 
-/**
- * GET /api/payment-tickets/counts?lead_ids=1,2,3
- * Returns the number of payment tickets (pending + approved) per lead_id.
- * Rejected tickets are excluded so the badge reflects meaningful submissions.
- * Response: { [leadId: string]: number }
- */
+const MAX_LEAD_IDS = 200;
+
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser.roleCode || currentUser.roleCode === 'STU') {
+      fail('FORBIDDEN', HttpStatusCode.FORBIDDEN, 'Không có quyền xem phiếu thu.');
+    }
+
     const { searchParams } = new URL(request.url);
     const leadIdsParam = searchParams.get('lead_ids');
 
@@ -17,10 +21,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({}, { status: HttpStatusCode.OK });
     }
 
-    const leadIds = leadIdsParam
-      .split(',')
-      .map((id) => parseInt(id.trim(), 10))
-      .filter((id) => !isNaN(id));
+    const leadIds = [
+      ...new Set(
+        leadIdsParam
+          .split(',')
+          .map((id) => parseInt(id.trim(), 10))
+          .filter((id) => Number.isInteger(id) && id > 0),
+      ),
+    ].slice(0, MAX_LEAD_IDS);
 
     if (leadIds.length === 0) {
       return NextResponse.json({}, { status: HttpStatusCode.OK });
@@ -28,7 +36,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const supabase = createAdminClient();
 
-    // Count pending + approved tickets (exclude rejected)
     const { data, error } = await supabase
       .from('payment_tickets')
       .select('lead_id, status')
@@ -39,9 +46,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Count per lead_id
     const counts: Record<string, number> = {};
-    // Initialize all requested leads to 0
     for (const id of leadIds) {
       counts[String(id)] = 0;
     }
@@ -52,9 +57,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(counts, { status: HttpStatusCode.OK });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'PAYMENT_TICKET_COUNTS_FAILED');
   }
 }

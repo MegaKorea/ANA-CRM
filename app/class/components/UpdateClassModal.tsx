@@ -6,6 +6,7 @@ import type { UpdateClassInput } from '@/lib/validators/class.validator';
 import { useEffect } from 'react';
 import { CLASS_STATUS_OPTIONS } from '@/lib/constants/classStatus';
 import { getErrorMessage } from '@/lib/utils/get-error-message';
+import { formatCourseOptionLabel } from './class-list.utils';
 
 interface UpdateClassModalProps {
   open: boolean;
@@ -96,7 +97,7 @@ export function UpdateClassModal({ open, onClose, classData }: UpdateClassModalP
                 showSearch={{ optionFilterProp: 'label' }}
                 options={(courses ?? []).map((course) => ({
                   value: course.id,
-                  label: `${course.name}${course.code ? ` (${course.code})` : ''}`,
+                  label: formatCourseOptionLabel(course.name, course.code),
                 }))}
               />
             </Form.Item>

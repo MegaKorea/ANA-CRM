@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type HTMLAttributes } from 'react';
 import {
   App,
   Button,
@@ -37,6 +37,8 @@ import {
 } from './components/ClassListCells';
 import { ClassListCard } from './components/ClassListCard';
 import {
+  formatCourseOptionLabel,
+  getClassDeleteActionState,
   toClassListRowModel,
   type ClassListRowModel,
 } from './components/class-list.utils';
@@ -60,7 +62,7 @@ export default function ClassPage() {
 
   const router = useRouter();
 
-  const { hasPermission: notStudent } = useAuthPermission(['ADMIN', 'AO', 'TEA']);
+  const { hasPermission: canManageClasses } = useAuthPermission(['ADMIN', 'AO', 'TEA']);
 
   const { data: classes, isLoading: isClassesLoading, refetch } = useClasses();
   const { data: courses, isLoading: isCoursesLoading } = useCourses();
@@ -126,92 +128,101 @@ export default function ClassPage() {
     () =>
       (courses ?? []).map((course) => ({
         value: course.id,
-        label: `${course.name}${course.code ? ` (${course.code})` : ''}`,
+        label: formatCourseOptionLabel(course.name, course.code),
       })),
     [courses],
   );
 
-  const columns = useMemo(
+  const columns = useMemo<ColumnsType<ClassListRowModel>>(
     () =>
-      [
-        {
-          title: 'STT',
-          key: 'index',
-          width: 60,
-          align: 'center' as const,
-          render: (_: unknown, __: ClassListRowModel, index: number) => index + 1,
-        },
-        {
-          title: 'Mã lớp',
-          dataIndex: 'code',
-          key: 'code',
-          width: 130,
-          render: (code: string) =>
-            code === '—' ? <Text type="secondary">—</Text> : code,
-        },
-        {
-          title: 'Tên lớp học',
-          dataIndex: 'name',
-          key: 'name',
-          render: (name: string) => <Text strong>{name}</Text>,
-        },
-        {
-          title: 'Khóa học',
-          dataIndex: 'courseLabel',
-          key: 'course',
-          render: (courseLabel: string) =>
-            courseLabel === '—' ? <Text type="secondary">—</Text> : courseLabel,
-        },
-        {
-          title: 'Sĩ số',
-          key: 'capacity',
-          width: 110,
-          align: 'center' as const,
-          render: (_: unknown, row: ClassListRowModel) => (
-            <ClassCapacityTag capacity={row.capacity} />
-          ),
-        },
-        {
-          title: 'Lịch mở lớp',
-          dataIndex: 'scheduleLabel',
-          key: 'schedule',
-          width: 130,
-          align: 'center' as const,
-          render: (scheduleLabel: string) =>
-            scheduleLabel === '—' ? <Text type="secondary">—</Text> : scheduleLabel,
-        },
-        {
-          title: 'Trạng thái',
-          key: 'status',
-          width: 150,
-          align: 'center' as const,
-          render: (_: unknown, row: ClassListRowModel) => (
-            <ClassStatusTag label={row.status.label} color={row.status.color} />
-          ),
-        },
-        {
-          title: 'Thao tác',
-          key: 'actions',
-          width: 100,
-          align: 'center' as const,
-          render: (_: unknown, row: ClassListRowModel) => (
-            <ClassRowActions
-              classId={row.id}
-              canDelete={notStudent}
-              onView={handleView}
-              onDelete={handleDelete}
-            />
-          ),
-        },
-      ].map((col) => ({
+      (
+        [
+          {
+            title: 'STT',
+            key: 'index',
+            width: 60,
+            align: 'center',
+            render: (_: unknown, __: ClassListRowModel, index: number) => index + 1,
+          },
+          {
+            title: 'Mã lớp',
+            dataIndex: 'code',
+            key: 'code',
+            width: 130,
+            render: (code: string) =>
+              code === '—' ? <Text type="secondary">—</Text> : code,
+          },
+          {
+            title: 'Tên lớp học',
+            dataIndex: 'name',
+            key: 'name',
+            render: (name: string) => <Text strong>{name}</Text>,
+          },
+          {
+            title: 'Khóa học',
+            dataIndex: 'courseLabel',
+            key: 'course',
+            render: (courseLabel: string) =>
+              courseLabel === '—' ? <Text type="secondary">—</Text> : courseLabel,
+          },
+          {
+            title: 'Sĩ số',
+            key: 'capacity',
+            width: 110,
+            align: 'center',
+            render: (_: unknown, row: ClassListRowModel) => (
+              <ClassCapacityTag capacity={row.capacity} />
+            ),
+          },
+          {
+            title: 'Lịch mở lớp',
+            dataIndex: 'scheduleLabel',
+            key: 'schedule',
+            width: 130,
+            align: 'center',
+            render: (scheduleLabel: string) =>
+              scheduleLabel === '—' ? <Text type="secondary">—</Text> : scheduleLabel,
+          },
+          {
+            title: 'Trạng thái',
+            key: 'status',
+            width: 150,
+            align: 'center',
+            render: (_: unknown, row: ClassListRowModel) => (
+              <ClassStatusTag label={row.status.label} color={row.status.color} />
+            ),
+          },
+          {
+            title: 'Thao tác',
+            key: 'actions',
+            width: 100,
+            align: 'center',
+            render: (_: unknown, row: ClassListRowModel) => {
+              const deleteState = getClassDeleteActionState(
+                canManageClasses,
+                row.capacity.enrolled,
+              );
+              return (
+                <ClassRowActions
+                  classId={row.id}
+                  canDelete={deleteState.canDelete}
+                  deleteBlockedReason={deleteState.deleteBlockedReason}
+                  onView={handleView}
+                  onDelete={handleDelete}
+                />
+              );
+            },
+          },
+        ] as ColumnsType<ClassListRowModel>
+      ).map((col) => ({
         ...col,
         onCell: () =>
           ({
             'data-label': typeof col.title === 'string' ? col.title : '',
-          }) as React.HTMLAttributes<HTMLElement>,
+          }) as HTMLAttributes<HTMLElement>,
       })),
-    [handleDelete, handleView, notStudent],
-  ) as ColumnsType<ClassListRowModel>;
+    [handleDelete, handleView, canManageClasses],
+  );
 
   if (isClassesLoading) {
     return (
@@ -229,7 +240,7 @@ export default function ClassPage() {
             Danh sách Lớp học
           </Title>
         </Col>
-        {notStudent ? (
+        {canManageClasses ? (
           <Col>
             <Button
               type="primary"
@@ -304,35 +315,40 @@ export default function ClassPage() {
           }}
           locale={{ emptyText }}
         />
+      ) : listRows.length === 0 ? (
+        <Empty description={emptyText} />
       ) : (
-        listRows.length === 0 ? (
-          <Empty description={emptyText} />
-        ) : (
-          <>
-            <div role="list" style={{ display: 'grid', gap: 16 }}>
-              {mobileRows.map((row) => (
-            <div role="listitem" key={row.id}>
-              <ClassListCard
-                row={row}
-                canDelete={notStudent}
-                onView={handleView}
-                onDelete={handleDelete}
-              />
-            </div>
-              ))}
-            </div>
-            <Pagination
-              current={safeMobilePage}
-              pageSize={mobilePageSize}
-              total={listRows.length}
-              size="small"
-              align="center"
-              showSizeChanger={false}
-              onChange={setMobilePage}
-              style={{ marginTop: 16 }}
-            />
-          </>
-        )
+        <>
+          <div role="list" style={{ display: 'grid', gap: 16 }}>
+            {mobileRows.map((row) => {
+              const deleteState = getClassDeleteActionState(
+                canManageClasses,
+                row.capacity.enrolled,
+              );
+              return (
+                <div role="listitem" key={row.id}>
+                  <ClassListCard
+                    row={row}
+                    canDelete={deleteState.canDelete}
+                    deleteBlockedReason={deleteState.deleteBlockedReason}
+                    onView={handleView}
+                    onDelete={handleDelete}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <Pagination
+            current={safeMobilePage}
+            pageSize={mobilePageSize}
+            total={listRows.length}
+            size="small"
+            align="center"
+            showSizeChanger={false}
+            onChange={setMobilePage}
+            style={{ marginTop: 16 }}
+          />
+        </>
       )}
 
       <CreateClassModal open={isCreateModalOpen} onClose={handleCloseCreateModal} />

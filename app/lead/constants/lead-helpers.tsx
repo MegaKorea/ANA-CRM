@@ -5,13 +5,6 @@ import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
 import { isSafeHttpUrl } from '@/lib/utils/openInNewTab';
 import type { Lead } from '@/lib/services/lead.service';
 
-/**
- * Pure constants and data helpers shared by the lead table columns
- * (`columns.tsx`) and other lead components (mobile card, filters, modals).
- * Split out of `index.tsx` so files that only need labels/helpers don't also
- * pull in the antd Table column definitions.
- */
-
 const ZALO_CHAT_URL_BASE =
   'https://smax.ai/bizs/ana-beauty-academy/chats/zlw555884932030283040';
 
@@ -162,10 +155,6 @@ export function formatLocationValue(location: LocationValue | null | undefined):
   return parts.join(', ') || '';
 }
 
-/**
- * Render a location selected from the NEW provinces.open-api.vn API (LocationValueV2).
- * Falls back gracefully so existing data using the old structure still works.
- */
 export function formatLocationValueV2(location: LocationValueV2 | null | undefined): string {
   if (!location) {
     return '';
@@ -193,10 +182,6 @@ export function getZaloChatUrl(pidZalo: string | null | undefined): string | und
   return `${ZALO_CHAT_URL_BASE}?tid=zlw${encodeURIComponent(trimmedPid)}`;
 }
 
-/**
- * Lấy link hội thoại Smax (thread_url) từ object smax_log thô của lead.
- * Trả về undefined nếu không có smax_log hoặc thiếu thread_url hợp lệ.
- */
 export function getSmaxThreadUrl(smaxLog: unknown): string | undefined {
   if (!smaxLog || typeof smaxLog !== 'object') {
     return undefined;
@@ -207,19 +192,12 @@ export function getSmaxThreadUrl(smaxLog: unknown): string | undefined {
 
 const FACEBOOK_PROFILE_URL_BASE = 'https://www.facebook.com/';
 
-/** Host được tính là trang Facebook của khách. */
 const FACEBOOK_PROFILE_HOSTS = ['facebook.com', 'fb.com', 'm.me', 'messenger.com'];
 
-/** Key có thể chứa id Facebook của khách, dùng khi smax_log không có link đầy đủ. */
 const SMAX_FACEBOOK_ID_KEYS = ['gid', 'fb_id', 'facebook_id', 'psid', 'uid'];
 
-/** Độ sâu tối đa khi quét smax_log — đủ cho object khách lồng vài cấp. */
 const SMAX_SCAN_MAX_DEPTH = 3;
 
-/**
- * Kiểm tra một giá trị có phải link trang Facebook của khách hay không.
- * Loại trừ `graph.facebook.com` (API) và `*.fbcdn.net` (ảnh đại diện).
- */
 function isFacebookProfileUrl(value: unknown): value is string {
   if (typeof value !== 'string' || !isSafeHttpUrl(value)) {
     return false;
@@ -239,14 +217,6 @@ function isFacebookProfileUrl(value: unknown): value is string {
   return FACEBOOK_PROFILE_HOSTS.some((host) => hostname === host || hostname.endsWith(`.${host}`));
 }
 
-/**
- * Lấy link Facebook của khách từ object smax_log thô.
- *
- * Smax không cố định tên trường chứa link, nên ta duyệt toàn bộ object (tối đa
- * `SMAX_SCAN_MAX_DEPTH` cấp) và nhận giá trị đầu tiên trỏ về facebook.com/m.me.
- * `thread_url` bị loại vì đó là hội thoại trong Smax, không phải trang khách.
- * Nếu không có link sẵn, dựng link từ id Facebook (`gid`, `psid`, ...) nếu có.
- */
 export function getSmaxFacebookUrl(smaxLog: unknown): string | undefined {
   if (!smaxLog || typeof smaxLog !== 'object') {
     return undefined;
@@ -266,7 +236,6 @@ export function getSmaxFacebookUrl(smaxLog: unknown): string | undefined {
 
       if (!facebookId && SMAX_FACEBOOK_ID_KEYS.includes(key.toLowerCase())) {
         const rawId = typeof value === 'number' ? String(value) : String(value ?? '').trim();
-        // Id Facebook là chuỗi số dài; tránh nhận nhầm id nội bộ ngắn của Smax.
         if (/^\d{5,}$/.test(rawId)) {
           facebookId = rawId;
         }
@@ -281,10 +250,6 @@ export function getSmaxFacebookUrl(smaxLog: unknown): string | undefined {
   return facebookId ? `${FACEBOOK_PROFILE_URL_BASE}${facebookId}` : undefined;
 }
 
-/**
- * Link Facebook hiển thị cho một lead: ưu tiên link nhập tay, nếu chưa có
- * (hoặc không hợp lệ) thì lấy link khách từ smax_log.
- */
 export function getLeadFacebookUrl(lead: Lead): string | undefined {
   if (isSafeHttpUrl(lead.facebook_url)) {
     return lead.facebook_url.trim();
@@ -299,10 +264,6 @@ export interface SmaxTag {
   alias?: string;
 }
 
-/**
- * Trích xuất danh sách thẻ (tags) từ object smax_log thô của lead.
- * Lọc bỏ các phần tử rỗng, null hoặc các tag không có thông tin.
- */
 export function getSmaxTags(smaxLog: unknown): SmaxTag[] {
   if (!smaxLog || typeof smaxLog !== 'object') {
     return [];
@@ -335,9 +296,6 @@ const SMAX_TAG_PRESET_COLORS = [
   'lime',
 ] as const;
 
-/**
- * Trả về màu nhất quán (deterministic color) cho mỗi tên tag khác nhau.
- */
 export function getSmaxTagColor(tagName: string): string {
   if (!tagName) return 'default';
   let hash = 0;

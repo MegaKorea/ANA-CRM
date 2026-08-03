@@ -7,43 +7,21 @@ import { LEAD_STATUS_OPTIONS } from '@/app/lead/constants/labels';
 
 const { Title, Paragraph } = Typography;
 
-/** Năm sinh: 100 năm gần nhất, cùng quy ước chuỗi năm với màn hình quản lý lead. */
 const YEAR_OPTIONS = Array.from({ length: 100 }, (_, index) => {
   const year = new Date().getFullYear() - index;
   return { value: year.toString(), label: String(year) };
 });
 
-/** Các trường quyết định lead có bị trùng hay không. */
 const DUPLICATE_CHECK_FIELDS = ['full_name', 'phone_number'];
-
-/**
- * Staff lead-entry form. Operated by the team (not customers) — typically inside
- * an embedded Smax "Nhúng form" iframe: Smax loads this page and pushes the chat
- * customer object via a `__SM_FORM_CUSTOMER` postMessage, which we prefill and
- * store verbatim as `smax_log` on the lead.
- *
- * Duplicate handling (button morphs by result):
- *  - "Lưu thông tin" checks the database first. If the name OR phone already
- *    exists, we surface a notice and switch the button to "Cập nhật", so the
- *    next click updates that existing lead with the entered values.
- *  - If neither field matches (both new), the lead is created straight away.
- *  - Editing either field invalidates the previous check and reverts the button
- *    back to "Lưu thông tin".
- *
- * Docs: https://tailieu.smax.ai/module-cai-dat/tich-hop/nhung-form
- */
 
 interface LeadFormValues {
   full_name: string;
   phone_number: string;
-  /** Chuỗi năm sinh, ví dụ "2000". */
   date_of_birth?: string;
   status?: LeadStatus;
-  /** Nội dung thô; server bọc thành một phần tử trong mảng ghi chú. */
   note?: string;
 }
 
-/** Shape of the customer object Smax returns (kept loose — we store it verbatim). */
 interface SmaxCustomer {
   id?: string;
   name?: string;
@@ -56,7 +34,6 @@ interface SmaxCustomer {
   [key: string]: unknown;
 }
 
-/** Existing lead returned by the API when a duplicate is detected (409). */
 interface DuplicateLead {
   id: number;
   full_name: string;
@@ -68,11 +45,8 @@ const SM_FORM_CUSTOMER = '__SM_FORM_CUSTOMER';
 
 function getIntegrationId(): string | undefined {
   if (typeof window === 'undefined') return undefined;
-  const fromQuery = new URLSearchParams(window.location.search).get('integration_id');
-  if (fromQuery) return fromQuery;
-  // Fallback to the pattern shown in the Smax docs (`...?...=<id>`).
-  const parts = window.location.href.split('=');
-  return parts.length > 1 ? parts[parts.length - 1] : undefined;
+  const params = new URLSearchParams(window.location.search);
+  return params.get('integration_id') ?? undefined;
 }
 
 export default function LeadFormPage() {
@@ -80,15 +54,26 @@ export default function LeadFormPage() {
   const [form] = Form.useForm<LeadFormValues>();
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  // Whether the last successful submit updated an existing lead vs created one.
   const [wasUpdate, setWasUpdate] = useState(false);
-  // Existing lead detected as a duplicate; when set the button becomes "Cập nhật".
   const [duplicate, setDuplicate] = useState<DuplicateLead | null>(null);
-  // Raw object returned by Smax, stored verbatim as smax_log on submit.
   const smaxLogRef = useRef<SmaxCustomer | null>(null);
 
   useEffect(() => {
+    function getParentOrigin(): string {
+      try {
+        if (document.referrer) {
+          return new URL(document.referrer).origin;
+        }
+      } catch {
+        // ignore invalid referrer
+      }
+      return '*';
+    }
+
     function handleMessage(event: MessageEvent) {
+      // Only accept embed parent traffic — ignore other frames/extensions.
+      if (window.parent !== window && event.source !== window.parent) return;
+
       const data = event.data;
       if (typeof data !== 'object' || data === null) return;
       if ((data as { name?: string }).name !== SM_FORM_CUSTOMER) return;
@@ -105,20 +90,16 @@ export default function LeadFormPage() {
 
     window.addEventListener('message', handleMessage, false);
 
-    // Ask the Smax parent frame for the current chat customer.
     if (window.parent && window.parent !== window) {
       window.parent.postMessage(
         { name: SM_FORM_CUSTOMER, data: { integration_id: getIntegrationId() } },
-        '*'
+        getParentOrigin(),
       );
     }
 
     return () => window.removeEventListener('message', handleMessage, false);
   }, [form]);
 
-  // Sends the lead. When `leadId` is set the staff confirmed updating the
-  // detected duplicate; otherwise the server checks for a duplicate and either
-  // reports it (409) or creates a new lead.
   const submitLead = useCallback(
     async (values: LeadFormValues, leadId?: number) => {
       setSubmitting(true);
@@ -131,8 +112,6 @@ export default function LeadFormPage() {
             phone_number: values.phone_number,
             date_of_birth: values.date_of_birth,
             status: values.status,
-            // Gửi text thô — server gắn thời điểm và bọc thành NoteItem, đồng
-            // thời nối vào lịch sử ghi chú sẵn có khi cập nhật lead trùng.
             note: values.note?.trim() || undefined,
             smax_log: smaxLogRef.current ?? undefined,
             lead_id: leadId,
@@ -141,7 +120,6 @@ export default function LeadFormPage() {
 
         const result = await response.json().catch(() => null);
 
-        // Duplicate detected — surface it and morph the button into "Cập nhật".
         if (
           response.status === 409 &&
           result?.code === 'DUPLICATE_LEAD' &&
@@ -149,8 +127,6 @@ export default function LeadFormPage() {
         ) {
           const existing = result.existing as DuplicateLead;
           setDuplicate(existing);
-          // Hiển thị trạng thái hiện có của lead cũ, nếu không nhân viên bấm
-          // "Cập nhật" sẽ vô tình đẩy trạng thái về MỚI theo mặc định của form.
           if (existing.status) {
             form.setFieldsValue({ status: existing.status });
           }
@@ -178,8 +154,6 @@ export default function LeadFormPage() {
 
   const handleSubmit = useCallback(
     (values: LeadFormValues) => {
-      // In "Cập nhật" state the button updates the detected duplicate; otherwise
-      // it runs a fresh check-or-create.
       if (duplicate) {
         void submitLead(values, duplicate.id);
       } else {
@@ -189,10 +163,6 @@ export default function LeadFormPage() {
     [duplicate, submitLead]
   );
 
-  // Sửa họ tên/SĐT làm kết quả kiểm tra trùng hết hiệu lực → về "Lưu thông tin".
-  // Các trường khác (năm sinh, trạng thái, ghi chú) không ảnh hưởng tới việc
-  // trùng lead, nên giữ nguyên nút "Cập nhật" để nhân viên bổ sung thông tin
-  // rồi cập nhật thẳng vào lead đã có.
   const handleValuesChange = useCallback((changedValues: Partial<LeadFormValues>) => {
     const touchedDuplicateField = Object.keys(changedValues).some((field) =>
       DUPLICATE_CHECK_FIELDS.includes(field)

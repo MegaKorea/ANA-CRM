@@ -1,10 +1,10 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Card, Flex, Popconfirm, Tooltip, Typography } from 'antd';
+import { Card, Flex, Tooltip, Typography } from 'antd';
 import { DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import type { ClassListRowModel } from './class-list.utils';
-import { ClassCapacityTag, ClassStatusTag } from './ClassListCells';
+import { ClassCapacityTag, ClassDeleteControl, ClassStatusTag } from './ClassListCells';
 import styles from '../page.module.scss';
 
 const { Text } = Typography;
@@ -12,6 +12,7 @@ const { Text } = Typography;
 type Props = {
   row: ClassListRowModel;
   canDelete: boolean;
+  deleteBlockedReason?: string | null;
   onView: (id: string) => void;
   onDelete: (id: string) => void;
 };
@@ -25,7 +26,24 @@ function MetaRow({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-export function ClassListCard({ row, canDelete, onView, onDelete }: Props) {
+export function ClassListCard({
+  row,
+  canDelete,
+  deleteBlockedReason,
+  onView,
+  onDelete,
+}: Props) {
+  const deleteTrigger = (
+    <button
+      type="button"
+      className={`${styles.classCardAction} ${styles.classCardActionDanger}`}
+      aria-label={deleteBlockedReason ?? 'Xóa'}
+      disabled={!canDelete}
+    >
+      <DeleteOutlined />
+    </button>
+  );
+
   const actions = [
     <Tooltip key="detail" title="Xem chi tiết">
       <button
@@ -39,26 +57,22 @@ export function ClassListCard({ row, canDelete, onView, onDelete }: Props) {
     </Tooltip>,
   ];
 
-  if (canDelete) {
+  if (canDelete || deleteBlockedReason) {
     actions.push(
-      <Popconfirm
+      <ClassDeleteControl
         key="delete"
-        title="Xóa lớp học"
-        description="Bạn có chắc chắn muốn xóa lớp học này không?"
-        onConfirm={() => onDelete(row.id)}
-        okText="Xóa"
-        cancelText="Hủy"
-      >
-        <Tooltip title="Xóa">
-          <button
-            type="button"
-            className={`${styles.classCardAction} ${styles.classCardActionDanger}`}
-            aria-label="Xóa"
-          >
-            <DeleteOutlined />
-          </button>
-        </Tooltip>
-      </Popconfirm>,
+        classId={row.id}
+        canDelete={canDelete}
+        deleteBlockedReason={deleteBlockedReason}
+        onDelete={onDelete}
+        trigger={
+          canDelete ? (
+            <Tooltip title="Xóa">{deleteTrigger}</Tooltip>
+          ) : (
+            deleteTrigger
+          )
+        }
+      />,
     );
   }
 

@@ -30,7 +30,6 @@ import type { LeadAppointment } from '@/lib/services/appointment.service';
 
 const { Text } = Typography;
 
-/** Reminder offsets offered when booking, mirroring REMIND_BEFORE_OPTIONS. */
 const REMIND_OPTIONS = [
   { value: 15, label: 'Trước 15 phút' },
   { value: 30, label: 'Trước 30 phút' },

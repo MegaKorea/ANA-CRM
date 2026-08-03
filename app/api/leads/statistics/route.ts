@@ -49,7 +49,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
                 }
             }
 
-            // For appointment_date stats
             if (lead.appointment_date) {
                 const apptDate = new Date(lead.appointment_date).toISOString().split('T')[0];
                 if (dateMap.has(apptDate)) {
@@ -63,8 +62,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         });
 
         const chartData = Array.from(dateMap.values());
-
-        // Overall Summary
         const summary = {};
 
         return NextResponse.json({ summary, chartData }, { status: HttpStatusCode.OK });

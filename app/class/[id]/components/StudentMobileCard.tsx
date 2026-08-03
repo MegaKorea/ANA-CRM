@@ -90,8 +90,7 @@ export function StudentMobileCard({ record, isManager, resolveContact, onOpenFin
             </Space>
           )}
         </div>
-
-        {/* Thông tin liên hệ */}
+        
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
           {phone && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -117,7 +116,6 @@ export function StudentMobileCard({ record, isManager, resolveContact, onOpenFin
           )}
         </div>
 
-        {/* Tài chính — chỉ manager */}
         {isManager && (
           <div
             style={{

@@ -47,8 +47,6 @@ body {
       &:last-child {
         border-bottom: none !important;
       }
-
-      /* Fix actions column or other flex components */
       .ant-space {
         display: inline-flex;
         flex-wrap: wrap;

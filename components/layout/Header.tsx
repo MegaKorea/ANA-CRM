@@ -4,7 +4,6 @@ import { memo, useMemo, useCallback } from 'react';
 import { Layout, Avatar, Dropdown, Space, Button, type MenuProps } from 'antd';
 import {
   UserOutlined,
-  SettingOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -36,19 +35,6 @@ export const Header = memo(function Header({ collapsed, onToggle }: HeaderProps)
   const userMenuItems: MenuProps['items'] = useMemo(
     () => [
       {
-        key: 'profile',
-        icon: <UserOutlined />,
-        label: HeaderMenuText.PROFILE,
-      },
-      {
-        key: 'settings',
-        icon: <SettingOutlined />,
-        label: HeaderMenuText.SETTINGS,
-      },
-      {
-        type: 'divider',
-      },
-      {
         key: 'logout',
         icon: <LogoutOutlined />,
         label: HeaderMenuText.LOGOUT,
@@ -60,14 +46,8 @@ export const Header = memo(function Header({ collapsed, onToggle }: HeaderProps)
 
   const handleUserMenuClick: MenuProps['onClick'] = useCallback(
     ({ key }: { key: string }) => {
-      switch (key) {
-        case 'profile':
-          break;
-        case 'settings':
-          break;
-        case 'logout':
-          logout();
-          break;
+      if (key === 'logout') {
+        logout();
       }
     },
     [logout]
@@ -104,7 +84,6 @@ export const Header = memo(function Header({ collapsed, onToggle }: HeaderProps)
           menu={{
             items: userMenuItems,
             onClick: handleUserMenuClick,
-            // Keep popup surface aligned with current theme (avoids black menu in light mode).
             theme: themeMode === ThemeMode.DARK ? 'dark' : 'light',
           }}
           trigger={['click']}
