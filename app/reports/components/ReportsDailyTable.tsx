@@ -10,7 +10,8 @@ import styles from './ReportsDailyTable.module.css';
 
 const { Title, Text } = Typography;
 
-const MOBILE_PAGE_SIZE = 7;
+const MOBILE_PAGE_SIZE = 10;
+const DESKTOP_PAGE_SIZE = 10;
 
 type Props = {
   chartData: LeadStatisticsChartRow[];
@@ -111,7 +112,6 @@ export const ReportsDailyTable = memo(function ReportsDailyTable({
           Bảng thống kê theo ngày
         </Title>
 
-        {/* Desktop: bảng — ẩn trên mobile bằng CSS (tránh flash layout) */}
         <div className={styles.desktopOnly}>
           <Table
             columns={columns}
@@ -119,9 +119,8 @@ export const ReportsDailyTable = memo(function ReportsDailyTable({
             rowKey="date"
             loading={isLoading}
             pagination={{
-              pageSize: 14,
-              showSizeChanger: true,
-              pageSizeOptions: [7, 14, 31],
+              pageSize: DESKTOP_PAGE_SIZE,
+              showSizeChanger: false,
             }}
             scroll={{ x: 'max-content' }}
             bordered
@@ -129,7 +128,6 @@ export const ReportsDailyTable = memo(function ReportsDailyTable({
           />
         </div>
 
-        {/* Mobile: card + phân trang 7 ngày/trang */}
         <div className={styles.mobileOnly}>
           {isLoading ? (
             <div style={{ padding: 24, textAlign: 'center' }}>

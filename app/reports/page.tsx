@@ -7,10 +7,12 @@ import { DateFormat } from '@/constants/enums';
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import { useLeadStatistics } from '@/lib/hooks/use-lead-statistics';
 import { useLeadStatisticsSummary } from '@/lib/hooks/use-lead-statistics-summary';
+import { useSmaxTagStatistics } from '@/lib/hooks/use-smax-tag-statistics';
 import { LeadStatisticsFilters } from '@/app/lead/components/LeadStatisticsFilters';
 import { previousPeriodOfSameLength } from '@/lib/utils/vn-date';
 import { ReportsOverviewCards } from './components/ReportsOverviewCards';
 import { ReportsDailyTable } from './components/ReportsDailyTable';
+import { ReportsCustomerTags } from './components/ReportsCustomerTags';
 import styles from './page.module.css';
 
 const { Title, Text } = Typography;
@@ -40,12 +42,24 @@ export default function ReportsPage() {
     prevRange.startDate,
     prevRange.endDate,
   );
+  const {
+    data: tagData,
+    isLoading: isTagsLoading,
+    isError: isTagsError,
+    error: tagsError,
+  } = useSmaxTagStatistics(startDate, endDate);
 
   useEffect(() => {
     if (isError) {
       message.error((error as Error).message || 'Lỗi khi lấy dữ liệu báo cáo');
     }
   }, [isError, error, message]);
+
+  useEffect(() => {
+    if (isTagsError) {
+      message.error((tagsError as Error).message || 'Lỗi khi lấy thống kê tag SMAX');
+    }
+  }, [isTagsError, tagsError, message]);
 
   const { chartData, funnel } = useLeadStatisticsSummary(data);
   const { funnel: previousFunnel } = useLeadStatisticsSummary(prevData);
@@ -89,6 +103,13 @@ export default function ReportsPage() {
           chartData={chartData}
           isAdmin={isAdmin}
           isLoading={isLoading}
+        />
+
+        <ReportsCustomerTags
+          tags={tagData?.tags ?? []}
+          startDate={startDate}
+          endDate={endDate}
+          isLoading={isTagsLoading}
         />
       </Space>
     </div>

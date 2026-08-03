@@ -4,14 +4,18 @@ export const SMAX_MESSAGES_LIMIT = 30;
 
 export const SMAX_DEFAULT_PAGE_PIDS = ['fb1181323041975922'] as const;
 
+export const SMAX_TAGS_TOP = 10;
+
 export const SmaxApiPath = {
   MESSAGES: '/smax/messages',
   STATISTICS: '/smax/statistics',
+  TAGS: '/smax/tags',
 } as const;
 
 export const SmaxQueryKey = {
   MESSAGES: 'smax-messages',
   STATISTICS: 'smax-statistics',
+  TAGS: 'smax-tags',
 } as const;
 
 export const SmaxCustomerStatType = {

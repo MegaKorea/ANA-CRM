@@ -1,0 +1,116 @@
+.body {
+  padding: 12px;
+}
+
+.header {
+  margin-bottom: 10px;
+}
+
+.title {
+  margin: 0 !important;
+  font-size: 15px !important;
+}
+
+.rangeHint {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.total {
+  display: block;
+  margin-bottom: 14px;
+  font-size: 14px;
+  color: var(--ant-color-text);
+}
+
+.totalValue {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.matrix {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.rowLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ant-color-text);
+  white-space: nowrap;
+}
+
+.pills,
+.counts {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  align-items: center;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.count,
+.countNeg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.count {
+  color: var(--ant-color-text);
+}
+
+.countNeg {
+  color: #dc2626;
+}
+
+@media (min-width: 768px) {
+  .body {
+    padding: 24px;
+  }
+
+  .header {
+    margin-bottom: 12px;
+  }
+
+  .title {
+    font-size: 16px !important;
+  }
+
+  .pills,
+  .counts {
+    gap: 10px;
+  }
+
+  .pill {
+    font-size: 13px;
+    min-height: 36px;
+  }
+
+  .count,
+  .countNeg {
+    font-size: 18px;
+  }
+}

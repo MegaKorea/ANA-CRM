@@ -1,4 +1,4 @@
-export interface SmaxFacebookRef {
+﻿export interface SmaxFacebookRef {
   id?: string;
   name?: string;
   page_id?: string;
@@ -93,5 +93,19 @@ export interface SmaxStatisticsApiResponse {
   data: number;
   orders: number;
   calendars: SmaxStatisticsCalendarDay[];
+  source: 'smax';
+}
+
+export interface SmaxTagTotal {
+  name: string;
+  net: number;
+}
+
+export interface SmaxTagStatistics {
+  tags: SmaxTagTotal[];
+}
+
+export interface SmaxTagStatisticsApiResponse {
+  tags: SmaxTagTotal[];
   source: 'smax';
 }
