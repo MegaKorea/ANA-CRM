@@ -93,8 +93,7 @@ export function UpdateClassModal({ open, onClose, classData }: UpdateClassModalP
                 placeholder="Chọn khóa học"
                 loading={isCoursesLoading}
                 allowClear
-                showSearch
-                optionFilterProp="label"
+                showSearch={{ optionFilterProp: 'label' }}
                 options={(courses ?? []).map((course) => ({
                   value: course.id,
                   label: `${course.name}${course.code ? ` (${course.code})` : ''}`,

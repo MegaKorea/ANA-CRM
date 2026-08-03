@@ -132,7 +132,12 @@ export function QuizTakeModal({
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [result, setResult] = useState<QuizAttempt | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
-  const [sessionReady, setSessionReady] = useState(false);
+  // Derived (not mirrored into its own state) so it can never fall out of
+  // sync with `attempt`: once `useStartQuizAttempt` writes the freshly
+  // created attempt into the query cache, this flips true on the very same
+  // render instead of waiting for a follow-up effect to catch up.
+  const attemptResolved =
+    readOnly || (!attemptLoading && (isQuizAttemptCompleted(attempt) || isQuizAttemptInProgress(attempt)));
 
   const answersRef = useRef(answers);
   const submittingRef = useRef(false);
@@ -149,10 +154,11 @@ export function QuizTakeModal({
 
   useEffect(() => {
     if (!open) {
+      // Reset local session state when the modal closes.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAnswers({});
       setResult(null);
       setRemainingSeconds(null);
-      setSessionReady(false);
       submittingRef.current = false;
       startingRef.current = false;
       hydratedAttemptIdRef.current = null;
@@ -169,7 +175,6 @@ export function QuizTakeModal({
       setResult(null);
       setAnswers({});
       setRemainingSeconds(null);
-      setSessionReady(true);
     }
   }, [open, readOnly]);
 
@@ -178,16 +183,13 @@ export function QuizTakeModal({
 
   useEffect(() => {
     if (!open || readOnly || attemptLoading || !quizId || !sessionId) return;
-    if (!quizContentReady) {
-      setSessionReady(false);
-      return;
-    }
+    if (!quizContentReady) return;
 
     if (isQuizAttemptCompleted(attempt)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResult(attempt!);
       setAnswers(attempt!.user_answers ?? {});
       setRemainingSeconds(null);
-      setSessionReady(true);
       hydratedAttemptIdRef.current = attempt!.id;
       return;
     }
@@ -201,7 +203,6 @@ export function QuizTakeModal({
       setRemainingSeconds(
         getQuizAttemptRemainingSeconds(attempt!.started_at, quiz?.duration_minutes ?? 0),
       );
-      setSessionReady(true);
       return;
     }
 
@@ -226,6 +227,7 @@ export function QuizTakeModal({
     quizContentReady,
     quiz?.duration_minutes,
     startAttemptMutate,
+    message,
   ]);
 
   const persistDraft = useCallback(
@@ -241,7 +243,7 @@ export function QuizTakeModal({
         }
       }
     },
-    [attempt, quizId, readOnly, saveDraft, sessionId],
+    [attempt, message, quizId, readOnly, saveDraft, sessionId],
   );
 
   const scheduleDraftSave = useCallback(
@@ -330,21 +332,24 @@ export function QuizTakeModal({
         return false;
       }
     },
-    [quiz, sessionId, submitAttempt, readOnly],
+    [message, quiz, sessionId, submitAttempt, readOnly],
   );
 
   const timedOut = remainingSeconds !== null && remainingSeconds <= 0;
   const done = !readOnly && result !== null;
+  // Hết giờ = đã nộp: chuyển sang chế độ xem ngay, không còn nút nộp bài.
+  const viewMode = done || timedOut;
   const startingSession =
-    !readOnly && open && quizContentReady && (!sessionReady || startAttempt.isPending);
-  const answersLocked = done || readOnly || timedOut || startingSession;
+    !readOnly && open && quizContentReady && (!attemptResolved || startAttempt.isPending);
+  const answersLocked = viewMode || readOnly || startingSession;
 
   const handleSubmit = useCallback(() => {
-    void submitAnswers(answers, timedOut ? { force: true } : undefined);
-  }, [answers, submitAnswers, timedOut]);
+    void submitAnswers(answers);
+  }, [answers, submitAnswers]);
 
   const handleClose = useCallback(() => {
-    if (!readOnly && !result && isQuizAttemptInProgress(attempt)) {
+    // Timed-out attempts are auto-submitted; skip draft save in that case.
+    if (!readOnly && !result && !timedOut && isQuizAttemptInProgress(attempt)) {
       if (draftTimerRef.current !== null) {
         window.clearTimeout(draftTimerRef.current);
         draftTimerRef.current = null;
@@ -352,7 +357,7 @@ export function QuizTakeModal({
       void persistDraft(answersRef.current);
     }
     onClose();
-  }, [attempt, onClose, persistDraft, readOnly, result]);
+  }, [attempt, onClose, persistDraft, readOnly, result, timedOut]);
 
   const onTimerTick = useEffectEvent(async (secondsLeft: number, silent?: boolean) => {
     if (secondsLeft > 0) return;
@@ -394,12 +399,12 @@ export function QuizTakeModal({
       setRemainingSeconds((prev) => (prev === null ? prev : prev - 1));
     }, 1000);
     return () => window.clearTimeout(timerId);
-  }, [open, result, remainingSeconds, onTimerTick, readOnly, loadingSession]);
+  }, [open, result, remainingSeconds, readOnly, loadingSession]);
 
   const titleNode = (
     <Space wrap size="middle">
       <span>{title}</span>
-      {!readOnly && !done && !loadingSession && remainingSeconds !== null ? (
+      {!readOnly && !viewMode && !loadingSession && remainingSeconds !== null ? (
         <span
           className={timerUrgent ? styles.quizTimerBadgeUrgent : styles.quizTimerBadge}
         >
@@ -410,8 +415,8 @@ export function QuizTakeModal({
   );
 
   const footerNode =
-    readOnly || done ? (
-      <Button type="primary" onClick={handleClose}>
+    readOnly || viewMode ? (
+      <Button type="primary" onClick={handleClose} loading={!done && timedOut && submitAttempt.isPending}>
         {layout === 'page' ? 'Quay lại' : 'Đóng'}
       </Button>
     ) : (
@@ -463,6 +468,17 @@ export function QuizTakeModal({
             );
           })()}
         </div>
+      ) : timedOut ? (
+        <div className={styles.quizResultBanner}>
+          <Typography.Title level={4} style={{ margin: 0 }}>
+            {QuizUiMessage.TIMEOUT_SUBMITTED}
+          </Typography.Title>
+          <Typography.Text type="secondary">
+            {submitAttempt.isPending
+              ? 'Đang lưu kết quả…'
+              : 'Bài làm đã khóa vì hết giờ — bạn chỉ có thể xem lại.'}
+          </Typography.Text>
+        </div>
       ) : (
         <Typography.Text type="secondary" className={styles.quizTakeMeta}>
           {quiz.questions.length} câu
@@ -508,7 +524,7 @@ export function QuizTakeModal({
                 );
               })()}
               {q.type === QuizQuestionType.ESSAY ? (
-                done || readOnly ? (
+                viewMode || readOnly ? (
                   <Typography.Paragraph className={styles.quizEssayAnswer}>
                     {(answers[q.id]?.[0] ?? '').trim() || QuizUiMessage.ESSAY_EMPTY}
                   </Typography.Paragraph>
@@ -530,7 +546,7 @@ export function QuizTakeModal({
                   onChange={(vals) => setMultiple(q.id, vals as string[])}
                   className={styles.quizOptions}
                 >
-                  <Space direction="vertical">
+                  <Space orientation="vertical">
                     {q.options.map((opt) => (
                       <Checkbox key={opt.id} value={opt.id}>
                         <OptionLabel
@@ -549,7 +565,7 @@ export function QuizTakeModal({
                   onChange={(e) => setSingle(q.id, e.target.value)}
                   className={styles.quizOptions}
                 >
-                  <Space direction="vertical">
+                  <Space orientation="vertical">
                     {q.options.map((opt) => (
                       <Radio key={opt.id} value={opt.id}>
                         <OptionLabel

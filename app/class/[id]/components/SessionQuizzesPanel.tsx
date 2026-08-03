@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Popconfirm, Space, Tag, Typography, message } from 'antd';
+import { App, Badge, Button, Popconfirm, Space, Tag, Typography } from 'antd';
 import {
   DeleteOutlined,
   EditOutlined,
@@ -25,6 +25,7 @@ type Props = {
   canEdit: boolean;
   canTake: boolean;
   isMobile: boolean;
+  isNew?: boolean;
 };
 
 function studentAttemptHint(status: string | null | undefined): string {
@@ -33,7 +34,15 @@ function studentAttemptHint(status: string | null | undefined): string {
   return QuizUiMessage.TAKE_HINT;
 }
 
-export function SessionQuizzesPanel({ classId, sessionId, canEdit, canTake, isMobile }: Props) {
+export function SessionQuizzesPanel({
+  classId,
+  sessionId,
+  canEdit,
+  canTake,
+  isMobile,
+  isNew = false,
+}: Props) {
+  const { message } = App.useApp();
   const router = useRouter();
   const searchParams = useSearchParams();
   const dateQuery = searchParams.get('date');
@@ -83,7 +92,7 @@ export function SessionQuizzesPanel({ classId, sessionId, canEdit, canTake, isMo
         message.error(getErrorMessage(error, QuizUiMessage.DELETE_FAILED));
       }
     },
-    [sessionId, deleteQuiz],
+    [sessionId, deleteQuiz, message],
   );
 
   if (!sessionId) return null;
@@ -97,6 +106,7 @@ export function SessionQuizzesPanel({ classId, sessionId, canEdit, canTake, isMo
           {quizzes.length > 0 ? (
             <Typography.Text type="secondary">({quizzes.length})</Typography.Text>
           ) : null}
+          {isNew ? <Badge count="Mới" color="var(--accent-600, #1677ff)" /> : null}
         </div>
         {canEdit ? (
           <Button type="link" size="small" icon={<PlusOutlined />} onClick={openCreate}>

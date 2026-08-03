@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    App,
     Row,
     Col,
     Card,
@@ -8,10 +9,9 @@ import {
     Table,
     Typography,
     Space,
-    message,
     theme,
-    List,
     Divider,
+    Spin,
 } from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
 import {
@@ -20,91 +20,17 @@ import {
     DatabaseOutlined,
 } from '@ant-design/icons';
 import { DateFormat } from '@/constants/enums';
-import { useQuery } from '@tanstack/react-query';
 import { useIsMobile } from '@/lib/hooks/use-mobile';
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
+import { useLeadStatistics, type LeadStatisticsChartRow } from '@/lib/hooks/use-lead-statistics';
 
 const { RangePicker } = DatePicker;
 const { Title } = Typography;
 
-interface ChartDataRow {
-    date: string;
-    totalLeads: number;
-    registeredLeads: number;
-    totalAppointments: number;
-    arrivedAppointments: number;
-    fbSpend?: number;
-    fbMessages?: number;
-}
-
-interface FBApiResponse {
-    spend: string;
-    campaign_id: string;
-    account_name: string;
-    campaign_name: string;
-    actions: { action_type: string; value: string }[];
-    date_start: string;
-    date_stop: string;
-}
-
-const fetchStatisticsData = async (startDate: string, endDate: string) => {
-    const leadRes = await fetch(`/api/leads/statistics?startDate=${startDate}&endDate=${endDate}`);
-    if (!leadRes.ok) {
-        throw new Error('Failed to fetch lead statistics');
-    }
-    const leadData = await leadRes.json();
-
-    let fbData: any[] = [];
-    try {
-        const fbRes = await fetch(`/api/facebook/insights?startDate=${startDate}&endDate=${endDate}`);
-        if (fbRes.ok) {
-            fbData = await fbRes.json();
-        }
-    } catch (fbErr) {
-        console.warn('Facebook API error', fbErr);
-    }
-
-    let totalSpend = 0;
-    let totalMessages = 0;
-    const fbMap = new Map<string, { spend: number; messages: number }>();
-
-    if (Array.isArray(fbData)) {
-        fbData.forEach((row: FBApiResponse) => {
-            const rowSpend = parseFloat(row.spend || '0');
-            const messageAction = row.actions?.find(
-                (a) => a.action_type === 'onsite_conversion.messaging_conversation_started_7d',
-            );
-            const rowMessages = messageAction ? parseInt(messageAction.value || '0', 10) : 0;
-
-            totalSpend += rowSpend;
-            totalMessages += rowMessages;
-            if (row.date_start) {
-                const existing = fbMap.get(row.date_start) || { spend: 0, messages: 0 };
-                existing.spend += rowSpend;
-                existing.messages += rowMessages;
-                fbMap.set(row.date_start, existing);
-            }
-        });
-    }
-
-    const finalChartData = (leadData.chartData as ChartDataRow[]).map((row) => {
-        const fbStats = fbMap.get(row.date);
-        return {
-            ...row,
-            fbSpend: fbStats?.spend || 0,
-            fbMessages: fbStats?.messages || 0,
-        };
-    });
-
-    return {
-        summary: leadData.summary as Record<string, unknown>,
-        chartData: finalChartData,
-        fbTotalSpend: totalSpend,
-        fbTotalMessages: totalMessages,
-    };
-};
+type ChartDataRow = LeadStatisticsChartRow;
 
 export function LeadStatistics() {
+    const { message } = App.useApp();
     const isMobile = useIsMobile();
     const { token } = theme.useToken();
     const { hasPermission: isAdmin } = useAuthPermission(['ADMIN']);
@@ -116,15 +42,13 @@ export function LeadStatistics() {
     const startDate = dateRange?.[0]?.format(DateFormat.ISO_DATE) || '';
     const endDate = dateRange?.[1]?.format(DateFormat.ISO_DATE) || '';
 
-    const { data, isLoading, isError, error } = useQuery({
-        queryKey: ['lead-statistics', startDate, endDate],
-        queryFn: () => fetchStatisticsData(startDate, endDate),
-        enabled: !!startDate && !!endDate,
-    });
+    const { data, isLoading, isError, error } = useLeadStatistics(startDate, endDate);
 
-    if (isError) {
-        message.error((error as Error).message || 'Lỗi khi lấy dữ liệu thống kê');
-    }
+    useEffect(() => {
+        if (isError) {
+            message.error((error as Error).message || 'Lỗi khi lấy dữ liệu thống kê');
+        }
+    }, [isError, error, message]);
 
     const { chartData, fbTotalSpend, fbTotalMessages } = (data as {
         chartData: ChartDataRow[];
@@ -341,11 +265,12 @@ export function LeadStatistics() {
                         }}
                     />
                 ) : (
-                    <List
-                        dataSource={chartData}
-                        loading={isLoading}
-                        renderItem={(item) => (
-                            <List.Item style={{ padding: 0, marginBottom: 16 }}>
+                    isLoading ? (
+                        <div style={{ padding: 24, textAlign: 'center' }}><Spin /></div>
+                    ) : (
+                        <div role="list">
+                            {chartData.map((item) => (
+                            <div role="listitem" key={item.date} style={{ marginBottom: 16 }}>
                                 <Card
                                     size="small"
                                     style={{ width: '100%', borderColor: token.colorBorder, borderRadius: 8 }}
@@ -404,9 +329,10 @@ export function LeadStatistics() {
 
 
                                 </Card>
-                            </List.Item>
-                        )}
-                    />
+                            </div>
+                            ))}
+                        </div>
+                    )
                 )}
             </Card>
         </div>

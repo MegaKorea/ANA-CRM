@@ -30,12 +30,14 @@ export async function resolveClassViewer(classId: string): Promise<ClassViewer> 
         .maybeSingle();
 
     throwIfSupabaseError(error, 'Không đọc được tài khoản.');
+    if (!profile) {
+        // Fail closed: no `public.users` row (orphaned/incomplete account) must
+        // never fall through to staff access.
+        fail('UNAUTHORIZED', HttpStatusCode.UNAUTHORIZED, 'Không tìm thấy tài khoản.');
+    }
 
     const roleCode = (profile as { roles?: { code?: string } | null } | null)?.roles?.code;
-    const metaRole = authUser.user_metadata?.role as string | undefined;
-    // Align with middleware: STU from DB role or auth metadata
-    const isStudent = roleCode === 'STU' || metaRole === 'STU';
-    if (!isStudent) {
+    if (roleCode !== 'STU') {
         return { kind: 'staff' };
     }
 

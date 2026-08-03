@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { Breadcrumb, Button, Result, Space, Spin, Typography } from 'antd';
+import { useMemo, useState } from 'react';
+import { App, Breadcrumb, Button, Result, Space, Spin, Typography } from 'antd';
 import { EditOutlined, HomeOutlined } from '@ant-design/icons';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dayjs from 'dayjs';
@@ -10,13 +10,15 @@ import { ClassMemberRole, QuizUiMessage } from '@/constants/enums';
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import { useUserRoleCode } from '@/lib/hooks/use-current-user';
 import { useClass } from '@/lib/hooks/use-classes';
-import { useMyQuizAttempt, useSessionQuizDetail } from '@/lib/hooks/use-quizzes';
+import { useMyQuizAttempt, useSessionQuizDetail, useStartQuizAttempt } from '@/lib/hooks/use-quizzes';
 import {
   countQuizQuestionKinds,
+  getQuizAttemptRemainingSeconds,
   isQuizAttemptCompleted,
   isQuizAttemptInProgress,
 } from '@/lib/types/quiz';
 import { useIsMobile } from '@/lib/hooks/use-mobile';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 import { QuizTakeModal } from './QuizTakeModal';
 import pageStyles from './lecture-editor.module.scss';
 import styles from './tab-schedule.module.scss';
@@ -30,6 +32,7 @@ type Props = {
 };
 
 export function QuizTakePage({ classId, sessionId, quizId }: Props) {
+  const { message } = App.useApp();
   const router = useRouter();
   const searchParams = useSearchParams();
   const dateQuery = searchParams.get('date');
@@ -61,14 +64,8 @@ export function QuizTakePage({ classId, sessionId, quizId }: Props) {
   };
 
   const readOnly = !canTake;
-  const [entered, setEntered] = useState(false);
-
-  useEffect(() => {
-
-    if (!permissionLoading && !canTake) {
-      setEntered(true);
-    }
-  }, [canTake, permissionLoading]);
+  const [userEntered, setEntered] = useState(false);
+  const entered = userEntered || (!permissionLoading && !canTake);
 
   const { data: attempt, isLoading: attemptLoading } = useMyQuizAttempt(
     canTake && quizReady ? sessionId : null,
@@ -76,13 +73,34 @@ export function QuizTakePage({ classId, sessionId, quizId }: Props) {
   );
   const completed = isQuizAttemptCompleted(attempt);
   const inProgress = isQuizAttemptInProgress(attempt);
+  const timeExpired =
+    inProgress &&
+    !!quiz &&
+    quiz.duration_minutes > 0 &&
+    getQuizAttemptRemainingSeconds(attempt?.started_at, quiz.duration_minutes) === 0;
   const questionKinds = countQuizQuestionKinds(quiz?.questions ?? []);
   const essayOnly = questionKinds.auto === 0 && questionKinds.essay > 0;
-  const confirmLabel = completed
-    ? QuizUiMessage.VIEW_RESULT
-    : inProgress
-      ? QuizUiMessage.CONTINUE_QUIZ
-      : QuizUiMessage.START_QUIZ;
+  // Hết giờ coi như đã nộp → chỉ xem kết quả.
+  const confirmLabel =
+    completed || timeExpired
+      ? QuizUiMessage.VIEW_RESULT
+      : inProgress
+        ? QuizUiMessage.CONTINUE_QUIZ
+        : QuizUiMessage.START_QUIZ;
+
+  const startAttempt = useStartQuizAttempt();
+  const handleEnter = async () => {
+    if (completed || inProgress) {
+      setEntered(true);
+      return;
+    }
+    try {
+      await startAttempt.mutateAsync({ sessionId, quizId });
+      setEntered(true);
+    } catch (error) {
+      message.error(getErrorMessage(error, QuizUiMessage.START_FAILED));
+    }
+  };
 
   // Don't block the take page on class/sessions — those only fill labels.
   const loading = quizLoading || permissionLoading;
@@ -151,7 +169,7 @@ export function QuizTakePage({ classId, sessionId, quizId }: Props) {
             <div className={pageStyles.mainColumn}>
               <div className={pageStyles.panel}>
                 <div className={pageStyles.panelBody}>
-                  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                  <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     <Typography.Text type="secondary">{sessionLabel}</Typography.Text>
                     <Typography.Text>
                       {quiz.questions.length} câu
@@ -175,6 +193,10 @@ export function QuizTakePage({ classId, sessionId, quizId }: Props) {
                                 : ''
                             }`}
                       </Typography.Text>
+                    ) : timeExpired ? (
+                      <Typography.Text type="secondary">
+                        {QuizUiMessage.TIMEOUT_SUBMITTED}
+                      </Typography.Text>
                     ) : inProgress ? (
                       <Typography.Text type="secondary">
                         {quiz.duration_minutes > 0
@@ -195,8 +217,8 @@ export function QuizTakePage({ classId, sessionId, quizId }: Props) {
                       <Button onClick={goBack}>{QuizUiMessage.CLOSE}</Button>
                       <Button
                         type="primary"
-                        loading={attemptLoading}
-                        onClick={() => setEntered(true)}
+                        loading={attemptLoading || startAttempt.isPending}
+                        onClick={handleEnter}
                       >
                         {confirmLabel}
                       </Button>

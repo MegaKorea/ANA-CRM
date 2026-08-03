@@ -1,28 +1,23 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
+  App,
   Button,
   Table,
   Space,
   Tag,
   Popconfirm,
-  message,
   Select,
   Typography,
   Badge,
-  List,
-  Card,
-  Avatar,
-  theme,
+  Empty,
+  Pagination,
+  Spin,
 } from 'antd';
 import {
   DeleteOutlined,
   UserAddOutlined,
   EditOutlined,
   PictureOutlined,
-  PhoneOutlined,
-  MailOutlined,
-  CalendarOutlined,
-  UserOutlined,
 } from '@ant-design/icons';
 import {
   useClassStudents,
@@ -36,48 +31,13 @@ import dayjs from 'dayjs';
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import { getErrorMessage } from '@/lib/utils/get-error-message';
 import { StudentFinanceModal } from './StudentFinanceModal';
+import { StudentMobileCard } from './StudentMobileCard';
+import { MASKED_CONTACT, formatCurrency, isOwnStudentRow, studentStatusMeta } from './student-roster.utils';
 
 const { Text } = Typography;
 
-const studentStatusMeta: Record<string, { label: string; color: string }> = {
-  active: { label: 'Đang học', color: 'green' },
-  withdrawn: { label: 'Đã rút', color: 'red' },
-  completed: { label: 'Hoàn thành', color: 'blue' },
-};
-
-const formatCurrency = (val: number) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
-
-// ── Avatar màu từ tên ──────────────────────────────────────────────────────
-const AVATAR_COLORS = ['#1677ff', '#52c41a', '#faad14', '#f5222d', '#fa8c16', '#13c2c2'];
-function nameToColor(name: string) {
-  let hash = 0;
-  for (const c of name) hash = c.charCodeAt(0) + ((hash << 5) - hash);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
-function initials(name: string) {
-  const parts = name.trim().split(' ');
-  return parts.length >= 2
-    ? parts[parts.length - 1][0].toUpperCase()
-    : (name[0]?.toUpperCase() ?? '?');
-}
-
-const MASKED_CONTACT = '*********';
-
-function isOwnStudentRow(
-  record: { login_email?: string; leads?: { email?: string; phone_number?: string } | null },
-  userEmail: string | null | undefined,
-) {
-  if (!userEmail) return false;
-  const email = userEmail.toLowerCase();
-  return (
-    record.login_email?.toLowerCase() === email ||
-    record.leads?.email?.toLowerCase() === email
-  );
-}
-
 export function TabStudents({ classData }: { classData: Class }) {
-  const { token } = theme.useToken();
+  const { message } = App.useApp();
   const isMobile = useIsMobile();
   const { hasPermission: isManager, user } = useAuthPermission(['ADMIN', 'AO']);
   const maskPeerContacts = user?.roleCode === 'STU';
@@ -89,6 +49,11 @@ export function TabStudents({ classData }: { classData: Class }) {
   const [selectedLeadId, setSelectedLeadId] = useState<number | undefined>(undefined);
   const [financeModalOpen, setFinanceModalOpen] = useState(false);
   const [financeStudent, setFinanceStudent] = useState<any>(null);
+  const [mobilePage, setMobilePage] = useState(1);
+  const safeMobilePage = Math.min(
+    mobilePage,
+    Math.max(1, Math.ceil((students?.length ?? 0) / 10)),
+  );
 
   const openFinance = (record: any) => {
     setFinanceStudent(record);
@@ -113,7 +78,7 @@ export function TabStudents({ classData }: { classData: Class }) {
         },
       },
     );
-  }, [addStudentMutation, classData.capacity, classData.id, selectedLeadId, students]);
+  }, [addStudentMutation, classData.capacity, classData.id, message, selectedLeadId, students]);
 
   const handleRemoveStudent = useCallback(
     (studentId: string) => {
@@ -124,7 +89,7 @@ export function TabStudents({ classData }: { classData: Class }) {
         },
       });
     },
-    [removeStudentMutation],
+    [message, removeStudentMutation],
   );
 
   const availableLeadOptions = useMemo(() => {
@@ -267,13 +232,12 @@ export function TabStudents({ classData }: { classData: Class }) {
       {isManager && (
         <Space.Compact style={{ width: '100%' }}>
           <Select
-            showSearch
+            showSearch={{ optionFilterProp: 'label' }}
             style={{ flex: 1 }}
             placeholder="Chọn học viên từ Leads"
             loading={isLeadsLoading}
             value={selectedLeadId}
             onChange={setSelectedLeadId}
-            optionFilterProp="label"
             options={availableLeadOptions}
           />
           <Button
@@ -290,153 +254,40 @@ export function TabStudents({ classData }: { classData: Class }) {
     </div>
   );
 
-  // ── Mobile card item ───────────────────────────────────────────────────
-  const renderMobileCard = (record: any) => {
-    const name = record.leads?.full_name || 'N/A';
-    const phoneRaw = record.leads?.phone_number;
-    const emailRaw = record.login_email;
-    const phone = resolveContact(phoneRaw, record) || null;
-    const email = emailRaw
-      ? resolveContact(emailRaw, record)
-      : null;
-    const date = record.enrollment_date ? dayjs(record.enrollment_date).format('DD/MM/YYYY') : '';
-    const status = studentStatusMeta[record.status] ?? {
-      label: record.status || '—',
-      color: 'default',
-    };
-
-    return (
-      <List.Item key={record.id} style={{ padding: '0 0 12px' }}>
-        <Card
-          size="small"
-          style={{ width: '100%', borderRadius: token.borderRadiusLG }}
-          styles={{ body: { padding: '12px 14px' } }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <Avatar
-              size={40}
-              style={{
-                background: nameToColor(name),
-                flexShrink: 0,
-                fontSize: 16,
-                fontWeight: 600,
-              }}
-            >
-              {initials(name)}
-            </Avatar>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <Text strong style={{ fontSize: 15, display: 'block', lineHeight: '1.3' }}>
-                {name}
-              </Text>
-              <Tag color={status.color} style={{ marginTop: 2 }}>
-                {status.label}
-              </Tag>
-            </div>
-            {isManager && (
-              <Space size={6}>
-                <Badge count={record.images?.length || 0} size="small" offset={[-2, 0]}>
-                  <Button
-                    size="small"
-                    icon={<PictureOutlined />}
-                    onClick={() => openFinance(record)}
-                  />
-                </Badge>
-                <Button
-                  size="small"
-                  type="primary"
-                  ghost
-                  shape="circle"
-                  icon={<EditOutlined />}
-                  onClick={() => openFinance(record)}
-                />
-                <Popconfirm
-                  title="Xóa khỏi lớp"
-                  description="Xóa học viên này khỏi lớp?"
-                  onConfirm={() => handleRemoveStudent(record.id)}
-                  okText="Xóa"
-                  cancelText="Hủy"
-                  okButtonProps={{ danger: true }}
-                >
-                  <Button size="small" danger ghost shape="circle" icon={<DeleteOutlined />} />
-                </Popconfirm>
-              </Space>
-            )}
-          </div>
-
-          {/* Thông tin liên hệ */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            {phone && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <PhoneOutlined style={{ color: token.colorTextQuaternary, fontSize: 13 }} />
-                <Text style={{ fontSize: 13 }}>{phone}</Text>
-              </div>
-            )}
-            {email && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <MailOutlined style={{ color: token.colorTextQuaternary, fontSize: 13 }} />
-                <Text style={{ fontSize: 13 }} ellipsis>
-                  {email}
-                </Text>
-              </div>
-            )}
-            {date && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <CalendarOutlined style={{ color: token.colorTextQuaternary, fontSize: 13 }} />
-                <Text style={{ fontSize: 13, color: token.colorTextSecondary }}>
-                  Tham gia: {date}
-                </Text>
-              </div>
-            )}
-          </div>
-
-          {/* Tài chính — chỉ manager */}
-          {isManager && (
-            <div
-              style={{
-                display: 'flex',
-                gap: 8,
-                marginTop: 10,
-                padding: '8px 10px',
-                borderRadius: token.borderRadius,
-                background: token.colorFillAlter,
-              }}
-            >
-              <div style={{ flex: 1, textAlign: 'center' }}>
-                <div style={{ fontSize: 11, color: token.colorTextTertiary, marginBottom: 2 }}>
-                  Đã nộp
-                </div>
-                <Text type="success" style={{ fontSize: 13, fontWeight: 600 }}>
-                  {formatCurrency(record.paid_amount || 0)}
-                </Text>
-              </div>
-              <div style={{ width: 1, background: token.colorBorderSecondary }} />
-              <div style={{ flex: 1, textAlign: 'center' }}>
-                <div style={{ fontSize: 11, color: token.colorTextTertiary, marginBottom: 2 }}>
-                  Công nợ
-                </div>
-                <Text type="danger" style={{ fontSize: 13, fontWeight: 600 }}>
-                  {formatCurrency(record.debt_amount || 0)}
-                </Text>
-              </div>
-            </div>
-          )}
-        </Card>
-      </List.Item>
-    );
-  };
-
   return (
     <div style={{ paddingTop: 8, paddingBottom: 8 }}>
       {toolbar}
 
       {isMobile ? (
-        <List
-          dataSource={students || []}
-          loading={isLoading}
-          renderItem={renderMobileCard}
-          pagination={{ pageSize: 10, size: 'small', align: 'center' }}
-          locale={{ emptyText: 'Chưa có học viên nào' }}
-        />
+        isLoading ? (
+          <div style={{ padding: 24, textAlign: 'center' }}><Spin /></div>
+        ) : !students?.length ? (
+          <Empty description="Chưa có học viên nào" />
+        ) : (
+          <>
+            <div role="list">
+              {students.slice((safeMobilePage - 1) * 10, safeMobilePage * 10).map((record: any) => (
+                <StudentMobileCard
+                  key={record.id}
+                  record={record}
+                  isManager={isManager}
+                  resolveContact={resolveContact}
+                  onOpenFinance={openFinance}
+                  onRemove={handleRemoveStudent}
+                />
+              ))}
+            </div>
+            <Pagination
+              current={safeMobilePage}
+              pageSize={10}
+              total={students.length}
+              size="small"
+              align="center"
+              showSizeChanger={false}
+              onChange={setMobilePage}
+            />
+          </>
+        )
       ) : (
         <Table
           columns={columns}

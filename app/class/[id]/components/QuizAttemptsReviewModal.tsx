@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Button, Empty, Input, Modal, Space, Table, Tag, Typography, message } from 'antd';
+import { App, Button, Empty, Input, Modal, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { QuizUiMessage } from '@/constants/enums';
 import type { Quiz, QuizAttemptReview, QuizQuestion } from '@/lib/types/quiz';
@@ -36,6 +36,7 @@ function optionLabels(question: QuizQuestion, optionIds: string[]): string {
 }
 
 export function QuizAttemptsReviewModal({ sessionId, quiz, open, isMobile, onClose }: Props) {
+  const { message } = App.useApp();
   const quizId = quiz?.id ?? null;
   const needsDetail = open && !!quizId && (quiz?.questions.length ?? 0) === 0;
   const { data: quizDetail, isLoading: detailLoading } = useSessionQuizDetail(
@@ -98,7 +99,7 @@ export function QuizAttemptsReviewModal({ sessionId, quiz, open, isMobile, onClo
         dataIndex: 'student_name',
         key: 'student_name',
         render: (name: string, row) => (
-          <Space direction="vertical" size={0}>
+          <Space orientation="vertical" size={0}>
             <Typography.Text strong>{name}</Typography.Text>
             {row.student_email ? (
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>

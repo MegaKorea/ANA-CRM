@@ -12,8 +12,8 @@ type Props = {
   activeKeys: string[];
   onActiveKeysChange: (keys: string[]) => void;
   saving: boolean;
-  uploadingQuestionIndex: number | null;
-  uploadQuestionImage: (questionIndex: number) => UploadProps;
+  uploadingQuestionId: string | null;
+  uploadQuestionImage: (questionId: string) => UploadProps;
 };
 
 export function QuizQuestionsSection({
@@ -21,7 +21,7 @@ export function QuizQuestionsSection({
   activeKeys,
   onActiveKeysChange,
   saving,
-  uploadingQuestionIndex,
+  uploadingQuestionId,
   uploadQuestionImage,
 }: Props) {
   return (
@@ -93,7 +93,7 @@ export function QuizQuestionsSection({
                   field={field}
                   questionIndex={questionIndex}
                   form={form}
-                  uploadingQuestionIndex={uploadingQuestionIndex}
+                  uploadingQuestionId={uploadingQuestionId}
                   uploadQuestionImage={uploadQuestionImage}
                 />
               ),

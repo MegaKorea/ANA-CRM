@@ -35,6 +35,7 @@ export function filterMenuByRole(
         } as MenuItem;
       }
       const { roles, ...rest } = item;
+      void roles;
       return rest as MenuItem;
     })
     .filter((item): item is MenuItem => item !== null);

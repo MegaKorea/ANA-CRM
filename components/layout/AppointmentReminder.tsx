@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { App, Badge, Button, Dropdown, Empty, List, Space, Typography } from 'antd';
+import { App, Badge, Button, Dropdown, Empty, Space, Typography } from 'antd';
 import { BellOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { useDueReminders, useMarkRemindersSent } from '@/lib/hooks/use-appointments';
@@ -97,17 +97,29 @@ export function AppointmentReminder() {
       {items.length === 0 ? (
         <Empty description="Không có lịch hẹn cần nhắc" image={Empty.PRESENTED_IMAGE_SIMPLE} />
       ) : (
-        <List
-          size="small"
-          dataSource={items}
-          rowKey={(item) => item.id}
-          renderItem={(item) => (
-            <List.Item
-              style={{ cursor: 'pointer' }}
+        <div role="list">
+          {items.map((item) => (
+            <div
+              role="listitem"
+              key={item.id}
+              style={{
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 0',
+                borderBlockEnd: '1px solid var(--ant-color-split, rgba(5, 5, 5, 0.06))',
+              }}
               onClick={() => openLead(item)}
-              actions={[
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <Text strong>{item.lead_full_name ?? 'Khách hàng'}</Text>
+                <Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
+                  {formatWhen(item)}
+                  {item.lead_phone_number ? ` · ${item.lead_phone_number}` : ''}
+                </Text>
+              </div>
                 <Button
-                  key="ack"
                   size="small"
                   type="text"
                   onClick={(event) => {
@@ -117,21 +129,10 @@ export function AppointmentReminder() {
                   }}
                 >
                   Đã xử lý
-                </Button>,
-              ]}
-            >
-              <List.Item.Meta
-                title={<Text strong>{item.lead_full_name ?? 'Khách hàng'}</Text>}
-                description={
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    {formatWhen(item)}
-                    {item.lead_phone_number ? ` · ${item.lead_phone_number}` : ''}
-                  </Text>
-                }
-              />
-            </List.Item>
-          )}
-        />
+                </Button>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

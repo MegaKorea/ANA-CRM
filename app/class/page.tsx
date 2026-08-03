@@ -2,16 +2,17 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import {
+  App,
   Button,
   Col,
   Input,
-  message,
   Row,
   Select,
   Spin,
   Table,
   Typography,
-  List,
+  Empty,
+  Pagination,
 } from 'antd';
 import {
   PlusOutlined,
@@ -49,10 +50,12 @@ const CreateClassModal = dynamic(
 );
 
 export default function ClassPage() {
+  const { message } = App.useApp();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [nameFilter, setNameFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [courseFilter, setCourseFilter] = useState<string | undefined>(undefined);
+  const [mobilePage, setMobilePage] = useState(1);
   const isMobile = useIsMobile();
 
   const router = useRouter();
@@ -77,7 +80,7 @@ export default function ClassPage() {
         },
       });
     },
-    [deleteClassMutation],
+    [deleteClassMutation, message],
   );
 
   const handleView = useCallback(
@@ -109,6 +112,15 @@ export default function ClassPage() {
     classes?.length === 0
       ? 'Chưa có lớp học nào. Hãy tạo mới một lớp học.'
       : 'Không tìm thấy lớp học nào phù hợp với bộ lọc.';
+  const mobilePageSize = 20;
+  const safeMobilePage = Math.min(
+    mobilePage,
+    Math.max(1, Math.ceil(listRows.length / mobilePageSize)),
+  );
+  const mobileRows = listRows.slice(
+    (safeMobilePage - 1) * mobilePageSize,
+    safeMobilePage * mobilePageSize,
+  );
 
   const courseOptions = useMemo(
     () =>
@@ -263,9 +275,8 @@ export default function ClassPage() {
             value={courseFilter}
             onChange={setCourseFilter}
             allowClear
-            showSearch
+            showSearch={{ optionFilterProp: 'label' }}
             loading={isCoursesLoading}
-            optionFilterProp="label"
             options={courseOptions}
           />
         </Col>
@@ -294,22 +305,34 @@ export default function ClassPage() {
           locale={{ emptyText }}
         />
       ) : (
-        <List
-          grid={{ gutter: 16, column: 1 }}
-          dataSource={listRows}
-          pagination={{ pageSize: 20, size: 'small', showSizeChanger: false, align: 'center' }}
-          locale={{ emptyText }}
-          renderItem={(row) => (
-            <List.Item>
+        listRows.length === 0 ? (
+          <Empty description={emptyText} />
+        ) : (
+          <>
+            <div role="list" style={{ display: 'grid', gap: 16 }}>
+              {mobileRows.map((row) => (
+            <div role="listitem" key={row.id}>
               <ClassListCard
                 row={row}
                 canDelete={notStudent}
                 onView={handleView}
                 onDelete={handleDelete}
               />
-            </List.Item>
-          )}
-        />
+            </div>
+              ))}
+            </div>
+            <Pagination
+              current={safeMobilePage}
+              pageSize={mobilePageSize}
+              total={listRows.length}
+              size="small"
+              align="center"
+              showSizeChanger={false}
+              onChange={setMobilePage}
+              style={{ marginTop: 16 }}
+            />
+          </>
+        )
       )}
 
       <CreateClassModal open={isCreateModalOpen} onClose={handleCloseCreateModal} />

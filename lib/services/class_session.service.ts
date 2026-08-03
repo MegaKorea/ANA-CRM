@@ -1,17 +1,24 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { AttendanceStatus } from '@/lib/supabase/types/tables/session_attendances';
 import { fail, throwIfSupabaseError } from '@/errors';
-import { HttpStatusCode, LectureErrorCode } from '@/constants/enums';
+import {
+    ClassMemberRole,
+    HttpStatusCode,
+    LectureErrorCode,
+    NotificationPayloadKind,
+} from '@/constants/enums';
 import { randomBytes, randomUUID } from 'crypto';
 import {
     buildBodyJsonWithLectures,
     countPublishedLectures,
+    isLecturePublished,
     parseSessionLectures,
     type SessionLecture,
     type SessionLectureAttachment,
     type SessionLectureLink,
     type SessionLectureStatus,
 } from '@/lib/types/session-lecture';
+import { listUnreadSessionKinds } from '@/lib/services/user-notification.service';
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -29,6 +36,9 @@ export interface ClassSession {
     attachments: unknown[] | null;
     has_content: boolean;
     has_quiz: boolean;
+    /** STU: chưa xem thông báo bài giảng/bài tập của buổi này. Staff: mới đăng/sửa gần đây. */
+    has_new_lecture: boolean;
+    has_new_quiz: boolean;
     lectures: SessionLecture[];
     created_at: string;
     updated_at: string;
@@ -92,8 +102,11 @@ const SESSION_SELECT = `*, ${SESSION_TEACHER_SELECT}`;
 const SESSION_LIST_SELECT = `
     *,
     ${SESSION_TEACHER_SELECT},
-    session_attendances(status, student_id)
+    session_attendances(status, student_id),
+    quizzes(created_at, is_published)
 `;
+
+const RECENT_CONTENT_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 
 const ATTENDANCE_SELECT = `
     *,
@@ -114,7 +127,13 @@ const verifyInflight = new Map<string, Promise<VerifyQrResult>>();
 
 function mapSessionRow(
     row: Record<string, unknown>,
-    opts?: { viewerUserId?: string | null; redactQr?: boolean },
+    opts?: {
+        viewerUserId?: string | null;
+        redactQr?: boolean;
+        viewerRole?: string | null;
+        unreadSessionKeys?: Set<string> | null;
+        now?: number;
+    },
 ): ClassSession {
     const viewerUserId = opts?.viewerUserId;
     const attendanceRows = row.session_attendances as
@@ -134,8 +153,30 @@ function mapSessionRow(
     const bodyJson = (row.body_json as Record<string, unknown> | null) ?? null;
     const lectures = parseSessionLectures(bodyJson);
 
+    const sessionId = row.id as string;
+    let has_new_lecture = false;
+    let has_new_quiz = false;
+    if (opts?.viewerRole === ClassMemberRole.STU) {
+        const keys = opts.unreadSessionKeys;
+        has_new_lecture = !!keys?.has(`${sessionId}:${NotificationPayloadKind.LECTURE}`);
+        has_new_quiz = !!keys?.has(`${sessionId}:${NotificationPayloadKind.QUIZ}`);
+    } else {
+        // Staff has no per-teacher read-state today: fall back to "posted/edited recently".
+        const now = opts?.now ?? Date.now();
+        const latestLectureAt = lectures
+            .filter(isLecturePublished)
+            .reduce((max, l) => Math.max(max, new Date(l.updated_at).getTime() || 0), 0);
+        const quizRows =
+            (row.quizzes as Array<{ created_at?: string; is_published?: boolean }> | null) ?? [];
+        const latestQuizAt = quizRows
+            .filter((q) => q.is_published)
+            .reduce((max, q) => Math.max(max, q.created_at ? new Date(q.created_at).getTime() : 0), 0);
+        has_new_lecture = latestLectureAt > 0 && now - latestLectureAt <= RECENT_CONTENT_WINDOW_MS;
+        has_new_quiz = latestQuizAt > 0 && now - latestQuizAt <= RECENT_CONTENT_WINDOW_MS;
+    }
+
     return {
-        id: row.id as string,
+        id: sessionId,
         class_id: row.class_id as string,
         session_number: row.session_number as number,
         date: row.date as string,
@@ -148,6 +189,8 @@ function mapSessionRow(
         attachments: Array.isArray(row.attachments) ? (row.attachments as unknown[]) : [],
         has_content: Boolean(row.has_content) || countPublishedLectures(lectures) > 0,
         has_quiz: Boolean(row.has_quiz),
+        has_new_lecture,
+        has_new_quiz,
         lectures,
         created_at: row.created_at as string,
         updated_at: row.updated_at as string,
@@ -161,7 +204,7 @@ function mapSessionRow(
 
 export async function getClassSessions(
     classId: string,
-    opts?: { viewerUserId?: string | null; redactQr?: boolean },
+    opts?: { viewerUserId?: string | null; redactQr?: boolean; viewerRole?: string | null },
 ): Promise<ClassSession[]> {
     const supabase = createAdminClient();
     const { data, error } = await supabase
@@ -172,10 +215,22 @@ export async function getClassSessions(
 
     throwIfSupabaseError(error);
 
-    return ((data as unknown as Record<string, unknown>[]) || []).map((row) =>
+    const rows = (data as unknown as Record<string, unknown>[]) || [];
+
+    let unreadSessionKeys: Set<string> | null = null;
+    if (opts?.viewerRole === ClassMemberRole.STU && opts?.viewerUserId) {
+        unreadSessionKeys = await listUnreadSessionKinds(
+            opts.viewerUserId,
+            rows.map((row) => row.id as string),
+        );
+    }
+
+    return rows.map((row) =>
         mapSessionRow(row, {
             viewerUserId: opts?.viewerUserId,
             redactQr: opts?.redactQr,
+            viewerRole: opts?.viewerRole,
+            unreadSessionKeys,
         }),
     );
 }

@@ -106,7 +106,7 @@ export const LeadMobileCard = memo(function LeadMobileCard({
         ) : null
       }
       style={{ width: '100%', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
-      bodyStyle={{ padding: '12px' }}
+      styles={{ body: { padding: '12px' } }}
       actions={[
         <Tooltip key="detail" title="Chi tiết">
           <div

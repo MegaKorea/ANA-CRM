@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Badge, Button, Empty, Space } from 'antd';
 import {
   EditOutlined,
@@ -8,6 +9,7 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { ClassSession } from '@/lib/services/class_session.service';
+import { useMarkSessionSeen } from '@/lib/hooks/use-class-sessions';
 import { STATUS_LABEL, cx, type SessionRow, type SessionStatus } from './schedule.utils';
 import { SessionLecturesPanel } from './SessionLecturesPanel';
 import { SessionQuizzesPanel } from './SessionQuizzesPanel';
@@ -51,6 +53,18 @@ export function ScheduleDayDetail({
   const showAttendance =
     !!selectedSession &&
     (selectedSession.status === 'past' || selectedSession.status === 'today');
+
+  const hasNewLecture = !!selectedSession?.session.has_new_lecture;
+  const hasNewQuiz = !!selectedSession?.session.has_new_quiz;
+  const markSeen = useMarkSessionSeen(classId);
+  const markSeenMutate = markSeen.mutate;
+
+  useEffect(() => {
+    if (!canTakeQuizzes || !selectedSession) return;
+    const sessionId = selectedSession.session.id;
+    if (hasNewLecture) markSeenMutate({ sessionId, kind: 'lecture' });
+    if (hasNewQuiz) markSeenMutate({ sessionId, kind: 'quiz' });
+  }, [canTakeQuizzes, selectedSession, hasNewLecture, hasNewQuiz, markSeenMutate]);
 
   const attendanceLabel = selectedSession?.hasAttendance
     ? attendanceForSelf
@@ -155,6 +169,7 @@ export function ScheduleDayDetail({
               classId={classId}
               sessionId={selectedSession.session.id}
               canEdit={canEditLectures}
+              isNew={hasNewLecture}
             />
             <SessionQuizzesPanel
               classId={classId}
@@ -162,6 +177,7 @@ export function ScheduleDayDetail({
               canEdit={canEditLectures}
               canTake={canTakeQuizzes}
               isMobile={isMobile}
+              isNew={hasNewQuiz}
             />
           </div>
         </div>

@@ -31,6 +31,7 @@ function AntdProviderContent({ children }: AntdProviderProps): JSX.Element {
         borderRadiusLG: THEME.borderRadius.md,
         borderRadiusSM: THEME.borderRadius.xs,
         colorBgContainer: colors.bgSurface,
+        colorBgElevated: colors.bgSurface,
         colorBgLayout: colors.bgApp,
         colorText: colors.textPrimary,
         colorTextSecondary: colors.textSecondary,
@@ -44,8 +45,12 @@ function AntdProviderContent({ children }: AntdProviderProps): JSX.Element {
           siderBg: colors.bgSurface,
           bodyBg: colors.bgApp,
         },
+        Dropdown: {
+          colorBgElevated: colors.bgSurface,
+        },
         Menu: {
           itemBg: colors.bgSurface,
+          popupBg: colors.bgSurface,
           itemColor: colors.textSecondary,
           itemHoverBg: colors.bgHover,
           itemHoverColor: colors.textPrimary,
@@ -58,6 +63,7 @@ function AntdProviderContent({ children }: AntdProviderProps): JSX.Element {
           itemMarginInline: 8,
           itemMarginBlock: 2,
           darkItemBg: colors.bgSurface,
+          darkPopupBg: colors.bgSurface,
           darkItemColor: colors.textSecondary,
           darkItemHoverBg: colors.bgHover,
           darkItemHoverColor: colors.textPrimary,

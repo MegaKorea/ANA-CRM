@@ -13,13 +13,6 @@ import type {
   ProvincesApiWard,
 } from '@/lib/services/location-v2.service';
 
-/**
- * LocationValueV2 – sử dụng cấu trúc của API mới (provinces.open-api.vn).
- * Dùng `code` (number) thay vì `id` (string) như API cũ.
- *
- * Để tránh conflict với LocationValue cũ, field này được lưu vào
- * `current_address_temp` trong DB.
- */
 export interface LocationValueV2 {
   /** Numeric province code (new API) */
   provinceCode?: number;

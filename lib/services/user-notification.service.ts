@@ -212,6 +212,73 @@ export async function notifyStudentsQuizPublishedSafe(
   }
 }
 
+export async function deleteQuizNotificationsSafe(quizId: string): Promise<void> {
+  try {
+    const supabase = createAdminClient();
+    await supabase
+      .from('user_notifications')
+      .delete()
+      .eq('type', UserNotificationType.QUIZ_PUBLISHED)
+      .contains('payload', { quiz_id: quizId });
+  } catch {
+  }
+}
+
+export async function listUnreadSessionKinds(
+  userId: string,
+  sessionIds: string[],
+): Promise<Set<string>> {
+  const result = new Set<string>();
+  if (sessionIds.length === 0) return result;
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from('user_notifications')
+    .select('type, payload')
+    .eq('user_id', userId)
+    .is('read_at', null)
+    .in('type', [UserNotificationType.LECTURE_CREATED, UserNotificationType.QUIZ_PUBLISHED]);
+
+  throwIfSupabaseError(error, UserNotificationErrorCode.FETCH_FAILED);
+
+  const sessionIdSet = new Set(sessionIds);
+  for (const row of (data as unknown as { type: string; payload: Record<string, unknown> | null }[]) ||
+    []) {
+    const sessionId = row.payload?.session_id as string | undefined;
+    if (!sessionId || !sessionIdSet.has(sessionId)) continue;
+    const kind =
+      row.type === UserNotificationType.LECTURE_CREATED
+        ? NotificationPayloadKind.LECTURE
+        : NotificationPayloadKind.QUIZ;
+    result.add(`${sessionId}:${kind}`);
+  }
+  return result;
+}
+
+export async function markSessionNotificationsRead(
+  userId: string,
+  sessionId: string,
+  kind: NotificationPayloadKind,
+): Promise<number> {
+  const type =
+    kind === NotificationPayloadKind.LECTURE
+      ? UserNotificationType.LECTURE_CREATED
+      : UserNotificationType.QUIZ_PUBLISHED;
+  const supabase = createAdminClient();
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('user_notifications')
+    .update({ read_at: now, updated_at: now } as never)
+    .eq('user_id', userId)
+    .eq('type', type)
+    .is('read_at', null)
+    .contains('payload', { session_id: sessionId })
+    .select('id');
+
+  throwIfSupabaseError(error, UserNotificationErrorCode.UPDATE_FAILED);
+  return ((data as unknown as { id: string }[]) || []).length;
+}
+
 export async function listMyNotifications(
   userId: string,
   opts?: { unreadOnly?: boolean; limit?: number },

@@ -33,6 +33,7 @@ export async function GET(
             viewerUserId: viewer.kind === 'student' ? viewer.userId : null,
             // Students must not receive live QR tokens (scan-only attendance).
             redactQr: viewer.kind === 'student',
+            viewerRole: user.roleCode,
         });
 
         const sanitized = sessions.map((session) => ({

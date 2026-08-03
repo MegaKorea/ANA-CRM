@@ -1,6 +1,6 @@
 'use client';
 
-import { Modal, List, Select, Tag, Typography, Space, Empty } from 'antd';
+import { Modal, Select, Tag, Typography, Space, Empty } from 'antd';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
 import { useState, useMemo } from 'react';
@@ -106,12 +106,15 @@ export function AttendanceModal({
                 <Empty description="Lớp chưa có học viên." />
             ) : (
                 <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-                    <List
-                        dataSource={studentList}
-                        renderItem={(student, index) => {
+                    <div role="list">
+                        {studentList.map((student, index) => {
                             const att = mergedAttendances[student.id] || { status: 'not_arrived' as AttendanceStatus, notes: '' };
                             return (
-                                <List.Item style={{ padding: '10px 4px' }}>
+                                <div
+                                    role="listitem"
+                                    key={student.id}
+                                    style={{ padding: '10px 4px', borderBlockEnd: '1px solid var(--ant-color-split, rgba(5, 5, 5, 0.06))' }}
+                                >
                                     <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                                         <Space>
                                             <Typography.Text type="secondary" style={{ minWidth: 24 }}>{index + 1}.</Typography.Text>
@@ -138,10 +141,10 @@ export function AttendanceModal({
                                             ))}
                                         </Select>
                                     </div>
-                                </List.Item>
+                                </div>
                             );
-                        }}
-                    />
+                        })}
+                    </div>
                 </div>
             )}
         </Modal>

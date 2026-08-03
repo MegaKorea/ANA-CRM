@@ -91,8 +91,7 @@ export const LeadFilters = memo(function LeadFilters({
             value: course.id,
           }))}
           style={{ width: '100%' }}
-          showSearch
-          optionFilterProp="label"
+          showSearch={{ optionFilterProp: 'label' }}
         />
       </Col>
       <Col xs={24} md={4}>

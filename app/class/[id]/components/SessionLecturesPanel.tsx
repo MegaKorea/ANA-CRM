@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Popconfirm, Space, Typography, message } from 'antd';
+import { App, Badge, Button, Popconfirm, Space, Typography } from 'antd';
 import { DeleteOutlined, EditOutlined, PlusOutlined, ReadOutlined } from '@ant-design/icons';
 import { useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -18,9 +18,11 @@ type Props = {
   classId: string;
   sessionId: string | null;
   canEdit: boolean;
+  isNew?: boolean;
 };
 
-export function SessionLecturesPanel({ classId, sessionId, canEdit }: Props) {
+export function SessionLecturesPanel({ classId, sessionId, canEdit, isNew = false }: Props) {
+  const { message } = App.useApp();
   const router = useRouter();
   const searchParams = useSearchParams();
   const dateQuery = searchParams.get('date');
@@ -65,7 +67,7 @@ export function SessionLecturesPanel({ classId, sessionId, canEdit }: Props) {
         message.error(getErrorMessage(error, LectureUiMessage.DELETE_FAILED));
       }
     },
-    [sessionId, deleteLecture],
+    [sessionId, deleteLecture, message],
   );
 
   return (
@@ -77,6 +79,7 @@ export function SessionLecturesPanel({ classId, sessionId, canEdit }: Props) {
           {lectures.length > 0 ? (
             <Typography.Text type="secondary">({lectures.length})</Typography.Text>
           ) : null}
+          {isNew ? <Badge count="Mới" color="var(--accent-600, #1677ff)" /> : null}
         </div>
         {canEdit ? (
           <Button type="link" size="small" icon={<PlusOutlined />} onClick={openCreate}>

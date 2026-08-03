@@ -42,6 +42,7 @@ export function prefetchSessionQuizDetail(
       return applyQuizDetailResponse(queryClient, sessionId, quizId, data);
     },
     staleTime: 30_000,
+    retry: false,
   });
 }
 
@@ -70,6 +71,7 @@ export function useSessionQuizDetail(
     },
     enabled: enabled && !!sessionId && !!quizId,
     staleTime: 30_000,
+    retry: false,
   });
 }
 

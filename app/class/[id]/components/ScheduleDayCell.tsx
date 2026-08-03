@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircleFilled, CloseCircleFilled } from '@ant-design/icons';
+import { BellFilled, CheckCircleFilled, CloseCircleFilled } from '@ant-design/icons';
 import type { ClassTimetable } from '@/lib/validators/class.validator';
 import { cx, type SessionRow, type SessionStatus } from './schedule.utils';
 import styles from './tab-schedule.module.scss';
@@ -19,9 +19,36 @@ type Props = {
   inMonth: boolean;
   isMobile: boolean;
   classCa: ClassTimetable | null;
-  /** STU: icon theo chính họ; staff: theo cả buổi */
   attendanceForSelf?: boolean;
 };
+
+function NewContentBadges({
+  hasNewLecture,
+  hasNewQuiz,
+}: {
+  hasNewLecture: boolean;
+  hasNewQuiz: boolean;
+}) {
+  if (!hasNewLecture && !hasNewQuiz) return null;
+  return (
+    <span className={styles.calDayNewDots}>
+      {hasNewLecture ? (
+        <BellFilled
+          className={cx(styles.calDayNewDot, styles.calDayNewDot_lecture)}
+          title="Có bài giảng mới"
+          aria-label="Có bài giảng mới"
+        />
+      ) : null}
+      {hasNewQuiz ? (
+        <BellFilled
+          className={cx(styles.calDayNewDot, styles.calDayNewDot_quiz)}
+          title="Có bài tập mới"
+          aria-label="Có bài tập mới"
+        />
+      ) : null}
+    </span>
+  );
+}
 
 function AttendanceMark({
   taken,
@@ -61,6 +88,9 @@ export function ScheduleDayCell({
   attendanceForSelf = false,
 }: Props) {
   const showAttendance = row?.status === 'past' || row?.status === 'today';
+  const hasNewLecture = !!row?.session.has_new_lecture;
+  const hasNewQuiz = !!row?.session.has_new_quiz;
+  const hasNewContent = hasNewLecture || hasNewQuiz;
 
   return (
     <div
@@ -79,7 +109,13 @@ export function ScheduleDayCell({
         {!isMobile && row?.status === 'today' ? (
           <span className={styles.calDayBadge}>Hôm nay</span>
         ) : null}
-        {!showAttendance && row && (isMobile || row.status !== 'today') ? (
+        {/* Desktop: badges move down next to the session label (calDayBody) so
+            they don't fight the absolutely-positioned attendance icon for the
+            same top-right corner. Mobile has no such collision (attendance
+            renders as its own full-width row there), so keep them up top. */}
+        {isMobile && hasNewContent ? (
+          <NewContentBadges hasNewLecture={hasNewLecture} hasNewQuiz={hasNewQuiz} />
+        ) : !showAttendance && row && (isMobile || row.status !== 'today') ? (
           <span className={styles.calDayDot} aria-hidden />
         ) : null}
       </div>
@@ -96,7 +132,10 @@ export function ScheduleDayCell({
 
       {!isMobile && row ? (
         <div className={styles.calDayBody}>
-          <span className={styles.calDayLabel}>{row.sessionLabel}</span>
+          <div className={styles.calDayBodyRow}>
+            <span className={styles.calDayLabel}>{row.sessionLabel}</span>
+            <NewContentBadges hasNewLecture={hasNewLecture} hasNewQuiz={hasNewQuiz} />
+          </div>
           {classCa ? <span className={styles.calDayMeta}>Ca {classCa}</span> : null}
         </div>
       ) : null}

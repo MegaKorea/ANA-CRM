@@ -2,7 +2,7 @@
 
 import { Modal, Skeleton } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { parseSmaxThreadRef } from '@/lib/smax/parse-smax-log';
 import { useSmaxMessages } from '@/lib/hooks/use-smax-messages';
 import { ConversationMessageList } from './conversation/ConversationMessageList';
@@ -50,11 +50,9 @@ export default function ConversationModal({
     ].filter(Boolean);
   }, [thread]);
 
-  const [avatarIndex, setAvatarIndex] = useState(0);
-
-  useEffect(() => {
-    setAvatarIndex(0);
-  }, [open, thread?.facebookId, thread?.customerAvatar]);
+  const avatarKey = `${thread?.facebookId ?? ''}:${thread?.customerAvatar ?? ''}`;
+  const [avatarState, setAvatarState] = useState({ key: avatarKey, index: 0 });
+  const avatarIndex = avatarState.key === avatarKey ? avatarState.index : 0;
 
   if (!thread) {
     return null;
@@ -90,20 +88,20 @@ export default function ConversationModal({
             onError={() => {
               const hasNext = avatarIndex < avatarCandidates.length - 1;
               if (hasNext) {
-                setAvatarIndex((current) => current + 1);
+                setAvatarState({ key: avatarKey, index: avatarIndex + 1 });
                 return false;
               }
               return true;
             }}
           />
           <div className={styles.headerText}>
-            <p className={styles.customerName}>
+            <div className={styles.customerName}>
               {showNameLoading ? (
                 <Skeleton.Input active size="small" style={{ width: 160 }} />
               ) : (
                 thread.customerName
               )}
-            </p>
+            </div>
             <p className={styles.pageName}>Hội thoại Facebook</p>
           </div>
         </div>

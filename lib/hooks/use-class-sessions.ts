@@ -111,6 +111,30 @@ export function useGenerateQrToken(classId: string) {
     });
 }
 
+async function markSessionSeenReq({
+    sessionId,
+    kind,
+}: {
+    sessionId: string;
+    kind: 'lecture' | 'quiz';
+}): Promise<{ updated: number }> {
+    return fetchJson<{ updated: number }>(`/api/classes/sessions/${sessionId}/seen`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind }),
+    });
+}
+
+export function useMarkSessionSeen(classId: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: markSessionSeenReq,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [CLASS_SESSIONS_KEY, classId] });
+        },
+    });
+}
+
 // ─── Attendances ─────────────────────────────────────────────────────────
 
 async function fetchSessionAttendances(sessionId: string): Promise<SessionAttendance[]> {

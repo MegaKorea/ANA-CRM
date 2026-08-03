@@ -1,18 +1,17 @@
 'use client';
 
 import {
+  App,
   Breadcrumb,
   Button,
   Form,
   Input,
   InputNumber,
-  Modal,
   Result,
   Spin,
   Checkbox,
   Typography,
   Upload,
-  message,
 } from 'antd';
 import { HomeOutlined } from '@ant-design/icons';
 import { useEffect, useState } from 'react';
@@ -86,6 +85,7 @@ type Props = {
 };
 
 export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
+  const { message, modal } = App.useApp();
   const router = useRouter();
   const searchParams = useSearchParams();
   const dateQuery = searchParams.get('date');
@@ -111,7 +111,7 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
 
   const [form] = Form.useForm<QuizFormValues>();
   const isPublished = Form.useWatch('is_published', form);
-  const [uploadingQuestionIndex, setUploadingQuestionIndex] = useState<number | null>(null);
+  const [uploadingQuestionId, setUploadingQuestionId] = useState<string | null>(null);
   const [activeKeys, setActiveKeys] = useState<string[]>(['0']);
   const [hydrated, setHydrated] = useState(isCreate);
 
@@ -125,7 +125,7 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
 
   const leaveTo = (href: string) => {
     if (form.isFieldsTouched()) {
-      Modal.confirm({
+      modal.confirm({
         title: QuizUiMessage.UNSAVED_TITLE,
         content: QuizUiMessage.UNSAVED_CONTENT,
         okText: QuizUiMessage.UNSAVED_LEAVE,
@@ -158,7 +158,7 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
     setHydrated(true);
   }, [isCreate, quizLoading, existing, form]);
 
-  const uploadQuestionImage = (questionIndex: number): UploadProps => ({
+  const uploadQuestionImage = (questionId: string): UploadProps => ({
     name: 'file',
     accept: 'image/*',
     showUploadList: false,
@@ -172,10 +172,18 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
     },
     customRequest: async ({ file, onSuccess, onError }) => {
       try {
-        setUploadingQuestionIndex(questionIndex);
+        setUploadingQuestionId(questionId);
         const uploaded = await uploadSessionImage(file as File);
+        // Re-resolve the question by stable id, not the index captured at
+        // upload start: questions may have been added/removed/reordered
+        // while the upload was in flight.
         const questions = form.getFieldValue('questions') as QuizQuestionForm[];
-        const current = questions[questionIndex];
+        const targetIndex = questions.findIndex((question) => question.id === questionId);
+        if (targetIndex === -1) {
+          onSuccess?.(uploaded);
+          return;
+        }
+        const current = questions[targetIndex];
         const currentUrls = current.image_urls ?? [];
         if (currentUrls.length >= QuizLimit.MAX_IMAGES_PER_QUESTION) {
           message.warning(QuizUiMessage.MAX_IMAGES);
@@ -183,7 +191,7 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
           return;
         }
         const next = [...questions];
-        next[questionIndex] = {
+        next[targetIndex] = {
           ...current,
           image_urls: [...currentUrls, uploaded.url],
         };
@@ -194,13 +202,13 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
         message.error(getErrorMessage(error, QuizUiMessage.UPLOAD_FAILED));
         onError?.(error as Error);
       } finally {
-        setUploadingQuestionIndex(null);
+        setUploadingQuestionId(null);
       }
     },
   });
 
   const saving =
-    createQuiz.isPending || updateQuiz.isPending || uploadingQuestionIndex !== null;
+    createQuiz.isPending || updateQuiz.isPending || uploadingQuestionId !== null;
 
   const performSubmit = async (values: QuizFormValues) => {
     try {
@@ -219,7 +227,7 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
       goBack();
     } catch (error: unknown) {
       if (error instanceof FetchJsonError && error.status === HttpStatusCode.CONFLICT) {
-        Modal.confirm({
+        modal.confirm({
           title: QuizUiMessage.CONFLICT_TITLE,
           content: QuizUiMessage.CONFLICT_CONTENT,
           okText: QuizUiMessage.CONFLICT_RELOAD,
@@ -237,7 +245,7 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
     // student in the class — that's a one-way action worth a confirm step.
     const willFirstPublish = Boolean(values.is_published) && !existing?.is_published;
     if (willFirstPublish) {
-      Modal.confirm({
+      modal.confirm({
         title: QuizUiMessage.PUBLISH_CONFIRM_TITLE,
         content: QuizUiMessage.PUBLISH_CONFIRM_CONTENT,
         okText: QuizUiMessage.PUBLISH_CONFIRM_OK,
@@ -393,7 +401,7 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
                   activeKeys={activeKeys}
                   onActiveKeysChange={setActiveKeys}
                   saving={saving}
-                  uploadingQuestionIndex={uploadingQuestionIndex}
+                  uploadingQuestionId={uploadingQuestionId}
                   uploadQuestionImage={uploadQuestionImage}
                 />
               </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, type ReactNode } from 'react';
+import { useState, useCallback, useSyncExternalStore, type ReactNode } from 'react';
 import { Layout, Drawer } from 'antd';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
@@ -11,34 +11,42 @@ import styles from './Layout.module.scss';
 import { useTheme } from '@/lib/hooks/use-theme';
 
 const { Content } = Layout;
+const subscribeToClient = () => () => {};
 
 interface CRMLayoutProps {
   children: ReactNode;
 }
 
 export function CRMLayout({ children }: CRMLayoutProps) {
-  const [collapsed, setCollapsed] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [desktopCollapsed, setDesktopCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const mounted = useSyncExternalStore(subscribeToClient, () => true, () => false);
   const isMobile = useIsLayoutMobile();
   const { isNavigating } = useNavigation();
   const { themeMode } = useTheme();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // Reset the drawer state whenever we leave mobile mode, so it doesn't
+  // silently reopen if the viewport later resizes back into mobile.
+  const [prevIsMobile, setPrevIsMobile] = useState(isMobile);
+  if (isMobile !== prevIsMobile) {
+    setPrevIsMobile(isMobile);
+    if (!isMobile && mobileOpen) {
+      setMobileOpen(false);
+    }
+  }
 
-  useEffect(() => {
+  const collapsed = isMobile ? !mobileOpen : desktopCollapsed;
+
+  const handleToggle = useCallback(() => {
     if (isMobile) {
-      setCollapsed(true);
+      setMobileOpen((open) => !open);
+    } else {
+      setDesktopCollapsed((value) => !value);
     }
   }, [isMobile]);
 
-  const handleToggle = useCallback(() => {
-    setCollapsed((prev) => !prev);
-  }, []);
-
   const handleClose = useCallback(() => {
-    setCollapsed(true);
+    setMobileOpen(false);
   }, []);
 
   const contentWrapperClassName = [

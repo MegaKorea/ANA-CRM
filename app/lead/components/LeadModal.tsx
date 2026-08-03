@@ -140,8 +140,7 @@ export function LeadModal({
               <Select
                 placeholder="Chọn năm"
                 allowClear
-                showSearch
-                optionFilterProp="label"
+                showSearch={{ optionFilterProp: 'label' }}
                 options={YEAR_OPTIONS}
               />
             </Form.Item>

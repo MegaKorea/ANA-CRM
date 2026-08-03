@@ -7,21 +7,44 @@ import { useUpdateClass, useSubjectTeachers, useAddSubjectTeacher, useRemoveSubj
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import { getErrorMessage } from '@/lib/utils/get-error-message';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
+
+function formatTeacherLabel(teacher: {
+  full_name?: string | null;
+  phone?: string | null;
+}): string {
+  const name = teacher.full_name?.trim() || 'N/A';
+  return teacher.phone ? `${name} - ${teacher.phone}` : name;
+}
 
 export function TabTeachers({ classData }: { classData: Class }) {
   const { message } = App.useApp();
   const { hasPermission: isManager } = useAuthPermission(['ADMIN', 'AO']);
-  const { data: teachers, isLoading: isTeachersLoading } = useUsers({ roleCode: 'TEA' });
+  const { data: teachers, isLoading: isTeachersLoading } = useUsers(
+    { roleCode: 'TEA' },
+    isManager,
+  );
+  const assignedHomeroomId =
+    classData.teacher?.id || classData.homeroom_teacher_id || null;
   const teacherOptions = useMemo(() => {
-    return (teachers || []).map((t) => ({
-      value: t.id,
-      label: `${t.full_name}${t.phone ? ` - ${t.phone}` : ''}`,
-    }));
-  }, [teachers]);
+    const byId = new Map<string, { value: string; label: string }>();
+    for (const t of teachers || []) {
+      byId.set(t.id, {
+        value: t.id,
+        label: formatTeacherLabel(t),
+      });
+    }
+    if (classData.teacher) {
+      byId.set(classData.teacher.id, {
+        value: classData.teacher.id,
+        label: formatTeacherLabel(classData.teacher),
+      });
+    }
+    return [...byId.values()];
+  }, [teachers, classData.teacher]);
 
   const updateClassMutation = useUpdateClass();
-  const [homeroomTeacherId, setHomeroomTeacherId] = useState<string | null>(classData.homeroom_teacher_id || null);
+  const [homeroomTeacherId, setHomeroomTeacherId] = useState<string | null>(assignedHomeroomId);
 
   const handleUpdateHomeroomTeacher = () => {
     if (!classData.id) return;
@@ -83,59 +106,73 @@ export function TabTeachers({ classData }: { classData: Class }) {
       dataIndex: 'subject',
       key: 'subject',
     },
-    {
-      title: 'Hành động',
-      key: 'action',
-      width: 100,
-      align: 'center' as const,
-      render: (_: any, record: any) => {
-        if (!isManager) return null;
-        return (
-          <Popconfirm
-            title="Xóa giáo viên bộ môn"
-            description="Bạn có mốn xóa giáo viên này khỏi lớp không?"
-            onConfirm={() => handleRemoveSubjectTeacher(record.id)}
-            okText="Xóa"
-            cancelText="Hủy"
-            okButtonProps={{ danger: true }}
-          >
-            <Button type="primary" danger ghost shape="circle" icon={<DeleteOutlined />} size="small" />
-          </Popconfirm>
-        );
-      },
-    },
+    ...(isManager
+      ? [
+          {
+            title: 'Hành động',
+            key: 'action',
+            width: 100,
+            align: 'center' as const,
+            render: (_: unknown, record: { id: string }) => (
+              <Popconfirm
+                title="Xóa giáo viên bộ môn"
+                description="Bạn có muốn xóa giáo viên này khỏi lớp không?"
+                onConfirm={() => handleRemoveSubjectTeacher(record.id)}
+                okText="Xóa"
+                cancelText="Hủy"
+                okButtonProps={{ danger: true }}
+              >
+                <Button
+                  type="primary"
+                  danger
+                  ghost
+                  shape="circle"
+                  icon={<DeleteOutlined />}
+                  size="small"
+                />
+              </Popconfirm>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
     <div style={{ paddingTop: 8, paddingBottom: 8, display: 'flex', flexDirection: 'column', gap: 24 }}>
       <Card title="Giáo viên chủ nhiệm" size="small" styles={{ body: { padding: '16px' } }}>
         <Space orientation="vertical" style={{ width: '100%' }}>
-          <Text>Chọn giáo viên chủ nhiệm cho lớp học này:</Text>
-          <Space.Compact style={{ width: '100%', maxWidth: 500 }}>
-            <Select
-              showSearch
-              style={{ flex: 1 }}
-              placeholder="Chọn giáo viên"
-              loading={isTeachersLoading}
-              value={homeroomTeacherId}
-              onChange={setHomeroomTeacherId}
-              optionFilterProp="label"
-              options={teacherOptions}
-              disabled={!isManager}
-              allowClear
-            />
-            {isManager && (
-              <Button
-                type="primary"
-                icon={<SaveOutlined />}
-                onClick={handleUpdateHomeroomTeacher}
-                loading={updateClassMutation.isPending}
-                disabled={homeroomTeacherId === classData.homeroom_teacher_id}
-              >
-                Lưu
-              </Button>
-            )}
-          </Space.Compact>
+          {isManager ? (
+            <>
+              <Text>Chọn giáo viên chủ nhiệm cho lớp học này:</Text>
+              <Space.Compact style={{ width: '100%', maxWidth: 500 }}>
+                <Select
+                  showSearch={{ optionFilterProp: 'label' }}
+                  style={{ flex: 1 }}
+                  placeholder="Chọn giáo viên"
+                  loading={isTeachersLoading}
+                  value={homeroomTeacherId}
+                  onChange={setHomeroomTeacherId}
+                  options={teacherOptions}
+                  allowClear
+                />
+                <Button
+                  type="primary"
+                  icon={<SaveOutlined />}
+                  onClick={handleUpdateHomeroomTeacher}
+                  loading={updateClassMutation.isPending}
+                  disabled={homeroomTeacherId === assignedHomeroomId}
+                >
+                  Lưu
+                </Button>
+              </Space.Compact>
+            </>
+          ) : (
+            <Text strong>
+              {classData.teacher
+                ? formatTeacherLabel(classData.teacher)
+                : 'Chưa có giáo viên chủ nhiệm'}
+            </Text>
+          )}
         </Space>
       </Card>
 
@@ -155,10 +192,9 @@ export function TabTeachers({ classData }: { classData: Class }) {
                 style={{ flex: 1 }}
               >
                 <Select
-                  showSearch
+                  showSearch={{ optionFilterProp: 'label' }}
                   placeholder="Chọn giáo viên"
                   loading={isTeachersLoading}
-                  optionFilterProp="label"
                   options={subjectTeacherOptions}
                 />
               </Form.Item>

@@ -101,7 +101,12 @@ export const Header = memo(function Header({ collapsed, onToggle }: HeaderProps)
           className={styles.themeToggleButton}
         />
         <Dropdown
-          menu={{ items: userMenuItems, onClick: handleUserMenuClick }}
+          menu={{
+            items: userMenuItems,
+            onClick: handleUserMenuClick,
+            // Keep popup surface aligned with current theme (avoids black menu in light mode).
+            theme: themeMode === ThemeMode.DARK ? 'dark' : 'light',
+          }}
           trigger={['click']}
           placement="bottomRight"
         >

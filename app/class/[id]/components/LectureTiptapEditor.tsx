@@ -8,7 +8,7 @@ import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
 import { NodeSelection, TextSelection } from '@tiptap/pm/state';
 import type { EditorView } from '@tiptap/pm/view';
-import { Button, Divider, Select, Tooltip, Upload, message } from 'antd';
+import { App, Button, Divider, Select, Tooltip, Upload } from 'antd';
 import {
   BoldOutlined,
   ItalicOutlined,
@@ -94,6 +94,7 @@ function isTypingKey(event: KeyboardEvent): boolean {
 }
 
 export function LectureTiptapEditor({ value, onChange, onImageUploaded, disabled }: Props) {
+  const { message } = App.useApp();
   const skipEmit = useRef(false);
 
   const editor = useEditor({
@@ -276,7 +277,7 @@ export function LectureTiptapEditor({ value, onChange, onImageUploaded, disabled
           </Tooltip>
         </div>
 
-        <Divider type="vertical" className={styles.toolbarDivider} />
+        <Divider orientation="vertical" className={styles.toolbarDivider} />
 
         <Upload
           accept="image/*"
@@ -292,7 +293,7 @@ export function LectureTiptapEditor({ value, onChange, onImageUploaded, disabled
           </Button>
         </Upload>
 
-        <Divider type="vertical" className={styles.toolbarDivider} />
+        <Divider orientation="vertical" className={styles.toolbarDivider} />
 
         <Select
           size="small"
@@ -308,7 +309,7 @@ export function LectureTiptapEditor({ value, onChange, onImageUploaded, disabled
           ]}
         />
 
-        <Divider type="vertical" className={styles.toolbarDivider} />
+        <Divider orientation="vertical" className={styles.toolbarDivider} />
 
         <div className={styles.toolbarGroup}>
           <Tooltip title="Đậm">
@@ -349,7 +350,7 @@ export function LectureTiptapEditor({ value, onChange, onImageUploaded, disabled
           </Tooltip>
         </div>
 
-        <Divider type="vertical" className={styles.toolbarDivider} />
+        <Divider orientation="vertical" className={styles.toolbarDivider} />
 
         <div className={styles.toolbarGroup}>
           <Tooltip title="Danh sách dấu đầu dòng">
@@ -390,7 +391,7 @@ export function LectureTiptapEditor({ value, onChange, onImageUploaded, disabled
           </Tooltip>
         </div>
 
-        <Divider type="vertical" className={styles.toolbarDivider} />
+        <Divider orientation="vertical" className={styles.toolbarDivider} />
 
         <div className={styles.toolbarGroup}>
           <Tooltip title={imageSelected ? 'Ảnh trái — chữ ôm phải (gõ ở đoạn sau ảnh)' : 'Căn trái'}>
@@ -422,7 +423,7 @@ export function LectureTiptapEditor({ value, onChange, onImageUploaded, disabled
           </Tooltip>
         </div>
 
-        <Divider type="vertical" className={styles.toolbarDivider} />
+        <Divider orientation="vertical" className={styles.toolbarDivider} />
 
         <div className={styles.toolbarGroup}>
           <Tooltip title="Chèn / sửa liên kết">

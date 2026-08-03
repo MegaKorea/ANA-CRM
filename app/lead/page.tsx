@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
-import { App, Table, Button, Space, Row, Col, Form, Typography, List, Tabs } from 'antd';
+import { Suspense, useState, useMemo, useCallback, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { App, Table, Button, Space, Row, Col, Form, Typography, Empty, Pagination, Spin, Tabs } from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import type { Lead } from '@/lib/services/lead.service';
 import type { CreateLeadInput, UpdateLeadInput } from '@/lib/validators/lead.validator';
-import { useLeads, useCreateLead, useUpdateLead, useDeleteLead } from '@/lib/hooks/use-leads';
+import { useLeads, useLead, useCreateLead, useUpdateLead, useDeleteLead } from '@/lib/hooks/use-leads';
+import { useLeadModal } from '@/lib/hooks/use-lead-modal';
 import {
   LeadPageGap,
   LeadPageText,
@@ -72,34 +74,46 @@ const PaymentHistoryModal = dynamic(
 );
 
 export default function LeadPage() {
+  return (
+    <Suspense fallback={null}>
+      <LeadPageContent />
+    </Suspense>
+  );
+}
+
+function LeadPageContent() {
   const { message } = App.useApp();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [form] = Form.useForm<LeadFormValues>();
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [detailLead, setDetailLead] = useState<Lead | null>(null);
+  const detailModal = useLeadModal();
 
-  const [isNoteAddModalOpen, setIsNoteAddModalOpen] = useState(false);
-  const [noteAddLead, setNoteAddLead] = useState<Lead | null>(null);
-  const [isNoteHistoryModalOpen, setIsNoteHistoryModalOpen] = useState(false);
-  const [noteHistoryLead, setNoteHistoryLead] = useState<Lead | null>(null);
+  const highlightParam = searchParams.get('highlight');
+  const highlightId = highlightParam ? Number(highlightParam) : null;
+  const { data: highlightedLead } = useLead(
+    highlightId != null && !Number.isNaN(highlightId) ? highlightId : null,
+  );
+  const [appliedHighlightId, setAppliedHighlightId] = useState<number | null>(null);
+  if (highlightedLead && highlightedLead.id !== appliedHighlightId) {
+    setAppliedHighlightId(highlightedLead.id);
+    detailModal.openModal(highlightedLead);
+  }
+  useEffect(() => {
+    if (appliedHighlightId != null) {
+      router.replace('/lead', { scroll: false });
+    }
+  }, [appliedHighlightId, router]);
 
-  const [isImagesModalOpen, setIsImagesModalOpen] = useState(false);
-  const [imagesLead, setImagesLead] = useState<Lead | null>(null);
-
-  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
-  const [attendanceLead, setAttendanceLead] = useState<Lead | null>(null);
-
-  const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
-  const [appointmentLead, setAppointmentLead] = useState<Lead | null>(null);
-
-  const [isConversationModalOpen, setIsConversationModalOpen] = useState(false);
-  const [conversationLead, setConversationLead] = useState<Lead | null>(null);
-
-  const [isPaymentTicketModalOpen, setIsPaymentTicketModalOpen] = useState(false);
-  const [paymentTicketLead, setPaymentTicketLead] = useState<Lead | null>(null);
-  const [isPaymentHistoryModalOpen, setIsPaymentHistoryModalOpen] = useState(false);
-  const [paymentHistoryLead, setPaymentHistoryLead] = useState<Lead | null>(null);
+  const noteAddModal = useLeadModal();
+  const noteHistoryModal = useLeadModal();
+  const imagesModal = useLeadModal();
+  const attendanceModal = useLeadModal();
+  const appointmentModal = useLeadModal();
+  const conversationModal = useLeadModal();
+  const paymentTicketModal = useLeadModal();
+  const paymentHistoryModal = useLeadModal();
 
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus | undefined>(undefined);
@@ -288,110 +302,20 @@ export default function LeadPage() {
       .catch(handleError);
   }, [refetch, handleError, message]);
 
-  const handleOpenDetailModal = useCallback((lead: Lead) => {
-    setDetailLead(lead);
-    setIsDetailModalOpen(true);
-  }, []);
-
-  const handleCloseDetailModal = useCallback(() => {
-    setIsDetailModalOpen(false);
-    setDetailLead(null);
-  }, []);
-
-  const handleOpenNoteAddModal = useCallback((lead: Lead) => {
-    setNoteAddLead(lead);
-    setIsNoteAddModalOpen(true);
-  }, []);
-
-  const handleCloseNoteAddModal = useCallback(() => {
-    setIsNoteAddModalOpen(false);
-    setNoteAddLead(null);
-  }, []);
-
-  const handleOpenNoteHistoryModal = useCallback((lead: Lead) => {
-    setNoteHistoryLead(lead);
-    setIsNoteHistoryModalOpen(true);
-  }, []);
-
-  const handleCloseNoteHistoryModal = useCallback(() => {
-    setIsNoteHistoryModalOpen(false);
-    setNoteHistoryLead(null);
-  }, []);
-
-  const handleOpenImagesModal = useCallback((lead: Lead) => {
-    setImagesLead(lead);
-    setIsImagesModalOpen(true);
-  }, []);
-
-  const handleCloseImagesModal = useCallback(() => {
-    setIsImagesModalOpen(false);
-    setImagesLead(null);
-  }, []);
-
-  const handleOpenAttendanceModal = useCallback((lead: Lead) => {
-    setAttendanceLead(lead);
-    setIsAttendanceModalOpen(true);
-  }, []);
-
-  const handleOpenAppointmentModal = useCallback((lead: Lead) => {
-    setAppointmentLead(lead);
-    setIsAppointmentModalOpen(true);
-  }, []);
-
-  const handleCloseAppointmentModal = useCallback(() => {
-    setIsAppointmentModalOpen(false);
-    setAppointmentLead(null);
-  }, []);
-
-  const handleCloseAttendanceModal = useCallback(() => {
-    setIsAttendanceModalOpen(false);
-    setAttendanceLead(null);
-  }, []);
-
-  const handleOpenConversationModal = useCallback((lead: Lead) => {
-    setConversationLead(lead);
-    setIsConversationModalOpen(true);
-  }, []);
-
-  const handleCloseConversationModal = useCallback(() => {
-    setIsConversationModalOpen(false);
-    setConversationLead(null);
-  }, []);
-
-  const handleOpenPaymentTicketModal = useCallback((lead: Lead) => {
-    setPaymentTicketLead(lead);
-    setIsPaymentTicketModalOpen(true);
-  }, []);
-
-  const handleClosePaymentTicketModal = useCallback(() => {
-    setIsPaymentTicketModalOpen(false);
-    setPaymentTicketLead(null);
-  }, []);
-
-  const handleOpenPaymentHistoryModal = useCallback((lead: Lead) => {
-    setPaymentHistoryLead(lead);
-    setIsPaymentHistoryModalOpen(true);
-  }, []);
-
-  const handleClosePaymentHistoryModal = useCallback(() => {
-    setIsPaymentHistoryModalOpen(false);
-    setPaymentHistoryLead(null);
-  }, []);
-
   const columns = useMemo(
     () =>
       getLeadTableColumns({
         handleOpenModal,
         handleDelete,
-        handleOpenDetailModal,
-        handleOpenNoteAddModal,
-        handleOpenNoteHistoryModal,
-        handleOpenImagesModal,
-        handleOpenAttendanceModal,
-        handleOpenAppointmentModal,
-        handleOpenConversationModal,
-        handleOpenPaymentTicketModal,
-        handleOpenPaymentHistoryModal,
+        handleOpenDetailModal: detailModal.openModal,
+        handleOpenNoteAddModal: noteAddModal.openModal,
+        handleOpenNoteHistoryModal: noteHistoryModal.openModal,
+        handleOpenImagesModal: imagesModal.openModal,
+        handleOpenAttendanceModal: attendanceModal.openModal,
+        handleOpenAppointmentModal: appointmentModal.openModal,
+        handleOpenConversationModal: conversationModal.openModal,
+        handleOpenPaymentTicketModal: paymentTicketModal.openModal,
+        handleOpenPaymentHistoryModal: paymentHistoryModal.openModal,
         courses,
         paymentCounts: paymentCounts ?? {},
       }).map((col: any) => ({
@@ -404,15 +328,15 @@ export default function LeadPage() {
     [
       handleOpenModal,
       handleDelete,
-      handleOpenDetailModal,
-      handleOpenNoteAddModal,
-      handleOpenNoteHistoryModal,
-      handleOpenImagesModal,
-      handleOpenAttendanceModal,
-      handleOpenAppointmentModal,
-      handleOpenConversationModal,
-      handleOpenPaymentTicketModal,
-      handleOpenPaymentHistoryModal,
+      detailModal.openModal,
+      noteAddModal.openModal,
+      noteHistoryModal.openModal,
+      imagesModal.openModal,
+      attendanceModal.openModal,
+      appointmentModal.openModal,
+      conversationModal.openModal,
+      paymentTicketModal.openModal,
+      paymentHistoryModal.openModal,
       courses,
       paymentCounts,
     ],
@@ -491,37 +415,44 @@ export default function LeadPage() {
                         className="minimal-table"
                       />
                     ) : (
-                      <List
-                        grid={{ gutter: 16, column: 1 }}
-                        dataSource={leads}
-                        loading={isLoading}
-                        pagination={{
-                          current: currentPage,
-                          pageSize: pageSize,
-                          total: total,
-                          size: 'small',
-                          align: 'center',
-                          onChange: (page, size) => {
-                            setCurrentPage(page);
-                            setPageSize(size);
-                          },
-                        }}
-                        renderItem={(lead) => (
-                          <List.Item>
+                      isLoading ? (
+                        <div style={{ padding: 24, textAlign: 'center' }}><Spin /></div>
+                      ) : leads.length === 0 ? (
+                        <Empty description="Không có dữ liệu" />
+                      ) : (
+                        <>
+                          <div role="list" style={{ display: 'grid', gap: 16 }}>
+                            {leads.map((lead) => (
+                          <div role="listitem" key={lead.id}>
                             <LeadMobileCard
                               lead={lead}
                               courses={courses || []}
-                              onOpenDetail={handleOpenDetailModal}
+                              onOpenDetail={detailModal.openModal}
                               onOpenModal={handleOpenModal}
-                              onOpenNoteAdd={handleOpenNoteAddModal}
-                              onOpenNoteHistory={handleOpenNoteHistoryModal}
-                              onOpenImages={handleOpenImagesModal}
-                              onOpenAttendance={handleOpenAttendanceModal}
+                              onOpenNoteAdd={noteAddModal.openModal}
+                              onOpenNoteHistory={noteHistoryModal.openModal}
+                              onOpenImages={imagesModal.openModal}
+                              onOpenAttendance={attendanceModal.openModal}
                               onDelete={handleDelete}
                             />
-                          </List.Item>
-                        )}
-                      />
+                          </div>
+                            ))}
+                          </div>
+                          <Pagination
+                            current={currentPage}
+                            pageSize={pageSize}
+                            total={total}
+                            size="small"
+                            align="center"
+                            showSizeChanger
+                            onChange={(page, size) => {
+                              setCurrentPage(page);
+                              setPageSize(size);
+                            }}
+                            style={{ marginTop: 16 }}
+                          />
+                        </>
+                      )
                     )}
                   </Col>
                 </Row>
@@ -546,60 +477,60 @@ export default function LeadPage() {
       />
 
       <LeadDetailModal
-        open={isDetailModalOpen}
-        lead={detailLead}
-        onClose={handleCloseDetailModal}
+        open={detailModal.open}
+        lead={detailModal.lead}
+        onClose={detailModal.closeModal}
       />
 
       <NoteAddModal
-        open={isNoteAddModalOpen}
-        lead={noteAddLead}
-        onClose={handleCloseNoteAddModal}
+        open={noteAddModal.open}
+        lead={noteAddModal.lead}
+        onClose={noteAddModal.closeModal}
       />
 
       <NoteHistoryModal
-        open={isNoteHistoryModalOpen}
-        lead={noteHistoryLead}
-        onClose={handleCloseNoteHistoryModal}
+        open={noteHistoryModal.open}
+        lead={noteHistoryModal.lead}
+        onClose={noteHistoryModal.closeModal}
       />
 
       <LeadImagesModal
-        open={isImagesModalOpen}
-        lead={imagesLead}
-        onClose={handleCloseImagesModal}
+        open={imagesModal.open}
+        lead={imagesModal.lead}
+        onClose={imagesModal.closeModal}
       />
 
       <AttendanceModal
-        open={isAttendanceModalOpen}
-        lead={attendanceLead}
-        onClose={handleCloseAttendanceModal}
+        open={attendanceModal.open}
+        lead={attendanceModal.lead}
+        onClose={attendanceModal.closeModal}
       />
 
       <AppointmentModal
-        open={isAppointmentModalOpen}
-        leadId={appointmentLead?.id}
-        leadName={appointmentLead?.full_name}
-        onClose={handleCloseAppointmentModal}
+        open={appointmentModal.open}
+        leadId={appointmentModal.lead?.id}
+        leadName={appointmentModal.lead?.full_name}
+        onClose={appointmentModal.closeModal}
       />
 
-      {conversationLead && hasSmaxConversation(conversationLead.smax_log) && (
+      {conversationModal.lead && hasSmaxConversation(conversationModal.lead.smax_log) && (
         <ConversationModal
-          smaxLog={conversationLead.smax_log}
-          open={isConversationModalOpen}
-          onCancel={handleCloseConversationModal}
+          smaxLog={conversationModal.lead.smax_log}
+          open={conversationModal.open}
+          onCancel={conversationModal.closeModal}
         />
       )}
 
       <PaymentTicketModal
-        open={isPaymentTicketModalOpen}
-        lead={paymentTicketLead}
-        onClose={handleClosePaymentTicketModal}
+        open={paymentTicketModal.open}
+        lead={paymentTicketModal.lead}
+        onClose={paymentTicketModal.closeModal}
       />
 
       <PaymentHistoryModal
-        open={isPaymentHistoryModalOpen}
-        lead={paymentHistoryLead}
-        onClose={handleClosePaymentHistoryModal}
+        open={paymentHistoryModal.open}
+        lead={paymentHistoryModal.lead}
+        onClose={paymentHistoryModal.closeModal}
       />
     </div>
   );

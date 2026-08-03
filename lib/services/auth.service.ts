@@ -105,12 +105,12 @@ export async function loginWithEmailAndPassword(
 export async function getCurrentUser(): Promise<CurrentUser> {
   const supabase = await createClient();
 
-  const {
-    data: { user: authUser },
-    error: authError,
-  } = await supabase.auth.getUser();
+  // getClaims verifies the signed JWT (locally when JWKS is available), avoiding
+  // the extra Auth-server round trip performed by getUser on every API request.
+  const { data: claimsData, error: authError } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims?.sub;
 
-  if (authError || !authUser) {
+  if (authError || !userId) {
     throw new AppError(
       AuthErrorCode.UNAUTHORIZED,
       HttpStatusCode.UNAUTHORIZED
@@ -121,7 +121,7 @@ export async function getCurrentUser(): Promise<CurrentUser> {
   const { data: userData } = await adminClient
     .from('users')
     .select('id, email, full_name, status, lead_id, phone, roles(code)')
-    .eq('id', authUser.id)
+    .eq('id', userId)
     .maybeSingle() as { data: UserData | null, error: any };
 
   if (userData) {

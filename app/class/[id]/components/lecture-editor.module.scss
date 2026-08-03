@@ -54,7 +54,7 @@
 .panel {
   background: var(--bg-surface);
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xs);
 }
 
@@ -65,7 +65,7 @@
 .titleInput {
   width: 100%;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-lg);
   padding: 10px 12px;
   font-size: 1.35rem;
   font-weight: 400;
@@ -195,7 +195,7 @@
 
 .tiptapShell {
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-lg);
   background: var(--bg-surface);
   overflow: hidden;
 }

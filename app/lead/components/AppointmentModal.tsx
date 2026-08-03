@@ -8,7 +8,6 @@ import {
   Empty,
   Form,
   Input,
-  List,
   Modal,
   Popconfirm,
   Select,
@@ -195,23 +194,51 @@ export default function AppointmentModal({
       ) : sorted.length === 0 ? (
         <Empty description="Chưa có lịch hẹn nào" image={Empty.PRESENTED_IMAGE_SIMPLE} />
       ) : (
-        <List
-          dataSource={sorted}
-          rowKey={(item) => item.id}
-          renderItem={(item) => {
-            return (
-              <List.Item
-                actions={[
+        <div role="list">
+          {sorted.map((item) => (
+              <div
+                role="listitem"
+                key={item.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '12px 0',
+                  borderBlockEnd: '1px solid var(--ant-color-split, rgba(5, 5, 5, 0.06))',
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Space>
+                    <Text delete={item.attendance_status === AttendanceStatus.NO_SHOW}>
+                      {new Date(item.appointment_date).toLocaleString(DateLocale.VIET_NAM)}
+                    </Text>
+                    <Tag color={attendanceColor(item.attendance_status)}>
+                      {ATTENDANCE_OPTIONS.find((o) => o.value === item.attendance_status)?.label}
+                    </Tag>
+                  </Space>
+                  <Space size="small" wrap style={{ display: 'flex', marginTop: 4 }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      <BellOutlined />{' '}
+                      {REMIND_OPTIONS.find((o) => o.value === item.remind_before_min)?.label ??
+                        `Trước ${item.remind_before_min} phút`}
+                    </Text>
+                    {(item.reminder_sent_at || item.pushed_at) && (
+                      <Tag color="default" style={{ fontSize: 11 }}>
+                        đã nhắc
+                      </Tag>
+                    )}
+                    {item.note && <Text type="secondary">· {item.note}</Text>}
+                  </Space>
+                </div>
+                <Space size="small">
                   <Select
-                    key="status"
                     size="small"
                     value={item.attendance_status}
                     options={ATTENDANCE_OPTIONS}
                     style={{ width: 110 }}
                     onChange={(value) => handleChangeAttendance(item, value)}
-                  />,
+                  />
                   <Popconfirm
-                    key="delete"
                     title="Xóa lịch hẹn này?"
                     okText="Xóa"
                     cancelText="Hủy"
@@ -219,40 +246,11 @@ export default function AppointmentModal({
                     onConfirm={() => handleDelete(item)}
                   >
                     <Button size="small" type="text" danger icon={<DeleteOutlined />} />
-                  </Popconfirm>,
-                ]}
-              >
-                <List.Item.Meta
-                  title={
-                    <Space>
-                      <Text delete={item.attendance_status === AttendanceStatus.NO_SHOW}>
-                        {new Date(item.appointment_date).toLocaleString(DateLocale.VIET_NAM)}
-                      </Text>
-                      <Tag color={attendanceColor(item.attendance_status)}>
-                        {ATTENDANCE_OPTIONS.find((o) => o.value === item.attendance_status)?.label}
-                      </Tag>
-                    </Space>
-                  }
-                  description={
-                    <Space size="small" wrap>
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        <BellOutlined />{' '}
-                        {REMIND_OPTIONS.find((o) => o.value === item.remind_before_min)?.label ??
-                          `Trước ${item.remind_before_min} phút`}
-                      </Text>
-                      {(item.reminder_sent_at || item.pushed_at) && (
-                        <Tag color="default" style={{ fontSize: 11 }}>
-                          đã nhắc
-                        </Tag>
-                      )}
-                      {item.note && <Text type="secondary">· {item.note}</Text>}
-                    </Space>
-                  }
-                />
-              </List.Item>
-            );
-          }}
-        />
+                  </Popconfirm>
+                </Space>
+              </div>
+          ))}
+        </div>
       )}
     </Modal>
   );

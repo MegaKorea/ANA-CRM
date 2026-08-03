@@ -299,8 +299,7 @@ export default function LeadFormPage() {
                   placeholder="Chọn năm sinh"
                   size="large"
                   allowClear
-                  showSearch
-                  optionFilterProp="label"
+                  showSearch={{ optionFilterProp: 'label' }}
                   options={YEAR_OPTIONS}
                 />
               </Form.Item>

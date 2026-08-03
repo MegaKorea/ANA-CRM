@@ -3,13 +3,13 @@
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  App,
   Breadcrumb,
   Button,
   Input,
   Result,
   Spin,
   Typography,
-  message,
 } from 'antd';
 import { HomeOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -155,6 +155,7 @@ function flushLectureBeacon(opts: {
 }
 
 export function LectureEditorPage({ mode, classId, sessionId, lectureId }: Props) {
+  const { message } = App.useApp();
   const router = useRouter();
   const searchParams = useSearchParams();
   const dateQuery = searchParams.get('date');
@@ -200,13 +201,13 @@ export function LectureEditorPage({ mode, classId, sessionId, lectureId }: Props
     setHydrated(true);
   }, [mode, lecturesLoading, existing]);
 
-  const scheduleHref = useMemo(() => {
+  const scheduleHref = (() => {
     const params = new URLSearchParams();
     params.set('tab', 'schedule');
     if (dateQuery) params.set('date', dateQuery);
     else if (session?.date) params.set('date', session.date);
     return `/class/${classId}?${params.toString()}`;
-  }, [classId, dateQuery, session?.date]);
+  })();
 
   const goBack = useCallback(() => {
     router.push(scheduleHref);
@@ -330,7 +331,7 @@ export function LectureEditorPage({ mode, classId, sessionId, lectureId }: Props
         },
       ];
     });
-  }, []);
+  }, [setAttachments]);
 
   const saving = createLecture.isPending || updateLecture.isPending;
 
@@ -368,6 +369,7 @@ export function LectureEditorPage({ mode, classId, sessionId, lectureId }: Props
     updateLecture,
     createLecture,
     goBack,
+    message,
   ]);
 
   const leaveTo = useCallback(
@@ -426,6 +428,7 @@ export function LectureEditorPage({ mode, classId, sessionId, lectureId }: Props
       sessionId,
       updateLecture,
       createLecture,
+      message,
     ],
   );
 

@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse, type NextRequest } from 'next/server';
 import { PUBLIC_ROUTES, AUTH_ROUTES, DEFAULT_AUTHENTICATED_ROUTE } from '@/constants/routes';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 function isPublicRoute(pathname: string): boolean {
   return PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
@@ -51,8 +52,23 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const isAuthenticated = !!authUser;
-  const isStudentAuthenticated = isAuthenticated && authUser?.user_metadata?.role === 'STU';
-  const isAdminAuthenticated = isAuthenticated && authUser?.user_metadata?.role !== 'STU';
+
+  let roleCode: string | undefined;
+  if (isAuthenticated) {
+    const admin = createAdminClient();
+    const { data: profile } = await admin
+      .from('users')
+      .select('roles(code)')
+      .eq('id', authUser.id)
+      .maybeSingle();
+    roleCode = (profile as { roles?: { code?: string } | null } | null)?.roles?.code;
+  }
+  // Fail closed: if the role lookup errored or the profile row is missing,
+  // `roleCode` stays undefined — treat that as neither student nor staff
+  // rather than defaulting to staff access (`roleCode !== 'STU'` would
+  // otherwise be true for `undefined`).
+  const isStudentAuthenticated = isAuthenticated && roleCode === 'STU';
+  const isAdminAuthenticated = isAuthenticated && roleCode != null && roleCode !== 'STU';
 
   const isPublic = isPublicRoute(pathname);
   const isAuth = isAuthRoute(pathname);
@@ -65,15 +81,23 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Student API allowlist: student portal, auth, QR attendance + đọc lịch lớp
+
     const studentApiAllowed =
       pathname.startsWith('/api/student') ||
       pathname.startsWith('/api/auth') ||
       pathname.startsWith('/api/attendance/qr') ||
+      pathname.startsWith('/api/notifications') ||
+      pathname === '/api/push/subscribe' ||
+      pathname === '/api/push/unsubscribe' ||
+      /^\/api\/classes\/sessions\/[^/]+\/quizzes(\/.*)?$/.test(pathname) ||
+      /^\/api\/classes\/sessions\/[^/]+\/lectures(\/.*)?$/.test(pathname) ||
+      /^\/api\/classes\/sessions\/[^/]+\/seen$/.test(pathname) ||
       (request.method === 'GET' &&
-        (/^\/api\/classes\/[^/]+$/.test(pathname) ||
+        (pathname === '/api/classes' ||
+          /^\/api\/classes\/[^/]+$/.test(pathname) ||
           /^\/api\/classes\/[^/]+\/sessions$/.test(pathname) ||
           /^\/api\/classes\/[^/]+\/students$/.test(pathname) ||
+          /^\/api\/classes\/[^/]+\/subject-teachers$/.test(pathname) ||
           pathname === '/api/courses'));
 
     if (isStudentAuthenticated && !studentApiAllowed) {
@@ -119,7 +143,6 @@ export async function updateSession(request: NextRequest) {
 
   // Handle Protected Admin Routes
   if (!isStudentRoute && !isAdminAuthenticated && !isPublic && !isApiRoute) {
-    // STU: khóa học, lớp (lịch), điểm danh QR
     if (
       isStudentAuthenticated &&
       (pathname.startsWith('/attendance/qr') ||
@@ -128,7 +151,6 @@ export async function updateSession(request: NextRequest) {
     ) {
       return supabaseResponse;
     }
-    // STU hitting dashboard `/` or other staff pages → home course, not login
     if (isStudentAuthenticated) {
       const url = request.nextUrl.clone();
       url.pathname = '/course';

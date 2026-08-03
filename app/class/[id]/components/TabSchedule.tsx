@@ -1,8 +1,8 @@
 'use client';
 
 import {
-  Typography, Button, Modal, Calendar,
-  message, Empty,
+  App, Typography, Button, Calendar,
+  Empty,
 } from 'antd';
 import type { CalendarProps } from 'antd';
 import { ClockCircleOutlined, SyncOutlined, ScanOutlined } from '@ant-design/icons';
@@ -47,6 +47,7 @@ dayjs.locale('vi');
 const STAFF_ROLES = ['ADMIN', 'AO', 'TEA'] as const;
 
 export function TabSchedule({ classData }: { classData: Class }) {
+  const { message, modal } = App.useApp();
   const { hasPermission: canManage, isLoading: authLoading } = useAuthPermission([...STAFF_ROLES]);
   const { hasPermission: canEditLectures } = useAuthPermission([ClassMemberRole.TEA]);
   const { hasPermission: canTakeQuizzes } = useAuthPermission([ClassMemberRole.STU]);
@@ -162,7 +163,7 @@ export function TabSchedule({ classData }: { classData: Class }) {
       return;
     }
 
-    Modal.confirm({
+    modal.confirm({
       title: 'Tạo lịch học tự động?',
       content: hasSessions
         ? 'Hành động này sẽ xoá toàn bộ lịch cũ và tạo lại. Dữ liệu điểm danh cũng sẽ bị xoá. Bạn chắc chắn?'
@@ -184,7 +185,7 @@ export function TabSchedule({ classData }: { classData: Class }) {
         }
       },
     });
-  }, [classData, classId, generateSessions, hasSessions, resetToToday]);
+  }, [classData, classId, generateSessions, hasSessions, message, modal, resetToToday]);
 
   const handleSaveSession = useCallback(async (values: EditSessionValues) => {
     if (!editSession) return;
@@ -195,7 +196,7 @@ export function TabSchedule({ classData }: { classData: Class }) {
     } catch (e: unknown) {
       message.error(getErrorMessage(e, 'Cập nhật thất bại.'));
     }
-  }, [editSession, updateSession]);
+  }, [editSession, message, updateSession]);
 
   const handleSaveAttendances = useCallback(async (records: AttendanceRecord[]) => {
     if (!attendanceSession) return;
@@ -206,7 +207,7 @@ export function TabSchedule({ classData }: { classData: Class }) {
     } catch (e: unknown) {
       message.error(getErrorMessage(e, 'Lưu điểm danh thất bại.'));
     }
-  }, [attendanceSession, bulkUpsert]);
+  }, [attendanceSession, bulkUpsert, message]);
 
   const handleGenerateQr = useCallback(async (session: ClassSession) => {
     try {
@@ -215,7 +216,7 @@ export function TabSchedule({ classData }: { classData: Class }) {
     } catch (e: unknown) {
       message.error(getErrorMessage(e, 'Tạo mã QR thất bại.'));
     }
-  }, [generateQr]);
+  }, [generateQr, message]);
 
   const onSelectDate = useCallback((value: Dayjs) => {
     setActiveDate(value);

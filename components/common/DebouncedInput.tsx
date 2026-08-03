@@ -11,7 +11,7 @@ type DebouncedInputProps = Omit<InputProps, 'onChange'> & {
 
 export function DebouncedInput({ onChange, delay = 300, ...rest }: DebouncedInputProps) {
   const timerRef = useRef<number | null>(null);
-
+    
   const debouncedOnChange = useCallback(
     (nextValue: string) => {
       if (timerRef.current) {

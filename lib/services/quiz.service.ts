@@ -18,6 +18,7 @@ import {
   type QuizQuestion,
   type QuizUpdateInput,
 } from '@/lib/types/quiz';
+import { deleteQuizNotificationsSafe } from '@/lib/services/user-notification.service';
 
 function mapQuiz(row: Record<string, unknown>): Quiz {
   return {
@@ -41,7 +42,7 @@ function mapAttempt(row: Record<string, unknown>): QuizAttempt {
     typeof row.submitted_at === 'string' && row.submitted_at ? row.submitted_at : null;
   const startedRaw =
     typeof row.started_at === 'string' && row.started_at ? row.started_at : null;
-  // Until a dedicated started_at column exists, IN_PROGRESS rows store the clock in submitted_at.
+    
   const started_at =
     startedRaw ?? (status === QuizAttemptStatus.IN_PROGRESS ? submittedRaw : null);
   const submitted_at = status === QuizAttemptStatus.COMPLETED ? submittedRaw : null;
@@ -163,7 +164,11 @@ export async function listSessionQuizzes(
 
 export async function getQuizById(quizId: string): Promise<Quiz> {
   const supabase = createAdminClient();
-  const { data, error } = await supabase.from('quizzes').select('*').eq('id', quizId).single();
+  const { data, error } = await supabase
+    .from('quizzes')
+    .select('*')
+    .eq('id', quizId)
+    .maybeSingle();
   throwIfSupabaseError(error, QuizErrorCode.NOT_FOUND);
   if (!data) fail(QuizErrorCode.NOT_FOUND, HttpStatusCode.NOT_FOUND);
   return mapQuiz(data as unknown as Record<string, unknown>);
@@ -234,6 +239,9 @@ export async function updateSessionQuiz(
     fail(QuizErrorCode.NOT_FOUND, HttpStatusCode.NOT_FOUND);
   }
   const quiz = mapQuiz(data[0] as unknown as Record<string, unknown>);
+  if (!quiz.is_published) {
+    await deleteQuizNotificationsSafe(quizId);
+  }
   await syncSessionHasQuiz(sessionId);
   return quiz;
 }
@@ -246,6 +254,7 @@ export async function deleteSessionQuiz(quizId: string, sessionId: string): Prom
     .eq('id', quizId)
     .eq('session_id', sessionId);
   throwIfSupabaseError(error, QuizErrorCode.DELETE_FAILED);
+  await deleteQuizNotificationsSafe(quizId);
   await syncSessionHasQuiz(sessionId);
 }
 

@@ -4,7 +4,7 @@ import { validateCreateCourseInput } from '@/lib/validators/course.validator';
 import { HttpStatusCode } from '@/constants/enums';
 import { createClient } from '@/lib/supabase/server';
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
+export async function GET(): Promise<NextResponse> {
     try {
         const supabase = await createClient();
         const {

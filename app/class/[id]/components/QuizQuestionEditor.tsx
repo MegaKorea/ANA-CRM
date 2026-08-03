@@ -40,15 +40,15 @@ type Props = {
   field: FormListFieldData;
   questionIndex: number;
   form: FormInstance<QuizFormValues>;
-  uploadingQuestionIndex: number | null;
-  uploadQuestionImage: (questionIndex: number) => UploadProps;
+  uploadingQuestionId: string | null;
+  uploadQuestionImage: (questionId: string) => UploadProps;
 };
 
 export function QuizQuestionEditor({
   field,
   questionIndex,
   form,
-  uploadingQuestionIndex,
+  uploadingQuestionId,
   uploadQuestionImage,
 }: Props) {
   return (
@@ -81,26 +81,22 @@ export function QuizQuestionEditor({
       <Form.Item shouldUpdate noStyle>
         {() => {
           const questions = form.getFieldValue('questions') as QuizQuestionForm[];
+          const questionId = questions?.[questionIndex]?.id;
           const imageUrls = questions?.[questionIndex]?.image_urls ?? [];
           const canAddMore = imageUrls.length < QuizLimit.MAX_IMAGES_PER_QUESTION;
+          const isUploadingThis = !!questionId && uploadingQuestionId === questionId;
           return (
             <div className={styles.imagesBlock}>
               <div className={styles.imagesHead}>
                 <span>Ảnh (tuỳ chọn)</span>
-                <Upload {...uploadQuestionImage(questionIndex)}>
+                <Upload {...uploadQuestionImage(questionId ?? '')}>
                   <Button
                     type="link"
                     size="small"
-                    icon={
-                      uploadingQuestionIndex === questionIndex ? (
-                        <LoadingOutlined />
-                      ) : (
-                        <UploadOutlined />
-                      )
-                    }
-                    disabled={uploadingQuestionIndex !== null || !canAddMore}
+                    icon={isUploadingThis ? <LoadingOutlined /> : <UploadOutlined />}
+                    disabled={uploadingQuestionId !== null || !canAddMore}
                   >
-                    {uploadingQuestionIndex === questionIndex ? 'Đang tải…' : 'Thêm ảnh'}
+                    {isUploadingThis ? 'Đang tải…' : 'Thêm ảnh'}
                   </Button>
                 </Upload>
               </div>
@@ -194,10 +190,12 @@ export function QuizQuestionEditor({
                                 'questions',
                               ) as QuizQuestionForm[];
                               const current = latest[questionIndex];
-                              const options = current.options.filter(
-                                (_, index) => index !== optionField.name,
+                              syncQuizCorrectIds(
+                                form,
+                                questionIndex,
+                                current.options,
+                                current.type,
                               );
-                              syncQuizCorrectIds(form, questionIndex, options, current.type);
                             }}
                           />
                         ) : null}
@@ -227,7 +225,7 @@ export function QuizQuestionEditor({
                   ]}
                 >
                   <Checkbox.Group className={styles.options}>
-                    <Space direction="vertical">
+                    <Space orientation="vertical">
                       {(question.options ?? []).map((option) => (
                         <Checkbox key={option.id} value={option.id}>
                           {option.text || '(trống)'}
@@ -262,7 +260,7 @@ export function QuizQuestionEditor({
                   ]}
                 >
                   <Radio.Group className={styles.options}>
-                    <Space direction="vertical">
+                    <Space orientation="vertical">
                       {(question.options ?? []).map((option) => (
                         <Radio key={option.id} value={option.id}>
                           {option.text || '(trống)'}
