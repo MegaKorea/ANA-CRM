@@ -6,16 +6,14 @@ import { getCurrentUser } from '@/lib/services/auth.service';
 import { AppError } from '@/errors';
 import { SmaxCustomerStatType } from '@/constants/smax';
 import type { SmaxStatisticsApiResponse } from '@/lib/smax/types';
-
-const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+import { isIsoDate } from '@/lib/utils/vn-date';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     await getCurrentUser();
 
-    const { searchParams } = request.nextUrl;
-    const startDate = searchParams.get('startDate')?.trim();
-    const endDate = searchParams.get('endDate')?.trim();
+    const startDate = request.nextUrl.searchParams.get('startDate')?.trim() ?? '';
+    const endDate = request.nextUrl.searchParams.get('endDate')?.trim() ?? '';
 
     if (!startDate || !endDate) {
       throw new AppError(
@@ -25,7 +23,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    if (!ISO_DATE_RE.test(startDate) || !ISO_DATE_RE.test(endDate)) {
+    if (!isIsoDate(startDate) || !isIsoDate(endDate)) {
       throw new AppError(
         LeadErrorCode.BAD_REQUEST,
         HttpStatusCode.BAD_REQUEST,
@@ -33,7 +31,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // page_pids always come from server allowlist (SMAX_PAGE_PIDS), never from the client.
     const stats = await fetchSmaxCustomerStatistics({
       startDate,
       endDate,

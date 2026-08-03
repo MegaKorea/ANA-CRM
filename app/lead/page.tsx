@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { App, Table, Button, Space, Row, Col, Form, Typography, Empty, Pagination, Spin, Tabs } from 'antd';
+import { App, Table, Button, Space, Row, Col, Form, Typography, Empty, Pagination, Spin } from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import type { Lead } from '@/lib/services/lead.service';
@@ -23,7 +23,6 @@ import { useIsMobile } from '@/lib/hooks/use-mobile';
 import dynamic from 'next/dynamic';
 import { LeadFilters } from '@/app/lead/components/LeadFilters';
 import { LeadMobileCard } from '@/app/lead/components/LeadMobileCard';
-import { LeadStatistics } from '@/app/lead/components/LeadStatistics';
 import { usePaymentCounts } from '@/lib/hooks/use-payment-tickets';
 import { hasSmaxConversation } from '@/lib/smax/parse-smax-log';
 
@@ -371,101 +370,83 @@ function LeadPageContent() {
         </Col>
       </Row>
 
-      <Tabs
-        defaultActiveKey="list"
-        items={[
-          {
-            key: 'list',
-            label: 'Danh sách khách hàng',
-            children: (
-              <>
-                <LeadFilters
-                  onSearch={handleSearch}
-                  statusFilter={statusFilter}
-                  onStatusChange={handleStatusChange}
-                  sourceFilter={sourceFilter}
-                  onSourceChange={handleSourceChange}
-                  courseFilter={courseFilter}
-                  onCourseChange={handleCourseChange}
-                  createdAtRange={createdAtRange}
-                  onCreatedAtRangeChange={handleCreatedAtRangeChange}
-                  courses={courses || []}
-                />
-
-                <Row>
-                  <Col span={24}>
-                    {!isMobile ? (
-                        <Table<Lead>
-                        scroll={{ x: 'max-content' }}
-                        columns={columns}
-                        dataSource={leads}
-                        loading={isLoading}
-                        rowKey="id"
-                        pagination={{
-                          current: currentPage,
-                          pageSize: pageSize,
-                          total: total,
-                          showSizeChanger: true,
-                          onChange: (page, size) => {
-                            setCurrentPage(page);
-                            setPageSize(size);
-                          },
-                        }}
-                        bordered={false}
-                        className="minimal-table"
-                      />
-                    ) : (
-                      isLoading ? (
-                        <div style={{ padding: 24, textAlign: 'center' }}><Spin /></div>
-                      ) : leads.length === 0 ? (
-                        <Empty description="Không có dữ liệu" />
-                      ) : (
-                        <>
-                          <div role="list" style={{ display: 'grid', gap: 16 }}>
-                            {leads.map((lead) => (
-                          <div role="listitem" key={lead.id}>
-                            <LeadMobileCard
-                              lead={lead}
-                              courses={courses || []}
-                              onOpenDetail={detailModal.openModal}
-                              onOpenModal={handleOpenModal}
-                              onOpenNoteAdd={noteAddModal.openModal}
-                              onOpenNoteHistory={noteHistoryModal.openModal}
-                              onOpenImages={imagesModal.openModal}
-                              onOpenAttendance={attendanceModal.openModal}
-                              onDelete={handleDelete}
-                            />
-                          </div>
-                            ))}
-                          </div>
-                          <Pagination
-                            current={currentPage}
-                            pageSize={pageSize}
-                            total={total}
-                            size="small"
-                            align="center"
-                            showSizeChanger
-                            onChange={(page, size) => {
-                              setCurrentPage(page);
-                              setPageSize(size);
-                            }}
-                            style={{ marginTop: 16 }}
-                          />
-                        </>
-                      )
-                    )}
-                  </Col>
-                </Row>
-              </>
-            ),
-          },
-          {
-            key: 'stats',
-            label: 'Thống kê',
-            children: <LeadStatistics />,
-          },
-        ]}
+      <LeadFilters
+        onSearch={handleSearch}
+        statusFilter={statusFilter}
+        onStatusChange={handleStatusChange}
+        sourceFilter={sourceFilter}
+        onSourceChange={handleSourceChange}
+        courseFilter={courseFilter}
+        onCourseChange={handleCourseChange}
+        createdAtRange={createdAtRange}
+        onCreatedAtRangeChange={handleCreatedAtRangeChange}
+        courses={courses || []}
       />
+
+      <Row>
+        <Col span={24}>
+          {!isMobile ? (
+            <Table<Lead>
+              scroll={{ x: 'max-content' }}
+              columns={columns}
+              dataSource={leads}
+              loading={isLoading}
+              rowKey="id"
+              pagination={{
+                current: currentPage,
+                pageSize: pageSize,
+                total: total,
+                showSizeChanger: true,
+                onChange: (page, size) => {
+                  setCurrentPage(page);
+                  setPageSize(size);
+                },
+              }}
+              bordered={false}
+              className="minimal-table"
+            />
+          ) : isLoading ? (
+            <div style={{ padding: 24, textAlign: 'center' }}>
+              <Spin />
+            </div>
+          ) : leads.length === 0 ? (
+            <Empty description="Không có dữ liệu" />
+          ) : (
+            <>
+              <div role="list" style={{ display: 'grid', gap: 16 }}>
+                {leads.map((lead) => (
+                  <div role="listitem" key={lead.id}>
+                    <LeadMobileCard
+                      lead={lead}
+                      courses={courses || []}
+                      onOpenDetail={detailModal.openModal}
+                      onOpenModal={handleOpenModal}
+                      onOpenNoteAdd={noteAddModal.openModal}
+                      onOpenNoteHistory={noteHistoryModal.openModal}
+                      onOpenImages={imagesModal.openModal}
+                      onOpenAttendance={attendanceModal.openModal}
+                      onDelete={handleDelete}
+                    />
+                  </div>
+                ))}
+              </div>
+              <Pagination
+                current={currentPage}
+                pageSize={pageSize}
+                total={total}
+                size="small"
+                align="center"
+                showSizeChanger
+                onChange={(page, size) => {
+                  setCurrentPage(page);
+                  setPageSize(size);
+                }}
+                style={{ marginTop: 16 }}
+              />
+            </>
+          )}
+        </Col>
+      </Row>
 
       <LeadModal
         open={isModalOpen}

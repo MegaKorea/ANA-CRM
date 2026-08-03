@@ -1,0 +1,48 @@
+.mobileOnly {
+  display: block;
+}
+
+.desktopOnly {
+  display: none;
+}
+
+.body {
+  padding: 12px;
+}
+
+.dayList {
+  width: 100%;
+  max-width: 100%;
+}
+
+.dayItem {
+  margin-bottom: 10px;
+}
+
+.pager {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+  padding-top: 4px;
+}
+
+.footerHint {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .mobileOnly {
+    display: none;
+  }
+
+  .desktopOnly {
+    display: block;
+  }
+
+  .body {
+    padding: 24px;
+  }
+}

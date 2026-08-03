@@ -15,12 +15,7 @@ export interface LeadFunnelMetrics {
   overallConversionRate: number;
 }
 
-function safeRate(numerator: number, denominator: number): number | null {
-  if (denominator <= 0) return null;
-  return Math.round((numerator / denominator) * 1000) / 10;
-}
-
-export function buildLeadFunnelMetrics(input: {
+export type BuildLeadFunnelInput = {
   messages: number;
   data: number;
   appointments: number;
@@ -28,7 +23,21 @@ export function buildLeadFunnelMetrics(input: {
   messagesSource: FunnelStepSource;
   dataSource: FunnelStepSource;
   successSource: FunnelStepSource;
-}): LeadFunnelMetrics {
+};
+
+/** Percent to 1 decimal; null when denominator is 0. */
+export function percentRate(numerator: number, denominator: number): number | null {
+  if (denominator <= 0) return null;
+  return Math.round((numerator / denominator) * 1000) / 10;
+}
+
+/** % change vs previous period; 100 when previous was 0 and current > 0. */
+export function percentChange(current: number, previous: number): number | null {
+  if (previous <= 0) return current > 0 ? 100 : null;
+  return Math.round(((current - previous) / previous) * 1000) / 10;
+}
+
+export function buildLeadFunnelMetrics(input: BuildLeadFunnelInput): LeadFunnelMetrics {
   const messages = Math.max(0, input.messages);
   const data = Math.max(0, input.data);
   const appointments = Math.max(0, input.appointments);
@@ -46,27 +55,27 @@ export function buildLeadFunnelMetrics(input: {
       key: 'data',
       label: 'Data',
       value: data,
-      rateFromPrevious: safeRate(data, messages),
+      rateFromPrevious: percentRate(data, messages),
       source: input.dataSource,
     },
     {
       key: 'appointments',
       label: 'Đặt lịch hẹn',
       value: appointments,
-      rateFromPrevious: safeRate(appointments, data),
+      rateFromPrevious: percentRate(appointments, data),
       source: 'crm',
     },
     {
       key: 'success',
       label: 'Thành công',
       value: success,
-      rateFromPrevious: safeRate(success, appointments),
+      rateFromPrevious: percentRate(success, appointments),
       source: input.successSource,
     },
   ];
 
   return {
     steps,
-    overallConversionRate: safeRate(success, messages) ?? 0,
+    overallConversionRate: percentRate(success, messages) ?? 0,
   };
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, Col, Progress, Row, Space, Tag, Typography, theme } from 'antd';
+import { Card, Col, Row, Space, Tag, Typography, theme } from 'antd';
 import {
   CheckCircleOutlined,
   CalendarOutlined,
@@ -68,15 +68,11 @@ function FunnelBar({
           <Text strong style={{ fontSize: 16 }}>
             {step.value.toLocaleString('vi-VN')}
           </Text>
-          {step.rateFromPrevious != null ? (
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              CVR {formatRate(step.rateFromPrevious)}
-            </Text>
-          ) : (
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              Đầu phễu
-            </Text>
-          )}
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {step.key === 'messages'
+              ? 'Đầu phễu'
+              : `CVR ${formatRate(step.rateFromPrevious)}`}
+          </Text>
         </Space>
       </div>
       <div
@@ -149,38 +145,6 @@ export function LeadFunnelChart({ funnel, loading }: Props) {
           color={colors[index] ?? token.colorPrimary}
         />
       ))}
-
-      <Row gutter={[12, 12]} style={{ marginTop: 8 }}>
-        {funnel.steps.slice(1).map((step, index) => {
-          const prev = funnel.steps[index];
-          return (
-            <Col xs={24} sm={8} key={`rate-${step.key}`}>
-              <Card size="small" styles={{ body: { padding: 12 } }}>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  Tỷ lệ chuyển đổi
-                </Text>
-                <div style={{ marginTop: 2, marginBottom: 6 }}>
-                  <Text strong style={{ fontSize: 13 }}>
-                    {prev?.label} → {step.label}
-                  </Text>
-                </div>
-                <Progress
-                  percent={step.rateFromPrevious ?? 0}
-                  size="small"
-                  status={
-                    (step.rateFromPrevious ?? 0) >= 30
-                      ? 'success'
-                      : (step.rateFromPrevious ?? 0) >= 10
-                        ? 'normal'
-                        : 'exception'
-                  }
-                  format={(p) => `${p ?? 0}%`}
-                />
-              </Card>
-            </Col>
-          );
-        })}
-      </Row>
     </Card>
   );
 }

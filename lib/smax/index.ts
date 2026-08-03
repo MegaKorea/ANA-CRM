@@ -4,7 +4,10 @@ export {
   fetchSmaxCustomerStatistics,
 } from '@/lib/smax/smax.service';
 export { mapSmaxMessagesPayload } from '@/lib/smax/map-messages';
-export { mapSmaxCustomerStatistics } from '@/lib/smax/map-statistics';
+export {
+  mapSmaxCustomerStatistics,
+  resolveSmaxRegisteredTotal,
+} from '@/lib/smax/map-statistics';
 export type {
   SmaxLog,
   SmaxThreadRef,

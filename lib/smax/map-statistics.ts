@@ -15,6 +15,14 @@ function toNonNegativeInt(value: unknown): number | null {
   return null;
 }
 
+function firstPositiveInt(...values: unknown[]): number {
+  for (const value of values) {
+    const n = toNonNegativeInt(value);
+    if (n != null && n > 0) return n;
+  }
+  return toNonNegativeInt(values[0]) ?? 0;
+}
+
 function toCalendarDate(value: unknown): string | null {
   if (typeof value !== 'string' || !value.trim()) return null;
   const parsed = new Date(value);
@@ -41,7 +49,12 @@ function mapCalendars(raw: unknown): SmaxStatisticsCalendarDay[] {
       (toNonNegativeInt(day.interaction_message) ?? 0) +
       (toNonNegativeInt(day.interaction_comment) ?? 0);
     const leads = toNonNegativeInt(day.lead_total) ?? 0;
-    const orders = toNonNegativeInt(day.order_total) ?? 0;
+    const orders = firstPositiveInt(
+      day.order_total,
+      day.register_total,
+      day.registered_total,
+      day.customer_order_total,
+    );
 
     const existing = byDate.get(date);
     if (existing) {
@@ -57,15 +70,29 @@ function mapCalendars(raw: unknown): SmaxStatisticsCalendarDay[] {
   return [...byDate.values()].toSorted((a, b) => a.date.localeCompare(b.date));
 }
 
+export function resolveSmaxRegisteredTotal(data: Record<string, unknown>): number {
+  return firstPositiveInt(
+    data.customer_order_total,
+    data.customer_register_total,
+    data.customer_registered_total,
+    data.register_total,
+    data.registered_total,
+    data.order_total,
+  );
+}
+
 export function mapSmaxCustomerStatistics(payload: unknown): SmaxCustomerStatistics {
   const root = asRecord(payload);
   const data = asRecord(root?.data) ?? root ?? {};
+  const calendars = mapCalendars(data.calendars);
+  const ordersFromRange = resolveSmaxRegisteredTotal(data);
+  const ordersFromCalendars = calendars.reduce((acc, day) => acc + day.orders, 0);
 
   return {
     messages: toNonNegativeInt(data.customer_message_total) ?? 0,
     data: toNonNegativeInt(data.customer_lead_total) ?? 0,
-    orders: toNonNegativeInt(data.customer_order_total) ?? 0,
-    calendars: mapCalendars(data.calendars),
+    orders: ordersFromRange > 0 ? ordersFromRange : ordersFromCalendars,
+    calendars,
     raw: payload,
   };
 }
