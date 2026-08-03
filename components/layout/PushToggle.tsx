@@ -19,14 +19,19 @@ export function PushToggle() {
 
   const handleEnable = async () => {
     try {
-      await enable();
-      if (Notification.permission === 'denied') {
+      // Drive the message off what enable() actually did. Reading
+      // Notification.permission instead reported success whenever permission was
+      // already granted — even when no subscription was created.
+      const result = await enable();
+      if (result === 'denied') {
         message.warning('Bạn đã chặn thông báo cho trang này. Hãy bật lại trong cài đặt trình duyệt.');
-      } else if (Notification.permission === 'granted') {
+      } else if (result === 'dismissed') {
+        message.info('Bạn chưa cho phép thông báo. Hãy chọn "Cho phép" khi trình duyệt hỏi.');
+      } else {
         message.success('Đã bật thông báo trên máy này');
       }
-    } catch {
-      message.error('Bật thông báo thất bại');
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'Bật thông báo thất bại');
     }
   };
 

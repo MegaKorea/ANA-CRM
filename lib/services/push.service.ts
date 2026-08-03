@@ -15,6 +15,12 @@ export interface PushPayload {
   body: string;
   url?: string;
   tag?: string;
+  /**
+   * Show the OS notification even when a CRM tab is focused. The worker
+   * normally suppresses those to avoid double-notifying alongside the in-app
+   * bell, which would make a "send test" from an open tab look like it failed.
+   */
+  force?: boolean;
 }
 
 /** Shape the browser produces from PushManager.subscribe(). */
@@ -122,8 +128,13 @@ async function sendToSubscriptions(
         delivered += 1;
       } catch (err) {
         const statusCode = (err as { statusCode?: number }).statusCode;
-        if (statusCode === 404 || statusCode === 410) {
-          // Subscription expired/unsubscribed — drop it.
+        const body = String((err as { body?: unknown }).body ?? '');
+
+        // 404/410: subscription expired or was unsubscribed.
+        // 400 VapidPkHashMismatch: created under a rotated VAPID key, so it can
+        // never be delivered to again — prune it too, otherwise these rows fail
+        // silently on every run forever.
+        if (statusCode === 404 || statusCode === 410 || body.includes('VapidPkHashMismatch')) {
           await deleteSubscription(sub.endpoint).catch(() => undefined);
         }
       }

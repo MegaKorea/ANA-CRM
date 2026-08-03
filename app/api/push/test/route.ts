@@ -13,6 +13,9 @@ export async function POST(): Promise<NextResponse> {
       body: 'Web push đã hoạt động 🎉 Bạn sẽ nhận nhắc lịch hẹn qua thông báo này.',
       url: '/lead',
       tag: 'push-test',
+      // The whole point of a test is to see the OS notification, so it must
+      // bypass the worker's focused-tab suppression.
+      force: true,
     });
 
     return NextResponse.json({ success: true, delivered }, { status: HttpStatusCode.OK });
