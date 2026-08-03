@@ -5,6 +5,7 @@ import { Layout, Drawer } from 'antd';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { PageTransitionOverlay } from '@/components/common/PageTransitionOverlay';
+import { StudentScanFab } from '@/components/attendance/StudentScanFab';
 import { useNavigation } from '@/lib/contexts/navigation.context';
 import { useIsLayoutMobile } from '@/lib/hooks/use-mobile';
 import styles from './Layout.module.scss';
@@ -64,6 +65,8 @@ export function CRMLayout({ children }: CRMLayoutProps) {
           {children}
         </Content>
       </Layout>
+
+      <StudentScanFab />
 
       <PageTransitionOverlay visible={isNavigating} />
     </Layout>

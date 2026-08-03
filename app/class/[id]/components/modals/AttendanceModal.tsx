@@ -33,6 +33,7 @@ interface Props {
     open: boolean;
     session: ClassSession | null;
     studentList: StudentItem[];
+    /** `undefined` means "not loaded yet" — never render the roster from it. */
     attendanceData: SessionAttendance[] | undefined;
     attendanceLoading: boolean;
     isMobile: boolean;
@@ -99,7 +100,13 @@ export function AttendanceModal({
             width={isMobile ? '95vw' : 640}
             destroyOnHidden
         >
-            {attendanceLoading ? (
+            {/*
+              Guard on `attendanceData` too, not just the loading flag: a query
+              that never runs reports isLoading=false with undefined data, and
+              the merge below would then paint every student "Chưa đến" — a
+              wrong answer that looks exactly like a real one.
+            */}
+            {attendanceLoading || attendanceData === undefined ? (
                 <div style={{ textAlign: 'center', padding: 40 }}>
                     <Spin />
                     <div style={{ marginTop: 8 }}>

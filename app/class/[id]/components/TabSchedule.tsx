@@ -23,7 +23,7 @@ import { useSubjectTeachers, useClassStudents } from '@/lib/hooks/use-classes';
 import { EditSessionModal, type EditSessionValues } from './modals/EditSessionModal';
 import { AttendanceModal, type AttendanceRecord } from './modals/AttendanceModal';
 import { QrCodeModal } from './modals/QrCodeModal';
-import { StudentScannerModal } from './modals/StudentScannerModal';
+import { StudentScannerModal } from '@/components/attendance/StudentScannerModal';
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import { normalizeClassTimetable } from '@/lib/validators/class.validator';
 import { createCalendarHeaderRender } from './ScheduleCalendarNav';
@@ -69,8 +69,15 @@ export function TabSchedule({ classData }: { classData: Class }) {
   const selectedDate = activeDate.format('YYYY-MM-DD');
   const [editSession, setEditSession] = useState<ClassSession | null>(null);
   const [attendanceSession, setAttendanceSession] = useState<ClassSession | null>(null);
-  const [qrModal, setQrModal] = useState<{ open: boolean; token: string; expiresAt: string }>({
-    open: false, token: '', expiresAt: '',
+  const [qrModal, setQrModal] = useState<{
+    open: boolean;
+    token: string;
+    expiresAt: string;
+    sessionId: string | null;
+    sessionNumber: number | null;
+    sessionDate: string | null;
+  }>({
+    open: false, token: '', expiresAt: '', sessionId: null, sessionNumber: null, sessionDate: null,
   });
   const [scannerOpen, setScannerOpen] = useState(false);
 
@@ -81,6 +88,12 @@ export function TabSchedule({ classData }: { classData: Class }) {
 
   const { data: attendanceData, isLoading: attendanceLoading } = useSessionAttendances(
     attendanceSession?.id ?? null,
+  );
+
+  // Same polling query, aimed at the session whose QR is on screen — lets the
+  // teacher watch students check in while the code is still being scanned.
+  const { data: qrAttendanceData } = useSessionAttendances(
+    qrModal.open ? qrModal.sessionId : null,
   );
 
   const teacherOptions = useMemo(() => {
@@ -206,7 +219,14 @@ export function TabSchedule({ classData }: { classData: Class }) {
   const handleGenerateQr = useCallback(async (session: ClassSession) => {
     try {
       const result = await generateQr.mutateAsync(session.id);
-      setQrModal({ open: true, token: result.token, expiresAt: result.expiresAt });
+      setQrModal({
+        open: true,
+        token: result.token,
+        expiresAt: result.expiresAt,
+        sessionId: session.id,
+        sessionNumber: session.session_number,
+        sessionDate: session.date,
+      });
     } catch (e: unknown) {
       message.error(e instanceof Error ? e.message : 'Tạo mã QR thất bại.');
     }
@@ -396,7 +416,16 @@ export function TabSchedule({ classData }: { classData: Class }) {
         open={qrModal.open}
         token={qrModal.token}
         expiresAt={qrModal.expiresAt}
-        onClose={() => setQrModal({ open: false, token: '', expiresAt: '' })}
+        sessionNumber={qrModal.sessionNumber}
+        sessionDate={qrModal.sessionDate}
+        studentList={studentList}
+        attendances={qrAttendanceData}
+        onClose={() =>
+          setQrModal({
+            open: false, token: '', expiresAt: '',
+            sessionId: null, sessionNumber: null, sessionDate: null,
+          })
+        }
       />
 
       <StudentScannerModal open={scannerOpen} onClose={() => setScannerOpen(false)} />

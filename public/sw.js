@@ -39,8 +39,10 @@ self.addEventListener('push', (event) => {
       .then((clients) => {
         // If a CRM tab is focused, the in-app bell already covers this — skip the
         // OS notification to avoid a duplicate (double-notify) for the same event.
+        // `force` payloads (e.g. "send test") opt out: suppressing those makes the
+        // feature look broken when the user is by definition looking at the tab.
         const hasFocusedTab = clients.some((c) => c.focused || c.visibilityState === 'visible');
-        if (hasFocusedTab) return undefined;
+        if (hasFocusedTab && !data.force) return undefined;
         return self.registration.showNotification(title, options);
       })
   );
