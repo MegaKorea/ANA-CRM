@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  App,
   Modal,
   Form,
   InputNumber,
@@ -10,7 +11,6 @@ import {
   Input,
   Upload,
   Button,
-  message,
   Image,
 } from 'antd';
 import { UploadOutlined, DeleteOutlined } from '@ant-design/icons';
@@ -41,10 +41,18 @@ interface TicketFormValues {
 }
 
 export function PaymentTicketModal({ open, lead, onClose }: PaymentTicketModalProps) {
+  const { message } = App.useApp();
   const [form] = Form.useForm<TicketFormValues>();
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const createTicket = useCreatePaymentTicket();
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const handleUpload = async (file: File) => {
     setUploading(true);
@@ -56,6 +64,7 @@ export function PaymentTicketModal({ open, lead, onClose }: PaymentTicketModalPr
         body: formData,
       });
       const json = await res.json();
+      if (!isMountedRef.current) return;
       if (json.success && json.data?.url) {
         setImages((prev) => [...prev, json.data.url]);
         message.success('Upload thành công');
@@ -63,9 +72,13 @@ export function PaymentTicketModal({ open, lead, onClose }: PaymentTicketModalPr
         message.error('Upload thất bại');
       }
     } catch {
-      message.error('Upload thất bại');
+      if (isMountedRef.current) {
+        message.error('Upload thất bại');
+      }
     } finally {
-      setUploading(false);
+      if (isMountedRef.current) {
+        setUploading(false);
+      }
     }
   };
 

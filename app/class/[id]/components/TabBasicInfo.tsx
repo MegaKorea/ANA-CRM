@@ -1,4 +1,4 @@
-import { App, Button, DatePicker, Form, Input, InputNumber, Row, Select, Space } from 'antd';
+import { App, Button, DatePicker, Form, Input, InputNumber, Select, Space } from 'antd';
 import { useUpdateClass } from '@/lib/hooks/use-classes';
 import { useCourses } from '@/lib/hooks/use-courses';
 import type { Class } from '@/lib/services/class.service';
@@ -9,6 +9,7 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { CLASS_STATUS_OPTIONS } from '@/lib/constants/classStatus';
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 import styles from './components.module.scss';
 
 type ClassBasicInfoFormValues = Omit<UpdateClassInput, 'start_date' | 'end_date' | 'schedule' | 'timetable'> & {
@@ -60,7 +61,9 @@ export function TabBasicInfo({ classData }: { classData: Class }) {
           message.success('Cập nhật thông tin cơ bản thành công!');
           setIsEditing(false);
         },
-        onError: (e: any) => message.error('Lỗi khi cập nhật lớp học: ' + e.message),
+        onError: (error: unknown) => {
+          message.error(getErrorMessage(error, 'Lỗi khi cập nhật lớp học'));
+        },
       },
     );
   };
@@ -95,8 +98,7 @@ export function TabBasicInfo({ classData }: { classData: Class }) {
               placeholder="Chọn khóa học"
               loading={isCoursesLoading}
               allowClear
-              showSearch
-              optionFilterProp="label"
+              showSearch={{ optionFilterProp: 'label' }}
               options={(courses ?? []).map((c) => ({
                 value: c.id,
                 label: `${c.name}${c.code ? ` (${c.code})` : ''}`,

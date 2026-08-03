@@ -8,7 +8,7 @@
 }
 
 .label {
-  color: #6b7280;
+  color: var(--text-tertiary);
   margin-right: 0.5rem;
 }
 
@@ -17,13 +17,13 @@
 }
 
 .successText {
-  color: #16a34a;
+  color: var(--success);
 }
 
 .warningText {
-  color: #ca8a04;
+  color: var(--warning);
 }
 
 .dangerText {
-  color: #ef4444;
+  color: var(--error);
 }

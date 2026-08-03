@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClassSessions, generateSessionsForClass } from '@/lib/services/class_session.service';
 import { resolveClassViewer } from '@/lib/services/class_access.service';
+import { getCurrentUser } from '@/lib/services/auth.service';
 import { validateGenerateSessionsInput } from '@/lib/validators/class_session.validator';
-import { HttpStatusCode } from '@/constants/enums';
+import { ClassMemberRole, HttpStatusCode } from '@/constants/enums';
 import { AppError } from '@/errors';
+import { filterLecturesForViewer } from '@/lib/types/session-lecture';
 
 function errorResponse(error: unknown) {
     if (error instanceof AppError) {
@@ -24,13 +26,22 @@ export async function GET(
     try {
         const { id } = await params;
         const viewer = await resolveClassViewer(id);
+        const user = await getCurrentUser();
+        const includeDrafts = user.roleCode === ClassMemberRole.TEA;
 
         const sessions = await getClassSessions(id, {
             viewerUserId: viewer.kind === 'student' ? viewer.userId : null,
             // Students must not receive live QR tokens (scan-only attendance).
             redactQr: viewer.kind === 'student',
+            viewerRole: user.roleCode,
         });
-        return NextResponse.json(sessions, { status: HttpStatusCode.OK });
+
+        const sanitized = sessions.map((session) => ({
+            ...session,
+            lectures: filterLecturesForViewer(session.lectures, includeDrafts),
+        }));
+
+        return NextResponse.json(sanitized, { status: HttpStatusCode.OK });
     } catch (error: unknown) {
         return errorResponse(error);
     }

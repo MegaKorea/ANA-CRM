@@ -143,6 +143,80 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
   }
 }
 
+export async function sendPushToUsers(userIds: string[], payload: PushPayload): Promise<number> {
+  try {
+    const uniqueIds = [...new Set(userIds.filter(Boolean))];
+    if (uniqueIds.length === 0) return 0;
+    const subs = await fetchSubscriptionsForUsers(uniqueIds);
+    return await sendToSubscriptions(subs, payload);
+  } catch (error) {
+    handleServiceError(error, PushErrorCode.SEND_FAILED);
+  }
+}
+
+export async function notifyClassStudentsNewLecture(input: {
+  classId: string;
+  sessionId: string;
+  sessionDate: string;
+  sessionNumber: number;
+  lectureTitle: string;
+}): Promise<{ recipients: number; delivered: number }> {
+  try {
+    if (!ensureVapid()) {
+      return { recipients: 0, delivered: 0 };
+    }
+
+    const supabase = createAdminClient();
+    const { data: enrollments, error: enrollError } = await supabase
+      .from('class_students')
+      .select('student_id')
+      .eq('class_id', input.classId);
+
+    if (enrollError) {
+      return { recipients: 0, delivered: 0 };
+    }
+
+    const leadIds = [
+      ...new Set(
+        ((enrollments as unknown as { student_id: number }[]) || [])
+          .map((row) => row.student_id)
+          .filter((id) => id != null),
+      ),
+    ];
+
+    if (leadIds.length === 0) {
+      return { recipients: 0, delivered: 0 };
+    }
+
+    const { data: students, error: studentsError } = await supabase
+      .from('users')
+      .select('id, roles!inner(code)')
+      .in('lead_id', leadIds)
+      .eq('roles.code', 'STU');
+
+    if (studentsError) {
+      return { recipients: 0, delivered: 0 };
+    }
+
+    const userIds = ((students as unknown as { id: string }[]) || []).map((u) => u.id);
+    if (userIds.length === 0) {
+      return { recipients: 0, delivered: 0 };
+    }
+
+    const title = input.lectureTitle.trim() || 'Bài giảng mới';
+    const delivered = await sendPushToUsers(userIds, {
+      title: 'Có bài giảng mới',
+      body: `Buổi ${input.sessionNumber}: ${title}`,
+      url: `/class/${input.classId}?tab=schedule&date=${input.sessionDate}`,
+      tag: `lecture-${input.sessionId}-${Date.now()}`,
+    });
+
+    return { recipients: userIds.length, delivered };
+  } catch {
+    return { recipients: 0, delivered: 0 };
+  }
+}
+
 /** Returns the ids of all users whose role is ADMIN (managers see everything). */
 async function fetchAdminUserIds(): Promise<string[]> {
   const supabase = createAdminClient();

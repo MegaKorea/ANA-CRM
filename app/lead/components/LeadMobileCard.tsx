@@ -76,7 +76,7 @@ export const LeadMobileCard = memo(function LeadMobileCard({
               <Button
                 size="small"
                 type="text"
-                icon={<MessageOutlined style={{ fontSize: 15, color: '#7c3aed' }} />}
+                icon={<MessageOutlined style={{ fontSize: 15, color: 'var(--accent-600)' }} />}
                 onClick={(e) => {
                   e.stopPropagation();
                   window.open(smaxThreadUrl, '_blank', 'noopener,noreferrer');
@@ -106,7 +106,7 @@ export const LeadMobileCard = memo(function LeadMobileCard({
         ) : null
       }
       style={{ width: '100%', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
-      bodyStyle={{ padding: '12px' }}
+      styles={{ body: { padding: '12px' } }}
       actions={[
         <Tooltip key="detail" title="Chi tiết">
           <div

@@ -1,0 +1,136 @@
+.draftBadge {
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.content {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-primary);
+  word-break: break-word;
+
+  p {
+    margin: 0 0 0.75em;
+  }
+
+  h2 {
+    margin: 1em 0 0.5em;
+    font-size: 1.25em;
+    font-weight: 600;
+  }
+
+  h1 {
+    margin: 1em 0 0.45em;
+    font-size: 1.45em;
+    font-weight: 700;
+  }
+
+  h3 {
+    margin: 0.9em 0 0.4em;
+    font-size: 1.1em;
+    font-weight: 600;
+  }
+
+  ul,
+  ol {
+    padding-left: 1.35em;
+    margin: 0 0 0.75em;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1em 0;
+  }
+
+  blockquote {
+    margin: 0 0 0.75em;
+    padding-left: 0.9em;
+    border-left: 3px solid var(--border-strong);
+    color: var(--text-tertiary);
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-xs);
+    display: inline-block;
+    vertical-align: middle;
+    margin: 0.25em 0.35em 0.25em 0;
+  }
+
+  img.lecture-img-align-left,
+  img[data-align='left'] {
+    float: left;
+    display: block;
+    margin: 0.25em 1em 0.5em 0;
+    max-width: 48%;
+  }
+
+  img.lecture-img-align-right,
+  img[data-align='right'] {
+    float: right;
+    display: block;
+    margin: 0.25em 0 0.5em 1em;
+    max-width: 48%;
+  }
+
+  img.lecture-img-align-center,
+  img[data-align='center'] {
+    float: none;
+    clear: both;
+    display: block;
+    margin: 0.5em auto;
+  }
+
+  img[data-offset-x] {
+    position: relative;
+  }
+
+  &::after {
+    content: '';
+    display: table;
+    clear: both;
+  }
+
+  a {
+    color: var(--accent-600);
+  }
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.attachmentImage {
+  border-radius: var(--radius-xs);
+  object-fit: cover;
+}
+
+.links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  a {
+    font-size: 14px;
+    color: var(--accent-600);
+  }
+}

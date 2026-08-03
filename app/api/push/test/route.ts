@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/services/auth.service';
 import { HttpStatusCode, PushErrorCode } from '@/constants/enums';
 import { handleRouteError } from '@/lib/utils/route-handler';
 
-/** Sends a test notification to the caller's own devices (for verifying setup). */
+
 export async function POST(): Promise<NextResponse> {
   try {
     const currentUser = await getCurrentUser();

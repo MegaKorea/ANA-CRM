@@ -4,8 +4,7 @@ import { validateCreateAppointmentInput } from '@/lib/validators/appointment.val
 import { validateLeadId } from '@/lib/validators/lead.validator';
 import { AppointmentErrorCode, HttpStatusCode } from '@/constants/enums';
 import { handleRouteError } from '@/lib/utils/route-handler';
-
-/** Lists every appointment booked for a lead, newest first. */
+    
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -20,7 +19,6 @@ export async function GET(
   }
 }
 
-/** Books a new appointment for the lead (a lead may hold many). */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

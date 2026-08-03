@@ -5,8 +5,8 @@ import {
   sessionContentErrorResponse,
 } from '@/lib/api/session-content-route';
 import { getCurrentUser } from '@/lib/services/auth.service';
-import { resolveClassViewer } from '@/lib/services/class_access.service';
-import { getSessionById } from '@/lib/services/class_session.service';
+import { assertClassAccess } from '@/lib/services/class_access.service';
+import { getSessionMetaById } from '@/lib/services/class_session.service';
 import { createSessionQuiz, listSessionQuizzes } from '@/lib/services/quiz.service';
 import { notifyStudentsQuizPublishedSafe } from '@/lib/services/user-notification.service';
 import { validateCreateQuizInput } from '@/lib/validators/quiz.validator';
@@ -16,12 +16,18 @@ export async function GET(
   { params }: { params: Promise<{ sessionId: string }> },
 ): Promise<NextResponse> {
   try {
-    const user = await getCurrentUser();
     const { sessionId } = await params;
-    const session = await getSessionById(sessionId);
-    await resolveClassViewer(session.class_id);
+    const [user, session] = await Promise.all([
+      getCurrentUser(),
+      getSessionMetaById(sessionId),
+    ]);
+    await assertClassAccess(session.class_id, user);
     const forStudent = user.roleCode === ClassMemberRole.STU;
-    const quizzes = await listSessionQuizzes(sessionId, { forStudent });
+    const quizzes = await listSessionQuizzes(sessionId, {
+      forStudent,
+      studentId: forStudent ? user.id : undefined,
+      slim: true,
+    });
     return NextResponse.json(quizzes, { status: HttpStatusCode.OK });
   } catch (error: unknown) {
     return sessionContentErrorResponse(error, QuizErrorCode.INTERNAL);
@@ -33,10 +39,12 @@ export async function POST(
   { params }: { params: Promise<{ sessionId: string }> },
 ): Promise<NextResponse> {
   try {
-    await assertQuizTeacherWriter();
     const { sessionId } = await params;
-    const session = await getSessionById(sessionId);
-    await resolveClassViewer(session.class_id);
+    const [user, session] = await Promise.all([
+      assertQuizTeacherWriter(),
+      getSessionMetaById(sessionId),
+    ]);
+    await assertClassAccess(session.class_id, user);
     const body = await request.json();
     const input = validateCreateQuizInput(body);
     const quiz = await createSessionQuiz(session.class_id, sessionId, input);

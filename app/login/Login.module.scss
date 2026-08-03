@@ -1,10 +1,8 @@
 .loginContainer {
   min-height: 100vh;
   padding: 1rem;
+  background: var(--bg-app);
   transition: background 0.3s ease;
-  :global(.dark) & {
-    background: #000000;
-  }
 }
 
 .loginRow {
@@ -27,28 +25,19 @@
 }
 
 .themeToggleButton {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-secondary);
   font-size: 1.25rem;
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   transition: all 0.3s ease;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 1);
-  }
-
-  :global(.dark) & {
-    color: rgba(255, 255, 255, 0.9);
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.15);
-      color: rgba(255, 255, 255, 1);
-    }
+    background: var(--bg-hover);
+    color: var(--text-primary);
   }
 }
 
@@ -57,53 +46,42 @@
   justify-content: center;
   align-items: center;
   text-align: center;
-  color: white;
+  color: var(--text-primary);
 }
 
 .logo {
   margin-bottom: 1rem;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+  filter: drop-shadow(0 4px 6px color-mix(in srgb, var(--neutral-900) 10%, transparent));
   transition: filter 0.3s ease;
-
-  :global(.dark) & {
-    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
-  }
 }
 
 .title {
   font-size: 2rem;
   font-weight: 700;
   margin: 0 0 0.5rem 0;
-  color: white;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  color: var(--text-primary);
 }
 
 .subtitle {
   font-size: 0.875rem;
   margin: 0;
-  color: rgba(255, 255, 255, 0.9);
-  opacity: 0.9;
+  color: var(--text-secondary);
 }
 
 .loginCard {
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  background: var(--bg-surface);
   transition:
     background 0.3s ease,
     box-shadow 0.3s ease;
-
-  :global(.dark) & {
-    background: rgba(0, 0, 0, 0.95);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-  }
 }
 
 .submitButton {
   height: 44px;
   font-size: 1rem;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-top: 0.5rem;
 }

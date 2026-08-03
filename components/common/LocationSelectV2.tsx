@@ -13,32 +13,15 @@ import type {
   ProvincesApiWard,
 } from '@/lib/services/location-v2.service';
 
-/**
- * LocationValueV2 – sử dụng cấu trúc của API mới (provinces.open-api.vn).
- * Dùng `code` (number) thay vì `id` (string) như API cũ.
- *
- * Để tránh conflict với LocationValue cũ, field này được lưu vào
- * `current_address_temp` trong DB.
- */
 export interface LocationValueV2 {
-  /** Numeric province code (new API) */
   provinceCode?: number;
-  /** Numeric district code (new API) */
   districtCode?: number;
-  /** Numeric ward code (new API) */
   wardCode?: number;
-  /** Full province object */
   province?: ProvincesApiProvince;
-  /** Full district object */
   district?: ProvincesApiDistrict;
-  /** Full ward object */
   ward?: ProvincesApiWard;
-  // ── Backward-compat fields (mirrors old LocationValue shape) ──────────────
-  /** Same as provinceCode cast to string – lets old formatLocationValue still work */
   provinceId?: string;
-  /** Same as districtCode cast to string */
   districtId?: string;
-  /** Same as wardCode cast to string */
   wardId?: string;
 }
 
@@ -55,24 +38,18 @@ interface LocationSelectOption {
   label: string;
 }
 
-/** Build a LocationValueV2 that exposes BOTH the new code-based fields AND
- *  the legacy string-id fields so that existing formatLocationValue() calls
- *  keep working without any changes. */
 function buildV2Value(
   province: ProvincesApiProvince | undefined,
   district: ProvincesApiDistrict | undefined,
   ward: ProvincesApiWard | undefined,
 ): LocationValueV2 {
   return {
-    // new numeric fields
     provinceCode: province?.code,
     districtCode: district?.code,
     wardCode: ward?.code,
-    // object references
     province,
     district,
     ward,
-    // legacy string-id shim so old formatLocationValue() keeps rendering names
     provinceId: province?.code !== undefined ? String(province.code) : undefined,
     districtId: district?.code !== undefined ? String(district.code) : undefined,
     wardId: ward?.code !== undefined ? String(ward.code) : undefined,

@@ -4,7 +4,6 @@ import { getCurrentUser } from '@/lib/services/auth.service';
 import { HttpStatusCode, PushErrorCode } from '@/constants/enums';
 import { handleRouteError } from '@/lib/utils/route-handler';
 
-/** Removes a browser push subscription by endpoint. */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     await getCurrentUser();

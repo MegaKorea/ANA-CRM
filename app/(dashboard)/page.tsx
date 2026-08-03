@@ -55,9 +55,9 @@ export default function DashboardPage() {
             <Statistic
               title="Tăng trưởng"
               value={0}
-              prefix={<RiseOutlined style={{ color: '#722ed1' }} />}
+              prefix={<RiseOutlined style={{ color: 'var(--accent-600)' }} />}
               suffix="%"
-              styles={{ content: { color: '#722ed1' } }}
+              styles={{ content: { color: 'var(--accent-600)' } }}
             />
           </Card>
         </Col>

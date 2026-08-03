@@ -6,10 +6,6 @@ interface AttendanceStatusIconProps {
   fontSize?: number;
 }
 
-/**
- * Icon thể hiện trạng thái điểm danh của lead.
- * Dùng chung cho bảng desktop và card mobile để logic màu/biểu tượng đồng nhất.
- */
 export function AttendanceStatusIcon({ status, fontSize = 16 }: AttendanceStatusIconProps) {
   if (status === AttendanceStatus.ARRIVED) {
     return <CheckCircleTwoTone twoToneColor="#52c41a" style={{ fontSize }} />;

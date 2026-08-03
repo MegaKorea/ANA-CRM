@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  App,
   Modal,
   Form,
   Input,
@@ -10,7 +11,6 @@ import {
   Button,
   Row,
   Col,
-  message,
 } from 'antd';
 import type { User } from '@/lib/services/user.service';
 import type { Role } from '@/lib/services/role.service';
@@ -50,6 +50,7 @@ export function UserModal({
   onClose,
   onSubmit,
 }: UserModalProps) {
+  const { message } = App.useApp();
   const handleGeneratePassword = () => {
     const password = generateStrongPassword();
     form.setFieldsValue({ password });

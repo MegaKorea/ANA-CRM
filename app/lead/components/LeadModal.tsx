@@ -36,7 +36,6 @@ export interface LeadFormValues {
   place_of_birth?: LocationValue;
   place_of_origin?: LocationValue;
   current_address?: LocationValue;
-  /** Replaces current_address – uses new provinces.open-api.vn API */
   current_address_temp?: LocationValueV2;
   citizen_id?: string;
   nationality?: string;
@@ -94,9 +93,7 @@ export function LeadModal({
         form={form}
         layout="vertical"
         onFinish={onSubmit}
-        onFinishFailed={({ errorFields }) => {
-          // Without this the drawer silently does nothing when a field is invalid
-          // — including fields scrolled out of view.
+        onFinishFailed={({ errorFields }) => {        
           const first = errorFields[0]?.errors[0];
           message.error(first ?? 'Vui lòng kiểm tra lại thông tin đã nhập');
         }}
@@ -140,8 +137,7 @@ export function LeadModal({
               <Select
                 placeholder="Chọn năm"
                 allowClear
-                showSearch
-                optionFilterProp="label"
+                showSearch={{ optionFilterProp: 'label' }}
                 options={YEAR_OPTIONS}
               />
             </Form.Item>
@@ -169,12 +165,6 @@ export function LeadModal({
               />
             </Form.Item>
           </Col>
-
-          {/* <Col span={24}>
-            <Form.Item name="place_of_origin" label={LeadPageText.FIELD_PLACE_OF_ORIGIN_LABEL}>
-              <LocationSelect disabled={Boolean(isSubmitting)} />
-            </Form.Item>
-          </Col> */}
 
           <Col span={24}>
             <Form.Item name="current_address_temp" label={LeadPageText.FIELD_CURRENT_ADDRESS_LABEL}>

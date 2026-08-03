@@ -5,7 +5,6 @@ import { HttpStatusCode } from '@/constants/enums';
 import { createClient } from '@/lib/supabase/server';
 import { AppError } from '@/errors';
 
-/** POST /api/attendance/qr — học viên quét QR → ghi present */
 export async function POST(request: NextRequest): Promise<NextResponse> {
     try {
         const supabase = await createClient();

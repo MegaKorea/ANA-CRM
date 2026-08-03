@@ -59,3 +59,39 @@ export interface SmaxConversationResult {
   messages: SmaxChatMessage[];
   thread: SmaxThreadRef;
 }
+
+export interface SmaxCustomerStatisticsRequest {
+  from: string;
+  to: string;
+  apply_all: boolean;
+  key_time: string;
+  page_pids: string[];
+  target: string;
+  type: string;
+  tag_aliases: string[];
+  top: number;
+}
+
+export interface SmaxCustomerStatistics {
+  messages: number;
+  data: number;
+  orders: number;
+  calendars: SmaxStatisticsCalendarDay[];
+  raw: unknown;
+}
+
+export interface SmaxStatisticsCalendarDay {
+  date: string;
+  messages: number;
+  interactions: number;
+  leads: number;
+  orders: number;
+}
+
+export interface SmaxStatisticsApiResponse {
+  messages: number;
+  data: number;
+  orders: number;
+  calendars: SmaxStatisticsCalendarDay[];
+  source: 'smax';
+}

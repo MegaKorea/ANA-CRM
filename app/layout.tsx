@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
-import { Mona_Sans } from 'next/font/google';
+import { Lexend } from 'next/font/google';
 import { AppProviders } from '@/providers';
 import { ConditionalLayout } from '@/components/layout/ConditionalLayout';
 import logoAna from '@/app/assets/logo/logo-ana.png';
 import './scss/index.scss';
 
-const monaSans = Mona_Sans({
-  weight: ['200', '300', '400', '500', '600', '700', '800', '900'],
+const lexend = Lexend({
+  weight: ['300', '400', '500', '600', '700', '800'],
   subsets: ['latin'],
-  variable: '--font-mona-sans',
+  variable: '--font-lexend',
   display: 'swap',
 });
 
@@ -29,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" suppressHydrationWarning>
-      <body className={monaSans.variable}>
+      <body className={lexend.variable}>
         <AppProviders>
           <ConditionalLayout>{children}</ConditionalLayout>
         </AppProviders>

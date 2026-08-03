@@ -3,9 +3,12 @@ export const THEME = {
     base: 14,
   },
   borderRadius: {
-    sm: 4,
-    base: 6,
-    lg: 8,
+    xs: 4,
+    sm: 6,
+    md: 8,
+    lg: 12,
+    xl: 16,
+    pill: 999,
   },
   shadow: {
     offset: 2,

@@ -1,10 +1,5 @@
 import { type AppMenuItem, type MenuItem } from '@/constants/menu';
-
-/**
- * So khớp mã quyền không phân biệt hoa/thường: `menuItems` khai báo role dạng
- * chữ hoa ('ADMIN'), còn `roleCode` lấy nguyên văn từ cột `roles.code` trong DB
- * nên có thể khác kiểu chữ. So khớp chính xác từng ký tự sẽ làm menu trống.
- */
+  
 function hasRole(itemRoles: string[], userRole: string): boolean {
   const normalizedUserRole = userRole.trim().toUpperCase();
   return itemRoles.some((role) => role.trim().toUpperCase() === normalizedUserRole);
@@ -35,6 +30,7 @@ export function filterMenuByRole(
         } as MenuItem;
       }
       const { roles, ...rest } = item;
+      void roles;
       return rest as MenuItem;
     })
     .filter((item): item is MenuItem => item !== null);

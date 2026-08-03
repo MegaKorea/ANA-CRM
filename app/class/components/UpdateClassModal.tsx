@@ -5,6 +5,8 @@ import type { Class } from '@/lib/services/class.service';
 import type { UpdateClassInput } from '@/lib/validators/class.validator';
 import { useEffect } from 'react';
 import { CLASS_STATUS_OPTIONS } from '@/lib/constants/classStatus';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
+import { formatCourseOptionLabel } from './class-list.utils';
 
 interface UpdateClassModalProps {
   open: boolean;
@@ -45,8 +47,8 @@ export function UpdateClassModal({ open, onClose, classData }: UpdateClassModalP
           message.success('Cập nhật lớp học thành công!');
           handleClose();
         },
-        onError: (error: any) => {
-          message.error('Lỗi khi cập nhật lớp học: ' + error.message);
+        onError: (error: unknown) => {
+          message.error(getErrorMessage(error, 'Lỗi khi cập nhật lớp học'));
         },
       },
     );
@@ -92,11 +94,10 @@ export function UpdateClassModal({ open, onClose, classData }: UpdateClassModalP
                 placeholder="Chọn khóa học"
                 loading={isCoursesLoading}
                 allowClear
-                showSearch
-                optionFilterProp="label"
+                showSearch={{ optionFilterProp: 'label' }}
                 options={(courses ?? []).map((course) => ({
                   value: course.id,
-                  label: `${course.name}${course.code ? ` (${course.code})` : ''}`,
+                  label: formatCourseOptionLabel(course.name, course.code),
                 }))}
               />
             </Form.Item>

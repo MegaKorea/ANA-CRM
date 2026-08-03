@@ -1,7 +1,24 @@
+import DOMPurify from 'isomorphic-dompurify';
 import { AppError } from '@/errors';
 import { HttpStatusCode, LectureErrorCode } from '@/constants/enums';
-import type { SessionLectureAttachment, SessionLectureLink } from '@/lib/types/session-lecture';
+import type {
+  SessionLectureAttachment,
+  SessionLectureLink,
+  SessionLectureStatus,
+} from '@/lib/types/session-lecture';
 import { assertAllowedHttpUrl } from '@/lib/utils/assert-http-url';
+const LECTURE_HTML_SANITIZE_CONFIG = {
+  ALLOWED_TAGS: [
+    'p', 'br', 'strong', 'em', 's', 'u', 'a', 'img',
+    'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote', 'hr',
+  ],
+  ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'style', 'class'],
+  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.:-]|$))/i,
+};
+
+function sanitizeLectureHtml(html: string): string {
+  return DOMPurify.sanitize(html, LECTURE_HTML_SANITIZE_CONFIG);
+}
 
 export type SessionLectureInputValidated = {
   title: string;
@@ -9,7 +26,14 @@ export type SessionLectureInputValidated = {
   links?: SessionLectureLink[];
   attachments?: SessionLectureAttachment[];
   sort_order?: number;
+  status?: SessionLectureStatus;
 };
+
+function parseStatus(value: unknown): SessionLectureStatus | undefined {
+  if (value === undefined) return undefined;
+  if (value === 'draft' || value === 'published') return value;
+  throw new AppError(LectureErrorCode.INVALID_INPUT, HttpStatusCode.BAD_REQUEST, 'Trạng thái không hợp lệ.');
+}
 
 function parseLinks(value: unknown): SessionLectureLink[] {
   if (value === undefined) return [];
@@ -67,13 +91,15 @@ export function validateCreateSessionLectureInput(input: unknown): SessionLectur
   }
   const result: SessionLectureInputValidated = {
     title: data.title.trim(),
-    html: typeof data.html === 'string' ? data.html : '',
+    html: typeof data.html === 'string' ? sanitizeLectureHtml(data.html) : '',
     links: parseLinks(data.links),
     attachments: parseAttachments(data.attachments),
   };
   if (typeof data.sort_order === 'number') {
     result.sort_order = data.sort_order;
   }
+  const status = parseStatus(data.status);
+  if (status) result.status = status;
   return result;
 }
 
@@ -93,7 +119,7 @@ export function validateUpdateSessionLectureInput(
     result.title = data.title.trim();
   }
   if (data.html !== undefined) {
-    result.html = typeof data.html === 'string' ? data.html : '';
+    result.html = typeof data.html === 'string' ? sanitizeLectureHtml(data.html) : '';
   }
   if (data.links !== undefined) {
     result.links = parseLinks(data.links);
@@ -104,5 +130,7 @@ export function validateUpdateSessionLectureInput(
   if (typeof data.sort_order === 'number') {
     result.sort_order = data.sort_order;
   }
+  const status = parseStatus(data.status);
+  if (status) result.status = status;
   return result;
 }

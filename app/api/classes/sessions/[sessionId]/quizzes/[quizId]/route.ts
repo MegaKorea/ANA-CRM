@@ -7,8 +7,8 @@ import {
   sessionContentErrorResponse,
 } from '@/lib/api/session-content-route';
 import { getCurrentUser } from '@/lib/services/auth.service';
-import { resolveClassViewer } from '@/lib/services/class_access.service';
-import { getSessionById } from '@/lib/services/class_session.service';
+import { assertClassAccess } from '@/lib/services/class_access.service';
+import { getSessionMetaById } from '@/lib/services/class_session.service';
 import {
   deleteSessionQuiz,
   getMyQuizAttempt,
@@ -24,23 +24,32 @@ export async function GET(
   { params }: { params: Promise<{ sessionId: string; quizId: string }> },
 ): Promise<NextResponse> {
   try {
-    const user = await getCurrentUser();
     const { sessionId, quizId } = await params;
-    const session = await getSessionById(sessionId);
-    await resolveClassViewer(session.class_id);
-    const quiz = await getQuizById(quizId);
+    const [user, quiz] = await Promise.all([
+      getCurrentUser(),
+      getQuizById(quizId),
+    ]);
     assertQuizBelongsToSession(quiz, sessionId);
+
     if (user.roleCode === ClassMemberRole.STU) {
       if (!quiz.is_published) {
         fail(QuizErrorCode.NOT_PUBLISHED, HttpStatusCode.FORBIDDEN);
       }
-      const attempt = await getMyQuizAttempt(quizId, user.id);
-      if (isQuizAttemptCompleted(attempt)) {
-        return NextResponse.json(quiz, { status: HttpStatusCode.OK });
-      }
-      return NextResponse.json(stripQuizAnswers(quiz), { status: HttpStatusCode.OK });
+      // One enrollment check + attempt fetch (no second auth round-trip).
+      const [, attempt] = await Promise.all([
+        assertClassAccess(quiz.class_id, user),
+        getMyQuizAttempt(quizId, user.id),
+      ]);
+      const payload = isQuizAttemptCompleted(attempt) ? quiz : stripQuizAnswers(quiz);
+      // Bundle attempt so the take page avoids a second ~1.5s GET /attempts.
+      return NextResponse.json(
+        { quiz: payload, attempt: attempt ?? null },
+        { status: HttpStatusCode.OK },
+      );
     }
-    return NextResponse.json(quiz, { status: HttpStatusCode.OK });
+
+    await assertClassAccess(quiz.class_id, user);
+    return NextResponse.json({ quiz, attempt: null }, { status: HttpStatusCode.OK });
   } catch (error: unknown) {
     return sessionContentErrorResponse(error, QuizErrorCode.INTERNAL);
   }
@@ -51,11 +60,13 @@ export async function PATCH(
   { params }: { params: Promise<{ sessionId: string; quizId: string }> },
 ): Promise<NextResponse> {
   try {
-    await assertQuizTeacherWriter();
     const { sessionId, quizId } = await params;
-    const session = await getSessionById(sessionId);
-    await resolveClassViewer(session.class_id);
-    const existing = await getQuizById(quizId);
+    const [user, session, existing] = await Promise.all([
+      assertQuizTeacherWriter(),
+      getSessionMetaById(sessionId),
+      getQuizById(quizId),
+    ]);
+    await assertClassAccess(session.class_id, user);
     assertQuizBelongsToSession(existing, sessionId);
     const body = await request.json();
     const input = validateUpdateQuizInput(body);
@@ -87,10 +98,12 @@ export async function DELETE(
   { params }: { params: Promise<{ sessionId: string; quizId: string }> },
 ): Promise<NextResponse> {
   try {
-    await assertQuizTeacherWriter();
     const { sessionId, quizId } = await params;
-    const session = await getSessionById(sessionId);
-    await resolveClassViewer(session.class_id);
+    const [user, session] = await Promise.all([
+      assertQuizTeacherWriter(),
+      getSessionMetaById(sessionId),
+    ]);
+    await assertClassAccess(session.class_id, user);
     await deleteSessionQuiz(quizId, sessionId);
     return NextResponse.json({ success: true }, { status: HttpStatusCode.OK });
   } catch (error: unknown) {

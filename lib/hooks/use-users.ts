@@ -11,13 +11,14 @@ const UserApiPath = {
   BASE: '/users',
 } as const;
 
-export function useUsers(params?: UserQueryParams) {
+export function useUsers(params?: UserQueryParams, enabled = true) {
   return useQuery<User[]>({
     queryKey: [UserQueryKey.LIST, params],
     queryFn: () =>
       api.get<User[]>(UserApiPath.BASE, {
         params,
       }),
+    enabled,
   });
 }
 

@@ -1,4 +1,4 @@
-import { QuizAttemptStatus, QuizLimit, QuizQuestionType } from '@/constants/enums';
+import { QuizAttemptStatus, QuizLimit, QuizQuestionType, QuizUiMessage } from '@/constants/enums';
 
 export type QuizOption = {
   id: string;
@@ -27,7 +27,14 @@ export type Quiz = {
   questions: QuizQuestion[];
   created_at: string;
   updated_at: string;
+  question_count?: number;
+  my_attempt_status?: string | null;
 };
+
+export function getQuizQuestionCount(quiz: Pick<Quiz, 'questions' | 'question_count'>): number {
+  if (typeof quiz.question_count === 'number') return quiz.question_count;
+  return quiz.questions.length;
+}
 
 export type QuizAttempt = {
   id: string;
@@ -79,7 +86,9 @@ export type QuizCreateInput = {
   questions: QuizQuestion[];
 };
 
-export type QuizUpdateInput = Partial<QuizCreateInput>;
+export type QuizUpdateInput = Partial<QuizCreateInput> & {
+  expected_updated_at?: string;
+};
 
 export function getQuestionImageUrls(question: QuizQuestion): string[] {
   if (Array.isArray(question.image_urls) && question.image_urls.length > 0) {
@@ -107,11 +116,40 @@ export function isMultipleAnswerPartialCorrect(expected: string[], given: string
   return given.every((id) => correctSet.has(id));
 }
 
+export function isAutoGradableQuestion(question: Pick<QuizQuestion, 'type'>): boolean {
+  return question.type !== QuizQuestionType.ESSAY;
+}
+
+export function quizHasEssayQuestions(questions: Pick<QuizQuestion, 'type'>[]): boolean {
+  return questions.some((question) => question.type === QuizQuestionType.ESSAY);
+}
+
+export function isQuestionAnswered(
+  question: Pick<QuizQuestion, 'id' | 'type'>,
+  answers: Record<string, string[]>,
+): boolean {
+  const given = answers[question.id] ?? [];
+  if (question.type === QuizQuestionType.ESSAY) {
+    return !!given[0]?.trim();
+  }
+  return given.length > 0;
+}
+
 export function stripQuizAnswers(quiz: Quiz): Quiz {
   return {
     ...quiz,
     questions: quiz.questions.map((question) => {
       const image_urls = getQuestionImageUrls(question);
+      if (question.type === QuizQuestionType.ESSAY) {
+        return {
+          id: question.id,
+          type: question.type,
+          prompt: question.prompt,
+          image_url: image_urls[0] ?? null,
+          image_urls,
+          options: [],
+        };
+      }
       return {
         id: question.id,
         type: question.type,
@@ -128,18 +166,91 @@ export function gradeQuizAnswers(
   questions: QuizQuestion[],
   userAnswers: Record<string, string[]>,
 ): { correct: number; total: number; score: number } {
+  const autoQuestions = questions.filter(isAutoGradableQuestion);
   let correct = 0;
-  const total = questions.length;
-  for (const question of questions) {
+  const total = autoQuestions.length;
+  for (const question of autoQuestions) {
     if (isQuizAnswerCorrect(question, userAnswers[question.id] ?? [])) {
       correct += 1;
     }
   }
+  
   const score = total === 0 ? 0 : Math.round((correct / total) * 100);
   return { correct, total, score };
 }
 
+export function countQuizQuestionKinds(questions: Pick<QuizQuestion, 'type'>[]): {
+  auto: number;
+  essay: number;
+} {
+  let auto = 0;
+  let essay = 0;
+  for (const question of questions) {
+    if (isAutoGradableQuestion(question)) auto += 1;
+    else essay += 1;
+  }
+  return { auto, essay };
+}
+
+export type QuizResultSummary = {
+  title: string;
+  detail: string;
+};
+
+export function buildQuizResultSummary(input: {
+  questions: Pick<QuizQuestion, 'type'>[];
+  score: number;
+  correct: number;
+  total: number;
+  isPassed: boolean;
+  passingScore: number;
+}): QuizResultSummary {
+  const { auto, essay } = countQuizQuestionKinds(input.questions);
+  const passing =
+    input.passingScore > 0 ? `Điểm đạt: ${input.passingScore}%` : null;
+
+  if (auto === 0 && essay > 0) {
+    return {
+      title: QuizUiMessage.ESSAY_SUBMITTED_TITLE,
+      detail:
+        essay === 1
+          ? `1 câu tự luận — ${QuizUiMessage.ESSAY_AWAITING_REVIEW}`
+          : `${essay} câu tự luận — ${QuizUiMessage.ESSAY_AWAITING_REVIEW}`,
+    };
+  }
+
+  const passLabel = input.isPassed
+    ? QuizUiMessage.RESULT_PASSED
+    : QuizUiMessage.RESULT_FAILED;
+
+  if (essay === 0) {
+    return {
+      title: `${passLabel} · ${input.score}%`,
+      detail: [`Đúng ${input.correct}/${input.total} câu`, passing]
+        .filter(Boolean)
+        .join(' · '),
+    };
+  }
+
+  const essayDetail =
+    essay === 1
+      ? `1 câu tự luận ${QuizUiMessage.ESSAY_AWAITING_REVIEW}`
+      : `${essay} câu tự luận ${QuizUiMessage.ESSAY_AWAITING_REVIEW}`;
+
+  return {
+    title: `${passLabel} · ${input.score}% ${QuizUiMessage.RESULT_MCQ_SCORE_SUFFIX}`,
+    detail: [
+      `Đúng ${input.correct}/${input.total} câu trắc nghiệm`,
+      passing,
+      essayDetail,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  };
+}
+
 export function isQuizAnswerCorrect(question: QuizQuestion, given: string[]): boolean {
+  if (question.type === QuizQuestionType.ESSAY) return false;
   const expected = question.correct_option_ids ?? [];
   if (question.type === QuizQuestionType.MULTIPLE) {
     return isMultipleAnswerPartialCorrect(expected, given);

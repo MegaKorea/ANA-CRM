@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { App, Modal, List, Image, Button, Popconfirm } from 'antd';
+import { App, Empty, Modal, Image, Button, Popconfirm } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 import type { Lead } from '@/lib/services/lead.service';
 import UploadImage from '@/components/common/UploadImage';
@@ -84,11 +84,15 @@ export function LeadImagesModal({ open, lead, onClose }: LeadImagesModalProps) {
         />
       </div>
 
-      <List
-        grid={{ gutter: 16, column: 3 }}
-        dataSource={localImages}
-        renderItem={(url) => (
-          <List.Item>
+      {localImages.length === 0 ? (
+        <Empty description="Chưa có hình ảnh" />
+      ) : (
+        <div
+          role="list"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16 }}
+        >
+          {localImages.map((url) => (
+          <div role="listitem" key={url}>
             <div style={{ position: 'relative' }}>
               <Image
                 src={url}
@@ -111,10 +115,10 @@ export function LeadImagesModal({ open, lead, onClose }: LeadImagesModalProps) {
                 />
               </Popconfirm>
             </div>
-          </List.Item>
-        )}
-        locale={{ emptyText: 'Chưa có hình ảnh' }}
-      />
+          </div>
+          ))}
+        </div>
+      )}
     </Modal>
   );
 }

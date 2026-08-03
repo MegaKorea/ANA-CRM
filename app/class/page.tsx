@@ -1,43 +1,47 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type HTMLAttributes } from 'react';
 import {
+  App,
   Button,
   Col,
   Input,
-  message,
-  Popconfirm,
   Row,
   Select,
-  Space,
   Spin,
   Table,
-  Tag,
-  Tooltip,
   Typography,
-  List,
-  Card,
-  Flex,
+  Empty,
+  Pagination,
 } from 'antd';
 import {
   PlusOutlined,
-  DeleteOutlined,
   SearchOutlined,
   FilterOutlined,
-  EyeOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
-import dayjs from 'dayjs';
 import { useClasses, useDeleteClass } from '@/lib/hooks/use-classes';
 import { useCourses } from '@/lib/hooks/use-courses';
 import { useRouter } from 'next/navigation';
-import type { Class } from '@/lib/services/class.service';
 import type { ColumnsType } from 'antd/es/table';
-import { CLASS_STATUS_OPTIONS, getClassStatusMeta } from '@/lib/constants/classStatus';
+import { CLASS_STATUS_OPTIONS } from '@/lib/constants/classStatus';
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
 import { useIsMobile } from '@/lib/hooks/use-mobile';
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 import dynamic from 'next/dynamic';
+import {
+  ClassCapacityTag,
+  ClassRowActions,
+  ClassStatusTag,
+} from './components/ClassListCells';
+import { ClassListCard } from './components/ClassListCard';
+import {
+  formatCourseOptionLabel,
+  getClassDeleteActionState,
+  toClassListRowModel,
+  type ClassListRowModel,
+} from './components/class-list.utils';
 import styles from './page.module.scss';
 
 const { Title, Text } = Typography;
@@ -48,15 +52,17 @@ const CreateClassModal = dynamic(
 );
 
 export default function ClassPage() {
+  const { message } = App.useApp();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [nameFilter, setNameFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [courseFilter, setCourseFilter] = useState<string | undefined>(undefined);
+  const [mobilePage, setMobilePage] = useState(1);
   const isMobile = useIsMobile();
 
   const router = useRouter();
 
-  const { hasPermission: notStudent } = useAuthPermission(['ADMIN', 'AO', 'TEA']);
+  const { hasPermission: canManageClasses } = useAuthPermission(['ADMIN', 'AO', 'TEA']);
 
   const { data: classes, isLoading: isClassesLoading, refetch } = useClasses();
   const { data: courses, isLoading: isCoursesLoading } = useCourses();
@@ -71,147 +77,152 @@ export default function ClassPage() {
         onSuccess: () => {
           message.success('Xóa lớp học thành công');
         },
-        onError: (error: any) => {
-          message.error('Xóa lớp học thất bại: ' + error.message);
+        onError: (error: unknown) => {
+          message.error(getErrorMessage(error, 'Xóa lớp học thất bại'));
         },
       });
     },
-    [deleteClassMutation],
+    [deleteClassMutation, message],
+  );
+
+  const handleView = useCallback(
+    (id: string) => {
+      router.push(`/class/${id}`);
+    },
+    [router],
   );
 
   const debouncedNameFilter = useDebouncedValue(nameFilter, 200);
 
-  const filteredClasses = useMemo(() => {
+  const listRows = useMemo(() => {
     if (!classes) return [];
     const term = debouncedNameFilter.trim().toLowerCase();
-    return classes.filter((cls) => {
-      const matchName = term
-        ? cls.name.toLowerCase().includes(term) ||
-        (cls.code && cls.code.toLowerCase().includes(term))
-        : true;
-      const matchStatus = statusFilter ? cls.status === statusFilter : true;
-      const matchCourse = courseFilter ? cls.course_id === courseFilter : true;
-      return matchName && matchStatus && matchCourse;
-    });
+    return classes
+      .filter((cls) => {
+        const matchName = term
+          ? cls.name.toLowerCase().includes(term) ||
+            (cls.code && cls.code.toLowerCase().includes(term))
+          : true;
+        const matchStatus = statusFilter ? cls.status === statusFilter : true;
+        const matchCourse = courseFilter ? cls.course_id === courseFilter : true;
+        return matchName && matchStatus && matchCourse;
+      })
+      .map(toClassListRowModel);
   }, [classes, courseFilter, debouncedNameFilter, statusFilter]);
+
+  const emptyText =
+    classes?.length === 0
+      ? 'Chưa có lớp học nào. Hãy tạo mới một lớp học.'
+      : 'Không tìm thấy lớp học nào phù hợp với bộ lọc.';
+  const mobilePageSize = 20;
+  const safeMobilePage = Math.min(
+    mobilePage,
+    Math.max(1, Math.ceil(listRows.length / mobilePageSize)),
+  );
+  const mobileRows = listRows.slice(
+    (safeMobilePage - 1) * mobilePageSize,
+    safeMobilePage * mobilePageSize,
+  );
 
   const courseOptions = useMemo(
     () =>
       (courses ?? []).map((course) => ({
         value: course.id,
-        label: `${course.name}${course.code ? ` (${course.code})` : ''}`,
+        label: formatCourseOptionLabel(course.name, course.code),
       })),
     [courses],
   );
 
-  const columns = useMemo(
+  const columns = useMemo<ColumnsType<ClassListRowModel>>(
     () =>
-      [
-        {
-          title: 'STT',
-          key: 'index',
-          width: 60,
-          align: 'center',
-          render: (_: any, __: any, index: number) => index + 1,
-        },
-        {
-          title: 'Mã lớp',
-          dataIndex: 'code',
-          key: 'code',
-          width: 130,
-          render: (code: string) => code || <Text type="secondary">—</Text>,
-        },
-        {
-          title: 'Tên lớp học',
-          dataIndex: 'name',
-          key: 'name',
-          render: (name: string) => <Text strong>{name}</Text>,
-        },
-        {
-          title: 'Khóa học',
-          key: 'course',
-          render: (_: any, record: Class) =>
-            record.courses ? (
-              `${record.courses.name}${record.courses.code ? ` (${record.courses.code})` : ''}`
-            ) : (
-              <Text type="secondary">—</Text>
+      (
+        [
+          {
+            title: 'STT',
+            key: 'index',
+            width: 60,
+            align: 'center',
+            render: (_: unknown, __: ClassListRowModel, index: number) => index + 1,
+          },
+          {
+            title: 'Mã lớp',
+            dataIndex: 'code',
+            key: 'code',
+            width: 130,
+            render: (code: string) =>
+              code === '—' ? <Text type="secondary">—</Text> : code,
+          },
+          {
+            title: 'Tên lớp học',
+            dataIndex: 'name',
+            key: 'name',
+            render: (name: string) => <Text strong>{name}</Text>,
+          },
+          {
+            title: 'Khóa học',
+            dataIndex: 'courseLabel',
+            key: 'course',
+            render: (courseLabel: string) =>
+              courseLabel === '—' ? <Text type="secondary">—</Text> : courseLabel,
+          },
+          {
+            title: 'Sĩ số',
+            key: 'capacity',
+            width: 110,
+            align: 'center',
+            render: (_: unknown, row: ClassListRowModel) => (
+              <ClassCapacityTag capacity={row.capacity} />
             ),
-        },
-        {
-          title: 'Sĩ số',
-          key: 'capacity',
-          width: 110,
-          align: 'center',
-          render: (_: any, record: Class) => {
-            const enrolled = record.class_students?.length ?? 0;
-            const capacity = record.capacity;
-            if (!capacity) return <Text type="secondary">—</Text>;
-            const isFull = enrolled >= capacity;
-            return (
-              <Tooltip title={isFull ? 'Đã đầy lớp' : `Còn ${capacity - enrolled} chỗ`}>
-                <Tag color={isFull ? 'red' : enrolled > 0 ? 'orange' : 'default'}>
-                  {enrolled}/{capacity}
-                </Tag>
-              </Tooltip>
-            );
           },
-        },
-        {
-          title: 'Lịch mở lớp',
-          dataIndex: 'schedule',
-          key: 'schedule',
-          width: 130,
-          align: 'center',
-          render: (schedule: string | null) =>
-            schedule ? dayjs(schedule).format('DD/MM/YYYY') : <Text type="secondary">—</Text>,
-        },
-        {
-          title: 'Trạng thái',
-          dataIndex: 'status',
-          key: 'status',
-          width: 150,
-          align: 'center',
-          render: (status: string | null) => {
-            const meta = getClassStatusMeta(status);
-            return <Tag color={meta.color}>{meta.label}</Tag>;
+          {
+            title: 'Lịch mở lớp',
+            dataIndex: 'scheduleLabel',
+            key: 'schedule',
+            width: 130,
+            align: 'center',
+            render: (scheduleLabel: string) =>
+              scheduleLabel === '—' ? <Text type="secondary">—</Text> : scheduleLabel,
           },
-        },
-        {
-          title: 'Thao tác',
-          key: 'actions',
-          width: 100,
-          align: 'center',
-          render: (_: any, record: Class) => (
-            <Space>
-              <Button
-                type="link"
-                icon={<EyeOutlined />}
-                title="Xem chi tiết"
-                onClick={() => router.push(`/class/${record.id}`)}
-              />
-              {notStudent && (
-                <Popconfirm
-                  title="Xóa lớp học"
-                  description="Bạn có chắc chắn muốn xóa lớp học này không?"
-                  onConfirm={() => handleDelete(record.id)}
-                  okText="Xóa"
-                  cancelText="Hủy"
-                >
-                  <Button type="link" danger icon={<DeleteOutlined />} title="Xóa" />
-                </Popconfirm>
-              )}
-            </Space>
-          ),
-        },
-      ].map((col) => ({
+          {
+            title: 'Trạng thái',
+            key: 'status',
+            width: 150,
+            align: 'center',
+            render: (_: unknown, row: ClassListRowModel) => (
+              <ClassStatusTag label={row.status.label} color={row.status.color} />
+            ),
+          },
+          {
+            title: 'Thao tác',
+            key: 'actions',
+            width: 100,
+            align: 'center',
+            render: (_: unknown, row: ClassListRowModel) => {
+              const deleteState = getClassDeleteActionState(
+                canManageClasses,
+                row.capacity.enrolled,
+              );
+              return (
+                <ClassRowActions
+                  classId={row.id}
+                  canDelete={deleteState.canDelete}
+                  deleteBlockedReason={deleteState.deleteBlockedReason}
+                  onView={handleView}
+                  onDelete={handleDelete}
+                />
+              );
+            },
+          },
+        ] as ColumnsType<ClassListRowModel>
+      ).map((col) => ({
         ...col,
         onCell: () =>
           ({
             'data-label': typeof col.title === 'string' ? col.title : '',
-          }) as any,
+          }) as HTMLAttributes<HTMLElement>,
       })),
-    [handleDelete, router, notStudent],
-  ) as ColumnsType<Class>;
+    [handleDelete, handleView, canManageClasses],
+  );
 
   if (isClassesLoading) {
     return (
@@ -225,11 +236,11 @@ export default function ClassPage() {
     <div className={`p-page ${styles.pageContainer}`}>
       <Row justify="space-between" align="middle" className="mb-section">
         <Col>
-          <Title level={2} className="text-h2" style={{ margin: 0 }}>
+          <Title level={2} className={`text-h2 ${styles.pageTitle}`}>
             Danh sách Lớp học
           </Title>
         </Col>
-        {notStudent && (
+        {canManageClasses ? (
           <Col>
             <Button
               type="primary"
@@ -240,10 +251,10 @@ export default function ClassPage() {
               Tạo mới Lớp học
             </Button>
           </Col>
-        )}
+        ) : null}
       </Row>
 
-      <Row gutter={[16, 12]} align="middle" style={{ marginBottom: 16 }}>
+      <Row gutter={[16, 12]} align="middle" className={styles.filterRow}>
         <Col>
           <Text type="secondary">
             <FilterOutlined /> Bộ lọc:
@@ -261,7 +272,7 @@ export default function ClassPage() {
         <Col xs={24} sm={12} md={5}>
           <Select
             placeholder="Lọc theo trạng thái"
-            style={{ width: '100%' }}
+            className={styles.filterSelect}
             value={statusFilter}
             onChange={setStatusFilter}
             allowClear
@@ -271,13 +282,12 @@ export default function ClassPage() {
         <Col xs={24} sm={12} md={6}>
           <Select
             placeholder="Lọc theo khóa học"
-            style={{ width: '100%' }}
+            className={styles.filterSelect}
             value={courseFilter}
             onChange={setCourseFilter}
             allowClear
-            showSearch
+            showSearch={{ optionFilterProp: 'label' }}
             loading={isCoursesLoading}
-            optionFilterProp="label"
             options={courseOptions}
           />
         </Col>
@@ -296,166 +306,49 @@ export default function ClassPage() {
       {!isMobile ? (
         <Table
           columns={columns}
-          dataSource={filteredClasses}
+          dataSource={listRows}
           rowKey="id"
           pagination={{
             pageSize: 20,
             showSizeChanger: true,
             showTotal: (total) => `Tổng ${total} lớp học`,
           }}
-          locale={{
-            emptyText:
-              classes?.length === 0
-                ? 'Chưa có lớp học nào. Hãy tạo mới một lớp học.'
-                : 'Không tìm thấy lớp học nào phù hợp với bộ lọc.',
-          }}
+          locale={{ emptyText }}
         />
+      ) : listRows.length === 0 ? (
+        <Empty description={emptyText} />
       ) : (
-        <List
-          grid={{ gutter: 16, column: 1 }}
-          dataSource={filteredClasses}
-          pagination={{ pageSize: 20, size: 'small', showSizeChanger: false, align: 'center' }}
-          locale={{
-            emptyText:
-              classes?.length === 0
-                ? 'Chưa có lớp học nào. Hãy tạo mới một lớp học.'
-                : 'Không tìm thấy lớp học nào phù hợp với bộ lọc.',
-          }}
-          renderItem={(cls) => {
-            const enrolled = cls.class_students?.length ?? 0;
-            const capacity = cls.capacity;
-            const isFull = capacity ? enrolled >= capacity : false;
-
-            return (
-              <List.Item>
-                <Card
-                  size="small"
-                  title={
-                    <Text
-                      strong
-                      style={{
-                        fontSize: '15px',
-                        whiteSpace: 'normal',
-                        wordBreak: 'break-word',
-                        color: '#1677ff',
-                      }}
-                    >
-                      {cls.name}
-                    </Text>
-                  }
-                  extra={
-                    cls.status && (
-                      <Tag style={{ margin: 0 }} color={getClassStatusMeta(cls.status).color}>
-                        {getClassStatusMeta(cls.status).label}
-                      </Tag>
-                    )
-                  }
-                  style={{
-                    width: '100%',
-                    borderRadius: '8px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                  }}
-                  styles={{ body: { padding: '12px' } }}
-                  actions={[
-                    <Tooltip key="detail" title="Xem chi tiết">
-                      <div
-                        onClick={() => router.push(`/class/${cls.id}`)}
-                        style={{
-                          width: '100%',
-                          display: 'flex',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <EyeOutlined style={{ fontSize: '16px' }} />
-                      </div>
-                    </Tooltip>,
-                    ...(notStudent ? [
-                      <Popconfirm
-                        key="delete"
-                        title="Xóa lớp học"
-                        description="Bạn có chắc chắn muốn xóa lớp học này không?"
-                        onConfirm={() => handleDelete(cls.id)}
-                        okText="Xóa"
-                        cancelText="Hủy"
-                      >
-                        <Tooltip title="Xóa">
-                          <div
-                            style={{
-                              width: '100%',
-                              display: 'flex',
-                              justifyContent: 'center',
-                              alignItems: 'center',
-                              color: '#ff4d4f',
-                            }}
-                          >
-                            <DeleteOutlined style={{ fontSize: '16px' }} />
-                          </div>
-                        </Tooltip>
-                      </Popconfirm>
-                    ] : []),
-                  ]}
-                >
-                  <Flex vertical gap="small">
-                    <Flex
-                      justify="space-between"
-                      align="center"
-                      style={{
-                        fontSize: '14px',
-                        borderBottom: '1px solid #f0f0f0',
-                        paddingBottom: '8px',
-                      }}
-                    >
-                      <Text type="secondary">Mã lớp</Text>
-                      <Text strong>{cls.code || '—'}</Text>
-                    </Flex>
-                    <Flex
-                      justify="space-between"
-                      align="center"
-                      style={{
-                        fontSize: '14px',
-                        borderBottom: '1px solid #f0f0f0',
-                        paddingBottom: '8px',
-                      }}
-                    >
-                      <Text type="secondary">Khóa học</Text>
-                      <Text style={{ textAlign: 'right', marginLeft: '16px' }}>
-                        {cls.courses
-                          ? `${cls.courses.name}${cls.courses.code ? ` (${cls.courses.code})` : ''}`
-                          : '—'}
-                      </Text>
-                    </Flex>
-                    <Flex
-                      justify="space-between"
-                      align="center"
-                      style={{
-                        fontSize: '14px',
-                        borderBottom: '1px solid #f0f0f0',
-                        paddingBottom: '8px',
-                      }}
-                    >
-                      <Text type="secondary">Sĩ số</Text>
-                      {capacity ? (
-                        <Tag
-                          color={isFull ? 'red' : enrolled > 0 ? 'orange' : 'default'}
-                          style={{ margin: 0, fontWeight: 500 }}
-                        >
-                          {enrolled}/{capacity}
-                        </Tag>
-                      ) : (
-                        <Text type="secondary">—</Text>
-                      )}
-                    </Flex>
-                    <Flex justify="space-between" align="center" style={{ fontSize: '14px' }}>
-                      <Text type="secondary">Lịch mở lớp</Text>
-                      <Text>{cls.schedule ? dayjs(cls.schedule).format('DD/MM/YYYY') : '—'}</Text>
-                    </Flex>
-                  </Flex>
-                </Card>
-              </List.Item>
-            );
-          }}
-        />
+        <>
+          <div role="list" style={{ display: 'grid', gap: 16 }}>
+            {mobileRows.map((row) => {
+              const deleteState = getClassDeleteActionState(
+                canManageClasses,
+                row.capacity.enrolled,
+              );
+              return (
+                <div role="listitem" key={row.id}>
+                  <ClassListCard
+                    row={row}
+                    canDelete={deleteState.canDelete}
+                    deleteBlockedReason={deleteState.deleteBlockedReason}
+                    onView={handleView}
+                    onDelete={handleDelete}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <Pagination
+            current={safeMobilePage}
+            pageSize={mobilePageSize}
+            total={listRows.length}
+            size="small"
+            align="center"
+            showSizeChanger={false}
+            onChange={setMobilePage}
+            style={{ marginTop: 16 }}
+          />
+        </>
       )}
 
       <CreateClassModal open={isCreateModalOpen} onClose={handleCloseCreateModal} />

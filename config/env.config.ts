@@ -1,13 +1,11 @@
 import { AppError } from '@/errors/app-error';
 import { ConfigErrorCode, HttpStatusCode } from '@/constants/enums';
 
-/** Prefer SUPABASE_SERVICE_ROLE_KEY. Legacy NEXT_PUBLIC_ name is server-fallback only. */
 const LEGACY_SERVICE_ROLE_KEY = 'NEXT_PUBLIC_SERVICE_ROLE_KEY';
 
 export enum EnvKey {
   SUPABASE_URL = 'NEXT_PUBLIC_SUPABASE_URL',
   SUPABASE_ANON_KEY = 'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-  // Server-only: never use NEXT_PUBLIC_ for the service role key in new setups.
   SERVICE_ROLE_KEY = 'SUPABASE_SERVICE_ROLE_KEY',
   API_BASE_URL = 'NEXT_PUBLIC_API_BASE_URL',
   NODE_ENV = 'NODE_ENV',
@@ -19,6 +17,7 @@ export enum EnvKey {
   SMAX_API_TOKEN = 'SMAX_API_TOKEN',
   SMAX_API_BASE_URL = 'SMAX_API_BASE_URL',
   SMAX_BIZ_ALIAS = 'SMAX_BIZ_ALIAS',
+  SMAX_PAGE_PIDS = 'SMAX_PAGE_PIDS',
 }
 
 function readEnv(name: string): string | undefined {

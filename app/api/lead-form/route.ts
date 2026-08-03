@@ -8,23 +8,28 @@ import {
 import { validateLeadFormInput, validateLeadId } from '@/lib/validators/lead.validator';
 import { HttpStatusCode, LeadErrorCode, LeadSource, LeadStatus } from '@/constants/enums';
 import { handleRouteError } from '@/lib/utils/route-handler';
+import { fail } from '@/errors';
 
-/**
- * Staff lead-form endpoint (no session — served inside the embedded Smax form,
- * so it is registered in PUBLIC_ROUTES). Operated by staff, not customers.
- *
- * Accepts { full_name, phone_number, date_of_birth, status, note, smax_log,
- * lead_id? }. Everything else (telesales_id, source, ...) is still forced
- * server-side so this unauthenticated surface cannot set privileged fields.
- * `status` is limited to the LeadStatus whitelist by the validator.
- *
- * Flow:
- *  - With `lead_id`: the staff confirmed an update, so the matching lead is
- *    updated and the note is APPENDED to its existing note history.
- *  - Without `lead_id`: if a lead with the same phone or name already exists,
- *    responds 409 with the existing lead so the client can offer update/cancel;
- *    otherwise a new lead is created.
- */
+function normalizePhone(phone: string | null | undefined): string {
+  return (phone ?? '').replace(/\D/g, '');
+}
+
+function leadMatchesSubmittedIdentity(
+  existing: { full_name: string; phone_number: string | null },
+  input: { full_name: string; phone_number: string },
+): boolean {
+  const existingPhone = normalizePhone(existing.phone_number);
+  const submittedPhone = normalizePhone(input.phone_number);
+
+  if (existingPhone) {
+    return existingPhone === submittedPhone;
+  }
+
+  return (
+    existing.full_name.trim().toLowerCase() === input.full_name.trim().toLowerCase()
+  );
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body = await request.json();
@@ -32,13 +37,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const rawLeadId = (body as { lead_id?: unknown }).lead_id;
 
-    // Staff explicitly chose to update the existing (duplicate) lead.
     if (rawLeadId !== undefined && rawLeadId !== null) {
       const leadId = validateLeadId(rawLeadId);
 
-      // `note` is a history array — replacing it would wipe every earlier note,
-      // so read the current value and append instead.
       const existing = await fetchLeadById(leadId);
+      if (!leadMatchesSubmittedIdentity(existing, input)) {
+        fail(
+          LeadErrorCode.BAD_REQUEST,
+          HttpStatusCode.FORBIDDEN,
+          'Lead không khớp thông tin đã gửi.',
+        );
+      }
+
       const mergedNote = input.note
         ? [...(existing.note ?? []), ...input.note]
         : undefined;
@@ -59,7 +69,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Detect a lead colliding on phone or name before creating a new one.
     const duplicate = await findDuplicateLead(input.full_name, input.phone_number);
     if (duplicate) {
       return NextResponse.json(

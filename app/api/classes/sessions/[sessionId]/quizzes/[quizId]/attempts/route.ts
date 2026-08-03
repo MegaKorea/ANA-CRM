@@ -6,8 +6,7 @@ import {
   sessionContentErrorResponse,
 } from '@/lib/api/session-content-route';
 import { getCurrentUser } from '@/lib/services/auth.service';
-import { resolveClassViewer } from '@/lib/services/class_access.service';
-import { getSessionById } from '@/lib/services/class_session.service';
+import { assertClassAccess } from '@/lib/services/class_access.service';
 import {
   getMyQuizAttempt,
   getQuizById,
@@ -27,19 +26,23 @@ export async function GET(
   { params }: { params: Promise<{ sessionId: string; quizId: string }> },
 ): Promise<NextResponse> {
   try {
-    const user = await getCurrentUser();
     const { sessionId, quizId } = await params;
-    const session = await getSessionById(sessionId);
-    await resolveClassViewer(session.class_id);
-    const quiz = await getQuizById(quizId);
+    const [user, quiz] = await Promise.all([
+      getCurrentUser(),
+      getQuizById(quizId),
+    ]);
     assertQuizBelongsToSession(quiz, sessionId);
 
     if (user.roleCode === ClassMemberRole.TEA) {
+      await assertClassAccess(quiz.class_id, user);
       const items = await listQuizAttemptsForTeacher(quizId);
       return NextResponse.json({ items }, { status: HttpStatusCode.OK });
     }
 
-    const attempt = await getMyQuizAttempt(quizId, user.id);
+    const [, attempt] = await Promise.all([
+      assertClassAccess(quiz.class_id, user),
+      getMyQuizAttempt(quizId, user.id),
+    ]);
     return NextResponse.json(attempt, { status: HttpStatusCode.OK });
   } catch (error: unknown) {
     return sessionContentErrorResponse(error, QuizErrorCode.INTERNAL);
@@ -51,21 +54,26 @@ export async function POST(
   { params }: { params: Promise<{ sessionId: string; quizId: string }> },
 ): Promise<NextResponse> {
   try {
-    const user = await assertQuizStudentSubmitter();
     const { sessionId, quizId } = await params;
-    const session = await getSessionById(sessionId);
-    await resolveClassViewer(session.class_id);
-    const quiz = await getQuizById(quizId);
+    const bodyPromise = request.json();
+    const [user, quiz] = await Promise.all([
+      assertQuizStudentSubmitter(),
+      getQuizById(quizId),
+    ]);
     assertQuizBelongsToSession(quiz, sessionId);
-    const body = await request.json();
+    const [, body, existing] = await Promise.all([
+      assertClassAccess(quiz.class_id, user),
+      bodyPromise,
+      getMyQuizAttempt(quizId, user.id),
+    ]);
 
     if (isStartAttemptRequest(body)) {
-      const attempt = await startQuizAttempt(quizId, user.id);
+      const attempt = await startQuizAttempt(quizId, user.id, quiz, existing);
       return NextResponse.json(attempt, { status: HttpStatusCode.CREATED });
     }
 
     const answers = validateSubmitAttemptInput(body);
-    const attempt = await submitQuizAttempt(quizId, user.id, answers);
+    const attempt = await submitQuizAttempt(quizId, user.id, answers, quiz, existing);
     return NextResponse.json(attempt, { status: HttpStatusCode.CREATED });
   } catch (error: unknown) {
     return sessionContentErrorResponse(error, QuizErrorCode.INTERNAL);
@@ -77,15 +85,20 @@ export async function PATCH(
   { params }: { params: Promise<{ sessionId: string; quizId: string }> },
 ): Promise<NextResponse> {
   try {
-    const user = await assertQuizStudentSubmitter();
     const { sessionId, quizId } = await params;
-    const session = await getSessionById(sessionId);
-    await resolveClassViewer(session.class_id);
-    const quiz = await getQuizById(quizId);
+    const bodyPromise = request.json();
+    const [user, quiz] = await Promise.all([
+      assertQuizStudentSubmitter(),
+      getQuizById(quizId),
+    ]);
     assertQuizBelongsToSession(quiz, sessionId);
-    const body = await request.json();
+    const [, body, existing] = await Promise.all([
+      assertClassAccess(quiz.class_id, user),
+      bodyPromise,
+      getMyQuizAttempt(quizId, user.id),
+    ]);
     const answers = validateDraftAttemptInput(body);
-    const attempt = await saveQuizAttemptDraft(quizId, user.id, answers);
+    const attempt = await saveQuizAttemptDraft(quizId, user.id, answers, existing);
     return NextResponse.json(attempt, { status: HttpStatusCode.OK });
   } catch (error: unknown) {
     return sessionContentErrorResponse(error, QuizErrorCode.INTERNAL);

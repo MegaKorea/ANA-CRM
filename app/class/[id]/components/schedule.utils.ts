@@ -14,7 +14,6 @@ export type SessionRow = {
   room: string;
   hasQr: boolean;
   hasAttendance: boolean;
-  /** Số HV đã có trạng thái điểm danh (present/absent/late/excused). */
   attendanceMarkedCount: number;
   caLabel: string;
 };

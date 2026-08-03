@@ -23,6 +23,14 @@ export function useLeads(params?: LeadQueryParams) {
   });
 }
 
+export function useLead(id: number | null) {
+  return useQuery<Lead>({
+    queryKey: [LeadQueryKey.LIST, 'detail', id],
+    queryFn: () => api.get<Lead>(`${LeadApiPath.BASE}/${id}`),
+    enabled: id != null,
+  });
+}
+
 export function useCreateLead() {
   const queryClient = useQueryClient();
 

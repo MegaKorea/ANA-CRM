@@ -1,8 +1,8 @@
 'use client';
 
 import {
-  Typography, Button, Modal, Calendar,
-  message, Spin, Empty,
+  App, Typography, Button, Calendar,
+  Empty,
 } from 'antd';
 import type { CalendarProps } from 'antd';
 import { ClockCircleOutlined, SyncOutlined, ScanOutlined } from '@ant-design/icons';
@@ -27,7 +27,9 @@ import { StudentScannerModal } from './modals/StudentScannerModal';
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import { ClassMemberRole } from '@/constants/enums';
 import { normalizeClassTimetable } from '@/lib/validators/class.validator';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 import { createCalendarHeaderRender } from './ScheduleCalendarNav';
+import { ScheduleLoading } from './ScheduleLoading';
 import { ScheduleDayCell } from './ScheduleDayCell';
 import { ScheduleDayDetail } from './ScheduleDayDetail';
 import {
@@ -45,6 +47,7 @@ dayjs.locale('vi');
 const STAFF_ROLES = ['ADMIN', 'AO', 'TEA'] as const;
 
 export function TabSchedule({ classData }: { classData: Class }) {
+  const { message, modal } = App.useApp();
   const { hasPermission: canManage, isLoading: authLoading } = useAuthPermission([...STAFF_ROLES]);
   const { hasPermission: canEditLectures } = useAuthPermission([ClassMemberRole.TEA]);
   const { hasPermission: canTakeQuizzes } = useAuthPermission([ClassMemberRole.STU]);
@@ -160,7 +163,7 @@ export function TabSchedule({ classData }: { classData: Class }) {
       return;
     }
 
-    Modal.confirm({
+    modal.confirm({
       title: 'Tạo lịch học tự động?',
       content: hasSessions
         ? 'Hành động này sẽ xoá toàn bộ lịch cũ và tạo lại. Dữ liệu điểm danh cũng sẽ bị xoá. Bạn chắc chắn?'
@@ -178,11 +181,11 @@ export function TabSchedule({ classData }: { classData: Class }) {
           message.success('Đã tạo lịch học thành công!');
           resetToToday();
         } catch (e: unknown) {
-          message.error(e instanceof Error ? e.message : 'Tạo lịch thất bại.');
+          message.error(getErrorMessage(e, 'Tạo lịch thất bại.'));
         }
       },
     });
-  }, [classData, classId, generateSessions, hasSessions, resetToToday]);
+  }, [classData, classId, generateSessions, hasSessions, message, modal, resetToToday]);
 
   const handleSaveSession = useCallback(async (values: EditSessionValues) => {
     if (!editSession) return;
@@ -191,9 +194,9 @@ export function TabSchedule({ classData }: { classData: Class }) {
       message.success('Đã cập nhật buổi học.');
       setEditSession(null);
     } catch (e: unknown) {
-      message.error(e instanceof Error ? e.message : 'Cập nhật thất bại.');
+      message.error(getErrorMessage(e, 'Cập nhật thất bại.'));
     }
-  }, [editSession, updateSession]);
+  }, [editSession, message, updateSession]);
 
   const handleSaveAttendances = useCallback(async (records: AttendanceRecord[]) => {
     if (!attendanceSession) return;
@@ -202,18 +205,18 @@ export function TabSchedule({ classData }: { classData: Class }) {
       message.success('Đã lưu điểm danh.');
       setAttendanceSession(null);
     } catch (e: unknown) {
-      message.error(e instanceof Error ? e.message : 'Lưu điểm danh thất bại.');
+      message.error(getErrorMessage(e, 'Lưu điểm danh thất bại.'));
     }
-  }, [attendanceSession, bulkUpsert]);
+  }, [attendanceSession, bulkUpsert, message]);
 
   const handleGenerateQr = useCallback(async (session: ClassSession) => {
     try {
       const result = await generateQr.mutateAsync(session.id);
       setQrModal({ open: true, token: result.token, expiresAt: result.expiresAt });
     } catch (e: unknown) {
-      message.error(e instanceof Error ? e.message : 'Tạo mã QR thất bại.');
+      message.error(getErrorMessage(e, 'Tạo mã QR thất bại.'));
     }
-  }, [generateQr]);
+  }, [generateQr, message]);
 
   const onSelectDate = useCallback((value: Dayjs) => {
     setActiveDate(value);
@@ -270,14 +273,7 @@ export function TabSchedule({ classData }: { classData: Class }) {
   }
 
   if (sessionsLoading || authLoading) {
-    return (
-      <div className={styles.stateBlockLarge}>
-        <Spin size="large" />
-        <Typography.Text type="secondary" className={styles.stateHint}>
-          Đang tải lịch học...
-        </Typography.Text>
-      </div>
-    );
+    return <ScheduleLoading tip="Đang tải lịch học…" size="large" />;
   }
 
   if (!hasSessions) {
@@ -344,9 +340,9 @@ export function TabSchedule({ classData }: { classData: Class }) {
         )}
       </div>
 
-      <div className={styles.calendarLayout}>
+      <div className={cx(styles.calendarLayout, isMobile && styles.calendarLayoutMobile)}>
         <div className={styles.calendarPanel}>
-          <div className={styles.panelLabel}>Thời khóa biểu</div>
+          <div className={styles.panelLabel}>{isMobile ? 'Chọn ngày' : 'Thời khóa biểu'}</div>
           <div className={styles.calendarScroll}>
             <Calendar
               fullscreen
