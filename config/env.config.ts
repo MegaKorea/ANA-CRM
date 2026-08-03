@@ -17,6 +17,7 @@ export enum EnvKey {
   SMAX_API_TOKEN = 'SMAX_API_TOKEN',
   SMAX_API_BASE_URL = 'SMAX_API_BASE_URL',
   SMAX_BIZ_ALIAS = 'SMAX_BIZ_ALIAS',
+  SMAX_PAGE_PIDS = 'SMAX_PAGE_PIDS',
 }
 
 function readEnv(name: string): string | undefined {

@@ -25,8 +25,6 @@ export function CRMLayout({ children }: CRMLayoutProps) {
   const { isNavigating } = useNavigation();
   const { themeMode } = useTheme();
 
-  // Reset the drawer state whenever we leave mobile mode, so it doesn't
-  // silently reopen if the viewport later resizes back into mobile.
   const [prevIsMobile, setPrevIsMobile] = useState(isMobile);
   if (isMobile !== prevIsMobile) {
     setPrevIsMobile(isMobile);
