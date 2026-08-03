@@ -14,6 +14,8 @@ import {
 import dayjs from 'dayjs';
 import type { ClassSession } from '@/lib/services/class_session.service';
 import { STATUS_LABEL, cx, type SessionRow, type SessionStatus } from './schedule.utils';
+import { SessionLecturesPanel } from './SessionLecturesPanel';
+import { SessionQuizzesPanel } from './SessionQuizzesPanel';
 import styles from './tab-schedule.module.scss';
 
 const STATUS_BADGE: Record<SessionStatus, string> = {
@@ -23,9 +25,13 @@ const STATUS_BADGE: Record<SessionStatus, string> = {
 };
 
 type Props = {
+  classId: string;
   selectedDate: string;
   selectedSession: SessionRow | null;
   canManage: boolean;
+  canEditLectures: boolean;
+  canTakeQuizzes: boolean;
+  isMobile: boolean;
   attendanceForSelf?: boolean;
   onEdit: (session: ClassSession) => void;
   onAttendance: (session: ClassSession) => void;
@@ -33,9 +39,13 @@ type Props = {
 };
 
 export function ScheduleDayDetail({
+  classId,
   selectedDate,
   selectedSession,
   canManage,
+  canEditLectures,
+  canTakeQuizzes,
+  isMobile,
   attendanceForSelf = false,
   onEdit,
   onAttendance,
@@ -150,6 +160,20 @@ export function ScheduleDayDetail({
               </Button>
             </div>
           ) : null}
+
+          <SessionLecturesPanel
+            classId={classId}
+            sessionId={selectedSession.session.id}
+            canEdit={canEditLectures}
+            isMobile={isMobile}
+          />
+          <SessionQuizzesPanel
+            classId={classId}
+            sessionId={selectedSession.session.id}
+            canEdit={canEditLectures}
+            canTake={canTakeQuizzes}
+            isMobile={isMobile}
+          />
         </div>
       )}
     </div>

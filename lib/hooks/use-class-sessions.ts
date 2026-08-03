@@ -3,11 +3,20 @@ import { fetchJson } from '@/lib/utils/fetchJson';
 import type { ClassSession, SessionAttendance, VerifyQrResult } from '@/lib/services/class_session.service';
 import type { AttendanceStatus } from '@/lib/supabase/types/tables/session_attendances';
 import { useUserRoleCode } from '@/lib/hooks/use-current-user';
+import type { SessionLecture, SessionLectureAttachment, SessionLectureLink } from '@/lib/types/session-lecture';
 
 // ─── Query Keys ──────────────────────────────────────────────────────────
 
 export const CLASS_SESSIONS_KEY = 'class-sessions';
 export const SESSION_ATTENDANCES_KEY = 'session-attendances';
+export const SESSION_LECTURES_KEY = 'session-lectures';
+
+export type SessionLectureFormValues = {
+  title: string;
+  html?: string;
+  links?: SessionLectureLink[];
+  attachments?: SessionLectureAttachment[];
+};
 
 // ─── Sessions ────────────────────────────────────────────────────────────
 
@@ -18,7 +27,6 @@ async function fetchClassSessions(classId: string): Promise<ClassSession[]> {
 export function useClassSessions(classId: string) {
     const roleCode = useUserRoleCode();
     return useQuery({
-        // role trong key: STU nhận hasAttendance theo bản thân, staff theo cả buổi
         queryKey: [CLASS_SESSIONS_KEY, classId, roleCode ?? 'anon'],
         queryFn: () => fetchClassSessions(classId),
         enabled: !!classId,
@@ -174,6 +182,95 @@ export function useVerifyQrCode(classId?: string) {
                 queryClient.invalidateQueries({ queryKey: [CLASS_SESSIONS_KEY] });
             }
             queryClient.invalidateQueries({ queryKey: [SESSION_ATTENDANCES_KEY] });
+        },
+    });
+}
+
+// ─── Session lectures ────────────────────────────────────────────────────
+
+async function fetchSessionLectures(sessionId: string): Promise<SessionLecture[]> {
+    return fetchJson<SessionLecture[]>(`/api/classes/sessions/${sessionId}/lectures`);
+}
+
+export function useSessionLectures(sessionId: string | null) {
+    return useQuery({
+        queryKey: [SESSION_LECTURES_KEY, sessionId],
+        queryFn: () => fetchSessionLectures(sessionId!),
+        enabled: !!sessionId,
+    });
+}
+
+async function createSessionLectureReq({
+    sessionId,
+    data,
+}: {
+    sessionId: string;
+    data: SessionLectureFormValues;
+}): Promise<SessionLecture> {
+    return fetchJson<SessionLecture>(`/api/classes/sessions/${sessionId}/lectures`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+}
+
+export function useCreateSessionLecture(classId: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: createSessionLectureReq,
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: [SESSION_LECTURES_KEY, variables.sessionId] });
+            queryClient.invalidateQueries({ queryKey: [CLASS_SESSIONS_KEY, classId] });
+        },
+    });
+}
+
+async function updateSessionLectureReq({
+    sessionId,
+    lectureId,
+    data,
+}: {
+    sessionId: string;
+    lectureId: string;
+    data: Partial<SessionLectureFormValues>;
+}): Promise<SessionLecture> {
+    return fetchJson<SessionLecture>(`/api/classes/sessions/${sessionId}/lectures/${lectureId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+}
+
+export function useUpdateSessionLecture(classId: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: updateSessionLectureReq,
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: [SESSION_LECTURES_KEY, variables.sessionId] });
+            queryClient.invalidateQueries({ queryKey: [CLASS_SESSIONS_KEY, classId] });
+        },
+    });
+}
+
+async function deleteSessionLectureReq({
+    sessionId,
+    lectureId,
+}: {
+    sessionId: string;
+    lectureId: string;
+}): Promise<void> {
+    await fetchJson<void>(`/api/classes/sessions/${sessionId}/lectures/${lectureId}`, {
+        method: 'DELETE',
+    });
+}
+
+export function useDeleteSessionLecture(classId: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: deleteSessionLectureReq,
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: [SESSION_LECTURES_KEY, variables.sessionId] });
+            queryClient.invalidateQueries({ queryKey: [CLASS_SESSIONS_KEY, classId] });
         },
     });
 }

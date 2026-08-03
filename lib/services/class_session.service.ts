@@ -1,8 +1,15 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { AttendanceStatus } from '@/lib/supabase/types/tables/session_attendances';
 import { fail, throwIfSupabaseError } from '@/errors';
-import { HttpStatusCode } from '@/constants/enums';
-import { randomBytes } from 'crypto';
+import { HttpStatusCode, LectureErrorCode } from '@/constants/enums';
+import { randomBytes, randomUUID } from 'crypto';
+import {
+    buildBodyJsonWithLectures,
+    parseSessionLectures,
+    type SessionLecture,
+    type SessionLectureAttachment,
+    type SessionLectureLink,
+} from '@/lib/types/session-lecture';
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -16,6 +23,11 @@ export interface ClassSession {
     room: string | null;
     qr_code_token: string | null;
     qr_code_expires_at: string | null;
+    body_json: Record<string, unknown> | null;
+    attachments: unknown[] | null;
+    has_content: boolean;
+    has_quiz: boolean;
+    lectures: SessionLecture[];
     created_at: string;
     updated_at: string;
     hasAttendance?: boolean;
@@ -27,6 +39,16 @@ export interface ClassSession {
         phone: string | null;
     } | null;
 }
+
+export type { SessionLecture, SessionLectureAttachment, SessionLectureLink };
+
+export type SessionLectureInput = {
+    title: string;
+    html?: string;
+    links?: SessionLectureLink[];
+    attachments?: SessionLectureAttachment[];
+    sort_order?: number;
+};
 
 export interface SessionAttendance {
     id: string;
@@ -106,6 +128,9 @@ function mapSessionRow(
 
     const redactQr = !!opts?.redactQr;
 
+    const bodyJson = (row.body_json as Record<string, unknown> | null) ?? null;
+    const lectures = parseSessionLectures(bodyJson);
+
     return {
         id: row.id as string,
         class_id: row.class_id as string,
@@ -116,6 +141,11 @@ function mapSessionRow(
         room: (row.room as string | null) ?? null,
         qr_code_token: redactQr ? null : ((row.qr_code_token as string | null) ?? null),
         qr_code_expires_at: redactQr ? null : ((row.qr_code_expires_at as string | null) ?? null),
+        body_json: bodyJson,
+        attachments: Array.isArray(row.attachments) ? (row.attachments as unknown[]) : [],
+        has_content: Boolean(row.has_content) || lectures.length > 0,
+        has_quiz: Boolean(row.has_quiz),
+        lectures,
         created_at: row.created_at as string,
         updated_at: row.updated_at as string,
         teacher: (row.teacher as ClassSession['teacher']) ?? null,
@@ -156,7 +186,107 @@ export async function getSessionById(sessionId: string): Promise<ClassSession> {
         .single();
 
     throwIfSupabaseError(error);
-    return data as unknown as ClassSession;
+    if (!data) {
+        fail('SESSION_NOT_FOUND', HttpStatusCode.NOT_FOUND, 'Không tìm thấy buổi học.');
+    }
+    return mapSessionRow(data as unknown as Record<string, unknown>);
+}
+
+async function persistSessionLectures(
+    sessionId: string,
+    bodyJson: unknown,
+    lectures: SessionLecture[],
+): Promise<ClassSession> {
+    const supabase = createAdminClient();
+    const nextBody = buildBodyJsonWithLectures(bodyJson, lectures);
+    const { data, error } = await supabase
+        .from('class_sessions')
+        .update({
+            body_json: nextBody,
+            has_content: lectures.length > 0,
+            updated_at: new Date().toISOString(),
+        } as never)
+        .eq('id', sessionId)
+        .select(SESSION_SELECT)
+        .single();
+
+    throwIfSupabaseError(error, LectureErrorCode.SAVE_FAILED);
+    if (!data) {
+        fail('SESSION_NOT_FOUND', HttpStatusCode.NOT_FOUND, 'Không tìm thấy buổi học.');
+    }
+    return mapSessionRow(data as unknown as Record<string, unknown>);
+}
+
+export async function listSessionLectures(sessionId: string): Promise<SessionLecture[]> {
+    const session = await getSessionById(sessionId);
+    return session.lectures;
+}
+
+export async function createSessionLecture(
+    sessionId: string,
+    input: SessionLectureInput,
+): Promise<SessionLecture> {
+    const session = await getSessionById(sessionId);
+    const now = new Date().toISOString();
+    const lecture: SessionLecture = {
+        id: randomUUID(),
+        title: input.title.trim(),
+        html: (input.html ?? '').trim(),
+        links: input.links ?? [],
+        attachments: input.attachments ?? [],
+        sort_order: input.sort_order ?? session.lectures.length,
+        updated_at: now,
+    };
+    const next = [...session.lectures, lecture];
+    const updated = await persistSessionLectures(sessionId, session.body_json, next);
+    const created = updated.lectures.find((item) => item.id === lecture.id);
+    if (!created) {
+        fail(LectureErrorCode.SAVE_FAILED, HttpStatusCode.INTERNAL_SERVER_ERROR);
+    }
+    return created;
+}
+
+export async function updateSessionLecture(
+    sessionId: string,
+    lectureId: string,
+    input: Partial<SessionLectureInput>,
+): Promise<SessionLecture> {
+    const session = await getSessionById(sessionId);
+    const index = session.lectures.findIndex((item) => item.id === lectureId);
+    if (index < 0) {
+        fail(LectureErrorCode.NOT_FOUND, HttpStatusCode.NOT_FOUND);
+    }
+
+    const current = session.lectures[index];
+    const nextLecture: SessionLecture = {
+        ...current,
+        title: input.title !== undefined ? input.title.trim() : current.title,
+        html: input.html !== undefined ? input.html.trim() : current.html,
+        links: input.links !== undefined ? input.links : current.links,
+        attachments: input.attachments !== undefined ? input.attachments : current.attachments,
+        sort_order: input.sort_order !== undefined ? input.sort_order : current.sort_order,
+        updated_at: new Date().toISOString(),
+    };
+
+    const next = session.lectures.map((item, i) => (i === index ? nextLecture : item));
+    const updated = await persistSessionLectures(sessionId, session.body_json, next);
+    const saved = updated.lectures.find((item) => item.id === lectureId);
+    if (!saved) {
+        fail(LectureErrorCode.SAVE_FAILED, HttpStatusCode.INTERNAL_SERVER_ERROR);
+    }
+    return saved;
+}
+
+export async function deleteSessionLecture(
+    sessionId: string,
+    lectureId: string,
+): Promise<void> {
+    const session = await getSessionById(sessionId);
+    if (!session.lectures.some((item) => item.id === lectureId)) {
+        fail(LectureErrorCode.NOT_FOUND, HttpStatusCode.NOT_FOUND);
+    }
+    const next = session.lectures.filter((item) => item.id !== lectureId);
+    await persistSessionLectures(sessionId, session.body_json, next);
 }
 
 export async function updateSession(

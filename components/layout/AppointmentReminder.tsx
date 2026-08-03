@@ -6,7 +6,7 @@ import { App, Badge, Button, Dropdown, Empty, List, Space, Typography } from 'an
 import { BellOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { useDueReminders, useMarkRemindersSent } from '@/lib/hooks/use-appointments';
-import { DateLocale } from '@/constants/enums';
+import { ClassMemberRole, DateLocale } from '@/constants/enums';
 import type { DueAppointment } from '@/lib/services/appointment.service';
 
 const { Text } = Typography;
@@ -15,23 +15,15 @@ function formatWhen(appointment: DueAppointment): string {
   return new Date(appointment.appointment_date).toLocaleString(DateLocale.VIET_NAM);
 }
 
-/**
- * Polls for due appointment reminders and surfaces them as a bell plus a popup.
- *
- * Reminders are server-scoped to the signed-in telesales, so each one is shown to
- * exactly one person. Dismissing acknowledges it server-side (`reminder_sent_at`)
- * so it never reappears — including after a reload or on another device.
- */
 export function AppointmentReminder() {
   const router = useRouter();
   const { notification } = App.useApp();
   const { user } = useCurrentUser();
+  const isStudent = user?.roleCode === ClassMemberRole.STU;
 
-  const { data: reminders } = useDueReminders(!!user?.id);
+  const { data: reminders } = useDueReminders(!!user?.id && !isStudent);
   const { mutate: markSent } = useMarkRemindersSent();
 
-  // Tracks which reminders already produced a popup this session, so the 60s
-  // poll does not re-open the same toast before it is acknowledged.
   const poppedRef = useRef<Set<number>>(new Set());
 
   const items = useMemo(() => reminders ?? [], [reminders]);
@@ -53,6 +45,7 @@ export function AppointmentReminder() {
   );
 
   useEffect(() => {
+    if (isStudent) return;
     items.forEach((appointment) => {
       if (poppedRef.current.has(appointment.id)) return;
       poppedRef.current.add(appointment.id);
@@ -86,8 +79,9 @@ export function AppointmentReminder() {
         onClose: () => acknowledge([appointment.id]),
       });
     });
-  }, [acknowledge, items, notification, openLead]);
+  }, [acknowledge, isStudent, items, notification, openLead]);
 
+  if (isStudent) return null;
   const dropdownContent = (
     <div
       style={{
