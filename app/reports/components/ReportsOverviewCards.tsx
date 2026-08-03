@@ -204,10 +204,15 @@ function MobileStepCard({ item }: { item: OverviewItem }) {
           {item.icon}
         </div>
         <div className={styles.mobileMain}>
-          <div className={styles.mobileLabel}>
+          <div
+            className={styles.mobileLabel}
+            style={{ color: token.colorTextSecondary }}
+          >
             {item.index != null ? `${item.index}. ${item.label}` : item.label}
           </div>
-          <div className={styles.mobileValue}>{item.valueLabel}</div>
+          <div className={styles.mobileValue} style={{ color: token.colorText }}>
+            {item.valueLabel}
+          </div>
         </div>
         <div className={styles.mobileTrend}>
           <TrendLine deltaPct={item.deltaPct} />

@@ -24,7 +24,7 @@
 }
 
 .desktopArrow {
-  color: rgba(0, 0, 0, 0.25);
+  color: var(--ant-color-text-quaternary);
   font-size: 14px;
   flex-shrink: 0;
 }
@@ -72,7 +72,7 @@
 .mobileLabel {
   font-size: 12px;
   font-weight: 500;
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--ant-color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -82,7 +82,7 @@
   font-size: 18px;
   font-weight: 700;
   line-height: 1.2;
-  color: rgba(0, 0, 0, 0.88);
+  color: var(--ant-color-text);
   font-variant-numeric: tabular-nums;
 }
 
@@ -94,7 +94,7 @@
 .skeleton {
   border-radius: 12px;
   height: 56px;
-  background: #f1f5f9;
+  background: var(--ant-color-fill-secondary);
   animation: pulse 1.2s ease-in-out infinite;
 }
 
