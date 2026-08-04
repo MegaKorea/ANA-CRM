@@ -8,11 +8,14 @@ import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import { useLeadStatistics } from '@/lib/hooks/use-lead-statistics';
 import { useLeadStatisticsSummary } from '@/lib/hooks/use-lead-statistics-summary';
 import { useSmaxTagStatistics } from '@/lib/hooks/use-smax-tag-statistics';
+import { useSmaxSupporterStatistics } from '@/lib/hooks/use-smax-supporter-statistics';
 import { LeadStatisticsFilters } from '@/app/lead/components/LeadStatisticsFilters';
 import { previousPeriodOfSameLength } from '@/lib/utils/vn-date';
 import { ReportsOverviewCards } from './components/ReportsOverviewCards';
 import { ReportsDailyTable } from './components/ReportsDailyTable';
 import { ReportsCustomerTags } from './components/ReportsCustomerTags';
+import { ReportsUpcomingAppointments } from './components/ReportsUpcomingAppointments';
+import { ReportsSupportersTable } from './components/ReportsSupportersTable';
 import styles from './page.module.css';
 
 const { Title, Text } = Typography;
@@ -48,6 +51,12 @@ export default function ReportsPage() {
     isError: isTagsError,
     error: tagsError,
   } = useSmaxTagStatistics(startDate, endDate);
+  const {
+    data: supporterData,
+    isLoading: isSupportersLoading,
+    isError: isSupportersError,
+    error: supportersError,
+  } = useSmaxSupporterStatistics(startDate, endDate);
 
   useEffect(() => {
     if (isError) {
@@ -60,6 +69,14 @@ export default function ReportsPage() {
       message.error((tagsError as Error).message || 'Lỗi khi lấy thống kê tag SMAX');
     }
   }, [isTagsError, tagsError, message]);
+
+  useEffect(() => {
+    if (isSupportersError) {
+      message.error(
+        (supportersError as Error).message || 'Lỗi khi lấy thống kê nhân viên SMAX',
+      );
+    }
+  }, [isSupportersError, supportersError, message]);
 
   const { chartData, funnel } = useLeadStatisticsSummary(data);
   const { funnel: previousFunnel } = useLeadStatisticsSummary(prevData);
@@ -114,6 +131,20 @@ export default function ReportsPage() {
           isError={isTagsError}
           errorMessage={(tagsError as Error | undefined)?.message}
         />
+
+        <div className={styles.splitRow}>
+          <div className={styles.halfCol}>
+            <ReportsUpcomingAppointments />
+          </div>
+          <div className={styles.halfCol}>
+            <ReportsSupportersTable
+              rows={supporterData?.rows ?? []}
+              isLoading={isSupportersLoading}
+              isError={isSupportersError}
+              errorMessage={(supportersError as Error | undefined)?.message}
+            />
+          </div>
+        </div>
       </Space>
     </div>
   );

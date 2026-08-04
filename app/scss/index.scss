@@ -59,3 +59,17 @@ body {
     }
   }
 }
+
+.lead-appointment-focus {
+  background: #fff1f2 !important;
+  outline: 2px solid #fb7185;
+  outline-offset: -2px;
+}
+
+.ant-table-tbody > tr.lead-appointment-focus > td {
+  background: #fff1f2 !important;
+}
+
+[data-lead-appointment] {
+  scroll-margin: 80px;
+}

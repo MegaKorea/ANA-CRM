@@ -112,3 +112,21 @@ export interface SmaxTagStatisticsApiResponse {
   totalNet: number;
   source: 'smax';
 }
+
+export interface SmaxSupporterRow {
+  id: string;
+  name: string;
+  avatar: string | null;
+  messages: number;
+  conversations: number;
+  replyTimeSec: number;
+}
+
+export interface SmaxSupporterStatistics {
+  rows: SmaxSupporterRow[];
+}
+
+export interface SmaxSupporterStatisticsApiResponse {
+  rows: SmaxSupporterRow[];
+  source: 'smax';
+}

@@ -7,24 +7,57 @@ import type {
 } from '@/lib/validators/appointment.validator';
 import type { LeadAppointmentsTable } from '@/lib/supabase/types/tables/lead_appointments';
 import type { InsertTables, UpdateTables } from '@/types/supabase';
+import { toVnDate, vnDayEndIso, vnDayStartIso } from '@/lib/utils/vn-date';
 
 export type LeadAppointment = LeadAppointmentsTable['Row'];
 
-/** An appointment joined with the lead fields the reminder popup needs. */
 export type DueAppointment = LeadAppointment & {
   lead_full_name: string | null;
   lead_phone_number: string | null;
 };
 
-/**
- * Mirrors a lead's nearest upcoming appointment back onto `leads.appointment_date`
- * / `leads.attendance_status`.
- *
- * Those legacy columns still drive the statistics page and the "Lịch hẹn" column
- * on the lead table, so keeping them in sync means the multi-appointment feature
- * ships without touching either. When no future appointment remains we fall back
- * to the most recent past one so history is not lost.
- */
+export type UpcomingAppointmentChannel = 'facebook' | 'zalo' | null;
+
+export type UpcomingAppointment = {
+  id: number;
+  lead_id: number;
+  appointment_date: string;
+  note: string | null;
+  lead_full_name: string | null;
+  channel: UpcomingAppointmentChannel;
+};
+
+type LeadUpcomingRow = {
+  id: number;
+  full_name: string | null;
+  facebook_url: string | null;
+  pid_zalo: string | null;
+  source: string | null;
+  appointment_date: string;
+  note: { content?: string }[] | null;
+};
+
+function resolveChannel(lead: LeadUpcomingRow): UpcomingAppointmentChannel {
+  if (lead.pid_zalo) return 'zalo';
+  if (lead.facebook_url || lead.source === 'facebook' || lead.source === 'smax') {
+    return 'facebook';
+  }
+  return null;
+}
+
+function latestNoteText(note: LeadUpcomingRow['note']): string | null {
+  if (!Array.isArray(note) || note.length === 0) return null;
+  const last = note[note.length - 1];
+  const content = typeof last?.content === 'string' ? last.content.trim() : '';
+  return content || null;
+}
+
+function addDaysIsoDate(isoDate: string, days: number): string {
+  const cursor = new Date(`${isoDate}T12:00:00Z`);
+  cursor.setUTCDate(cursor.getUTCDate() + days);
+  return cursor.toISOString().slice(0, 10);
+}
+
 async function syncLeadAppointmentColumns(leadId: number): Promise<void> {
   const supabase = createAdminClient();
   const nowIso = new Date().toISOString();
@@ -133,9 +166,6 @@ export async function updateAppointmentById(
       updateData.remind_before_min = input.remind_before_min;
     }
 
-    // Changing WHEN the reminder should fire (its date or its offset) re-arms both
-    // channels — the in-app bell (reminder_sent_at) and web push (pushed_at) — so
-    // the reminder fires again for the new time.
     const timingChanged =
       input.appointment_date !== undefined || input.remind_before_min !== undefined;
 
@@ -204,18 +234,6 @@ export async function deleteAppointmentById(id: number): Promise<void> {
   }
 }
 
-/**
- * Returns appointments whose reminder is due and not yet delivered.
- *
- * "Due" means `appointment_date - remind_before_min <= now`. Postgrest cannot
- * express that arithmetic in a filter, so we narrow with the widest possible
- * window (the largest offset we allow) and compute the exact cut-off in JS.
- *
- * Reminders are scoped to the telesales assigned to the lead, so each one is
- * delivered to exactly one person and the single `reminder_sent_at` flag cannot
- * race between staff. Managers (`canSeeAllLeads`) get the unfiltered feed —
- * including leads with no telesales assigned, which would otherwise reach nobody.
- */
 export async function fetchDueReminders(
   telesalesId: string,
   canSeeAllLeads = false
@@ -223,9 +241,7 @@ export async function fetchDueReminders(
   try {
     const supabase = createAdminClient();
     const now = Date.now();
-    // Widest supported offset (1 week) — anything beyond this cannot be due yet.
     const horizonIso = new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString();
-    // Ignore appointments that are long past so a stale row never pops up.
     const floorIso = new Date(now - 24 * 60 * 60 * 1000).toISOString();
 
     const { data, error } = await supabase
@@ -242,7 +258,6 @@ export async function fetchDueReminders(
 
     const candidates = (data as unknown as LeadAppointment[]) || [];
 
-    // Keep only those whose reminder moment has actually arrived.
     const due = candidates.filter((appointment) => {
       const remindAt =
         new Date(appointment.appointment_date).getTime() - appointment.remind_before_min * 60 * 1000;
@@ -253,8 +268,6 @@ export async function fetchDueReminders(
       return [];
     }
 
-    // Attach the display fields, restricting to this telesales' leads unless the
-    // caller is allowed to see every lead.
     const leadIds = [...new Set(due.map((appointment) => appointment.lead_id))];
     let leadQuery = supabase
       .from('leads')
@@ -288,7 +301,6 @@ export async function fetchDueReminders(
   }
 }
 
-/** Marks reminders as delivered so they are not shown again. */
 export async function markRemindersSent(ids: number[]): Promise<void> {
   if (ids.length === 0) return;
 
@@ -304,5 +316,42 @@ export async function markRemindersSent(ids: number[]): Promise<void> {
     }
   } catch (error) {
     handleServiceError(error, AppointmentErrorCode.UPDATE_FAILED);
+  }
+}
+
+const UPCOMING_HORIZON_DAYS = 14;
+
+export async function fetchUpcomingAppointments(): Promise<UpcomingAppointment[]> {
+  try {
+    const supabase = createAdminClient();
+    const today = toVnDate(new Date().toISOString());
+    const lastDay = addDaysIsoDate(today, UPCOMING_HORIZON_DAYS - 1);
+    const fromIso = vnDayStartIso(today);
+    const toIso = vnDayEndIso(lastDay);
+
+    const { data, error } = await supabase
+      .from('leads')
+      .select('id, full_name, facebook_url, pid_zalo, source, appointment_date, note')
+      .not('appointment_date', 'is', null)
+      .gte('appointment_date', fromIso)
+      .lte('appointment_date', toIso)
+      .order('appointment_date', { ascending: true });
+
+    if (error) {
+      handleSupabaseError(error, { defaultErrorCode: AppointmentErrorCode.FETCH_FAILED });
+    }
+
+    const rows = (data as unknown as LeadUpcomingRow[]) || [];
+
+    return rows.map((lead) => ({
+      id: lead.id,
+      lead_id: lead.id,
+      appointment_date: lead.appointment_date,
+      note: latestNoteText(lead.note),
+      lead_full_name: lead.full_name,
+      channel: resolveChannel(lead),
+    }));
+  } catch (error) {
+    handleServiceError(error, AppointmentErrorCode.FETCH_FAILED);
   }
 }
