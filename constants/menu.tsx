@@ -9,6 +9,7 @@ import {
   DollarOutlined,
   BarChartOutlined,
 } from '@ant-design/icons';
+import { REPORTS_ACCESS_ROLES } from '@/constants/reports';
 
 
 export type MenuItem = Required<MenuProps>['items'][number];
@@ -21,6 +22,8 @@ export type AppMenuItem = {
   roles?: string[];
   children?: AppMenuItem[];
 };
+
+export { REPORTS_ACCESS_ROLES };
 
 export const menuItems: AppMenuItem[] = [
   {
@@ -57,7 +60,7 @@ export const menuItems: AppMenuItem[] = [
     key: '/reports',
     icon: <BarChartOutlined />,
     label: 'BÁO CÁO',
-    roles: ['ADMIN', 'TELESALES', 'AO', 'PC'],
+    roles: [...REPORTS_ACCESS_ROLES],
   },
   {
     key: '/lms',

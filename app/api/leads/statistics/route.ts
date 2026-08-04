@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
-import { getCurrentUser } from '@/lib/services/auth.service';
 import { HttpStatusCode, LeadErrorCode, LeadStatus } from '@/constants/enums';
-import { handleRouteError } from '@/lib/utils/route-handler';
-import { AppError } from '@/errors';
+import {
+  parseReportsDateRange,
+  requireReportsAccess,
+} from '@/lib/api/reports-access';
 import { aggregateLeadStatistics } from '@/lib/lead-statistics/aggregate-daily';
 import type { LeadStatLeadRow } from '@/lib/lead-statistics/types';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { handleRouteError } from '@/lib/utils/route-handler';
 import {
-  isIsoDate,
   quotePostgrestValue,
   vnDayEndIso,
   vnDayStartIso,
@@ -16,39 +17,10 @@ import {
 const LEAD_STAT_SELECT =
   'id, created_at, updated_at, appointment_date, status, attendance_status';
 
-function parseRange(request: NextRequest): { startDate: string; endDate: string } {
-  const startDate = request.nextUrl.searchParams.get('startDate')?.trim() ?? '';
-  const endDate = request.nextUrl.searchParams.get('endDate')?.trim() ?? '';
-
-  if (!startDate || !endDate) {
-    throw new AppError(
-      LeadErrorCode.BAD_REQUEST,
-      HttpStatusCode.BAD_REQUEST,
-      'Thiếu startDate hoặc endDate',
-    );
-  }
-  if (!isIsoDate(startDate) || !isIsoDate(endDate)) {
-    throw new AppError(
-      LeadErrorCode.BAD_REQUEST,
-      HttpStatusCode.BAD_REQUEST,
-      'Ngày phải dạng YYYY-MM-DD',
-    );
-  }
-  if (startDate > endDate) {
-    throw new AppError(
-      LeadErrorCode.BAD_REQUEST,
-      HttpStatusCode.BAD_REQUEST,
-      'startDate phải <= endDate',
-    );
-  }
-
-  return { startDate, endDate };
-}
-
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    await getCurrentUser();
-    const { startDate, endDate } = parseRange(request);
+    await requireReportsAccess();
+    const { startDate, endDate } = parseReportsDateRange(request.nextUrl);
 
     const rangeStart = quotePostgrestValue(vnDayStartIso(startDate));
     const rangeEnd = quotePostgrestValue(vnDayEndIso(endDate));

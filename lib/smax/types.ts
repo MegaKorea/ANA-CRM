@@ -27,9 +27,7 @@ export interface SmaxThreadRef {
   facebookId: string;
   bizAlias: string;
   customerName: string;
-  /** Primary avatar URL (smax_log.picture). */
   customerAvatar: string;
-  /** Extra URLs to try if primary fails (e.g. facebook.picture). */
   customerAvatarFallbacks: string[];
   pageName: string;
 }
@@ -98,14 +96,19 @@ export interface SmaxStatisticsApiResponse {
 
 export interface SmaxTagTotal {
   name: string;
+  add: number;
+  curAdd: number;
+  remove: number;
   net: number;
 }
 
 export interface SmaxTagStatistics {
   tags: SmaxTagTotal[];
+  totalNet: number;
 }
 
 export interface SmaxTagStatisticsApiResponse {
   tags: SmaxTagTotal[];
+  totalNet: number;
   source: 'smax';
 }

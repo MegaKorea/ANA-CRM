@@ -107,9 +107,12 @@ export default function ReportsPage() {
 
         <ReportsCustomerTags
           tags={tagData?.tags ?? []}
+          totalNet={tagData?.totalNet ?? 0}
           startDate={startDate}
           endDate={endDate}
           isLoading={isTagsLoading}
+          isError={isTagsError}
+          errorMessage={(tagsError as Error | undefined)?.message}
         />
       </Space>
     </div>
