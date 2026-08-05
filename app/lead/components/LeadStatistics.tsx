@@ -50,14 +50,13 @@ export function LeadStatistics() {
         { title: 'Đăng ký', dataIndex: 'registeredLeads', key: 'registeredLeads' },
         { title: 'Lịch hẹn', dataIndex: 'totalAppointments', key: 'totalAppointments' },
         { title: 'Đến tư vấn', dataIndex: 'arrivedAppointments', key: 'arrivedAppointments' },
-
         ...(isAdmin
             ? [
                 {
-                    title: 'Chi Tiêu',
+                    title: 'Chi tiêu',
                     dataIndex: 'fbSpend',
                     key: 'fbSpend',
-                    render: (val: number) => formatCurrencyVnd(val),
+                    render: (val: number | undefined) => formatCurrencyVnd(val || 0),
                 },
             ]
             : []),
@@ -132,9 +131,11 @@ export function LeadStatistics() {
                                     <Table.Summary.Cell index={3}>{tRegLeads}</Table.Summary.Cell>
                                     <Table.Summary.Cell index={4}>{tAppts}</Table.Summary.Cell>
                                     <Table.Summary.Cell index={5}>{tArrAppts}</Table.Summary.Cell>
-                                    {isAdmin && (
-                                        <Table.Summary.Cell index={6}>{formatCurrencyVnd(tFbSpend)}</Table.Summary.Cell>
-                                    )}
+                                    {isAdmin ? (
+                                        <Table.Summary.Cell index={6}>
+                                            {formatCurrencyVnd(tFbSpend)}
+                                        </Table.Summary.Cell>
+                                    ) : null}
                                 </Table.Summary.Row>
                             );
                         }}

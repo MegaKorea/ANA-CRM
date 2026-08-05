@@ -2,6 +2,7 @@
 
 import { Alert, Card, Empty, Pagination, Skeleton, Typography } from 'antd';
 import { FacebookOutlined } from '@ant-design/icons';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { memo, useMemo, useState, type ReactNode } from 'react';
 import { SiZalo } from 'react-icons/si';
@@ -169,6 +170,9 @@ export const ReportsUpcomingAppointments = memo(function ReportsUpcomingAppointm
           <Title level={5} className={styles.title}>
             Lịch hẹn & Chăm sóc sắp tới
           </Title>
+          <Link href="/appointments" className={styles.viewAll}>
+            Xem tất cả
+          </Link>
         </div>
         <div className={styles.content}>{body}</div>
       </div>

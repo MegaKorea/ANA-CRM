@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { App, Card, Space, Typography } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { DateFormat } from '@/constants/enums';
-import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import { useLeadStatistics } from '@/lib/hooks/use-lead-statistics';
 import { useLeadStatisticsSummary } from '@/lib/hooks/use-lead-statistics-summary';
 import { useSmaxTagStatistics } from '@/lib/hooks/use-smax-tag-statistics';
@@ -29,7 +28,6 @@ function normalizeRange(next: DateRange): DateRange {
 
 export default function ReportsPage() {
   const { message } = App.useApp();
-  const { hasPermission: isAdmin } = useAuthPermission(['ADMIN']);
   const [dateRange, setDateRange] = useState<DateRange>([dayjs(), dayjs()]);
 
   const startDate = dateRange?.[0]?.format(DateFormat.ISO_DATE) || '';
@@ -116,11 +114,7 @@ export default function ReportsPage() {
           />
         </Card>
 
-        <ReportsDailyTable
-          chartData={chartData}
-          isAdmin={isAdmin}
-          isLoading={isLoading}
-        />
+        <ReportsDailyTable chartData={chartData} isLoading={isLoading} />
 
         <ReportsCustomerTags
           tags={tagData?.tags ?? []}

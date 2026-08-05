@@ -3,7 +3,6 @@
 import { Card, Empty, Pagination, Table, Typography, Spin, theme } from 'antd';
 import dayjs from 'dayjs';
 import { memo, useEffect, useMemo, useState } from 'react';
-import { formatCurrencyVnd } from '@/lib/utils/numberFormat';
 import { LeadStatisticsDayCard } from '@/app/lead/components/LeadStatisticsDayCard';
 import type { LeadStatisticsChartRow } from '@/lib/hooks/use-lead-statistics';
 import styles from './ReportsDailyTable.module.css';
@@ -15,13 +14,11 @@ const DESKTOP_PAGE_SIZE = 10;
 
 type Props = {
   chartData: LeadStatisticsChartRow[];
-  isAdmin: boolean;
   isLoading: boolean;
 };
 
 export const ReportsDailyTable = memo(function ReportsDailyTable({
   chartData,
-  isAdmin,
   isLoading,
 }: Props) {
   const { token } = theme.useToken();
@@ -48,16 +45,6 @@ export const ReportsDailyTable = memo(function ReportsDailyTable({
     { title: 'Đăng ký', dataIndex: 'registeredLeads', key: 'registeredLeads' },
     { title: 'Lịch hẹn', dataIndex: 'totalAppointments', key: 'totalAppointments' },
     { title: 'Đến tư vấn', dataIndex: 'arrivedAppointments', key: 'arrivedAppointments' },
-    ...(isAdmin
-      ? [
-          {
-            title: 'Chi Tiêu',
-            dataIndex: 'fbSpend',
-            key: 'fbSpend',
-            render: (val: number) => formatCurrencyVnd(val),
-          },
-        ]
-      : []),
   ];
 
   const summaryRow = () => {
@@ -65,7 +52,6 @@ export const ReportsDailyTable = memo(function ReportsDailyTable({
     let tRegLeads = 0;
     let tAppts = 0;
     let tArrAppts = 0;
-    let tFbSpend = 0;
     let tFbMsgs = 0;
 
     chartData.forEach(
@@ -74,14 +60,12 @@ export const ReportsDailyTable = memo(function ReportsDailyTable({
         registeredLeads,
         totalAppointments,
         arrivedAppointments,
-        fbSpend,
         fbMessages,
       }) => {
         tLeads += totalLeads;
         tRegLeads += registeredLeads;
         tAppts += totalAppointments;
         tArrAppts += arrivedAppointments;
-        tFbSpend += fbSpend || 0;
         tFbMsgs += fbMessages || 0;
       },
     );
@@ -96,11 +80,6 @@ export const ReportsDailyTable = memo(function ReportsDailyTable({
         <Table.Summary.Cell index={3}>{tRegLeads}</Table.Summary.Cell>
         <Table.Summary.Cell index={4}>{tAppts}</Table.Summary.Cell>
         <Table.Summary.Cell index={5}>{tArrAppts}</Table.Summary.Cell>
-        {isAdmin && (
-          <Table.Summary.Cell index={6}>
-            {formatCurrencyVnd(tFbSpend)}
-          </Table.Summary.Cell>
-        )}
       </Table.Summary.Row>
     );
   };
@@ -140,7 +119,7 @@ export const ReportsDailyTable = memo(function ReportsDailyTable({
               <div className={styles.dayList} role="list">
                 {pagedDays.map((item) => (
                   <div role="listitem" key={item.date} className={styles.dayItem}>
-                    <LeadStatisticsDayCard item={item} isAdmin={isAdmin} />
+                    <LeadStatisticsDayCard item={item} />
                   </div>
                 ))}
               </div>

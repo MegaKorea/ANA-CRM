@@ -7,7 +7,12 @@ import type {
 } from '@/lib/validators/appointment.validator';
 import type { LeadAppointmentsTable } from '@/lib/supabase/types/tables/lead_appointments';
 import type { InsertTables, UpdateTables } from '@/types/supabase';
-import { toVnDate, vnDayEndIso, vnDayStartIso } from '@/lib/utils/vn-date';
+import {
+  addDaysIsoDate,
+  toVnDate,
+  vnDayEndIso,
+  vnDayStartIso,
+} from '@/lib/utils/vn-date';
 
 export type LeadAppointment = LeadAppointmentsTable['Row'];
 
@@ -50,12 +55,6 @@ function latestNoteText(note: LeadUpcomingRow['note']): string | null {
   const last = note[note.length - 1];
   const content = typeof last?.content === 'string' ? last.content.trim() : '';
   return content || null;
-}
-
-function addDaysIsoDate(isoDate: string, days: number): string {
-  const cursor = new Date(`${isoDate}T12:00:00Z`);
-  cursor.setUTCDate(cursor.getUTCDate() + days);
-  return cursor.toISOString().slice(0, 10);
 }
 
 async function syncLeadAppointmentColumns(leadId: number): Promise<void> {
@@ -321,36 +320,46 @@ export async function markRemindersSent(ids: number[]): Promise<void> {
 
 const UPCOMING_HORIZON_DAYS = 14;
 
-export async function fetchUpcomingAppointments(): Promise<UpcomingAppointment[]> {
+function mapLeadRowsToUpcoming(rows: LeadUpcomingRow[]): UpcomingAppointment[] {
+  return rows.map((lead) => ({
+    id: lead.id,
+    lead_id: lead.id,
+    appointment_date: lead.appointment_date,
+    note: latestNoteText(lead.note),
+    lead_full_name: lead.full_name,
+    channel: resolveChannel(lead),
+  }));
+}
+
+export async function fetchAppointmentsInRange(
+  startDate: string,
+  endDate: string,
+): Promise<UpcomingAppointment[]> {
   try {
     const supabase = createAdminClient();
-    const today = toVnDate(new Date().toISOString());
-    const lastDay = addDaysIsoDate(today, UPCOMING_HORIZON_DAYS - 1);
-    const fromIso = vnDayStartIso(today);
-    const toIso = vnDayEndIso(lastDay);
-
     const { data, error } = await supabase
       .from('leads')
       .select('id, full_name, facebook_url, pid_zalo, source, appointment_date, note')
       .not('appointment_date', 'is', null)
-      .gte('appointment_date', fromIso)
-      .lte('appointment_date', toIso)
+      .gte('appointment_date', vnDayStartIso(startDate))
+      .lte('appointment_date', vnDayEndIso(endDate))
       .order('appointment_date', { ascending: true });
 
     if (error) {
       handleSupabaseError(error, { defaultErrorCode: AppointmentErrorCode.FETCH_FAILED });
     }
 
-    const rows = (data as unknown as LeadUpcomingRow[]) || [];
+    return mapLeadRowsToUpcoming((data as unknown as LeadUpcomingRow[]) || []);
+  } catch (error) {
+    handleServiceError(error, AppointmentErrorCode.FETCH_FAILED);
+  }
+}
 
-    return rows.map((lead) => ({
-      id: lead.id,
-      lead_id: lead.id,
-      appointment_date: lead.appointment_date,
-      note: latestNoteText(lead.note),
-      lead_full_name: lead.full_name,
-      channel: resolveChannel(lead),
-    }));
+export async function fetchUpcomingAppointments(): Promise<UpcomingAppointment[]> {
+  try {
+    const today = toVnDate(new Date().toISOString());
+    const lastDay = addDaysIsoDate(today, UPCOMING_HORIZON_DAYS - 1);
+    return await fetchAppointmentsInRange(today, lastDay);
   } catch (error) {
     handleServiceError(error, AppointmentErrorCode.FETCH_FAILED);
   }
