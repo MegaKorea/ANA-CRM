@@ -542,19 +542,11 @@ function WeekTimeGrid({
   const isMobile = useIsMobile();
   const [mobileDay, setMobileDay] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isMobile) return;
-    setMobileDay((prev) => {
-      if (prev && weekDays.includes(prev)) return prev;
-      return weekDays.includes(today) ? today : (weekDays[0] ?? null);
-    });
-  }, [isMobile, weekDays, today]);
-
   const visibleDays = useMemo(() => {
     if (!isMobile) return weekDays;
     if (mobileDay && weekDays.includes(mobileDay)) return [mobileDay];
-    return weekDays.slice(0, 1);
-  }, [isMobile, weekDays, mobileDay]);
+    return weekDays.includes(today) ? [today] : weekDays.slice(0, 1);
+  }, [isMobile, weekDays, mobileDay, today]);
 
   const activeDay = visibleDays[0] ?? null;
 
@@ -795,25 +787,29 @@ export const AppointmentsWeekCalendar = memo(function AppointmentsWeekCalendar({
     return () => window.clearInterval(timerId);
   }, []);
 
-  const weekStart = isWeek
-    ? startOfWeekMonday(anchorDate)
-    : startOfWeekMonday(startOfMonth(anchorDate));
+  const weekStart = useMemo(
+    () => (isWeek ? startOfWeekMonday(anchorDate) : startOfWeekMonday(startOfMonth(anchorDate))),
+    [isWeek, anchorDate],
+  );
   const weekEnd = endOfWeekMonday(weekStart);
   const monthStart = startOfMonth(anchorDate);
 
   const weekDays = useMemo(() => weekDatesFromMonday(weekStart), [weekStart]);
   const byDay = useMemo(() => groupByDay(appointments), [appointments]);
 
-  useEffect(() => {
+  // Re-resolve the selected day whenever the view mode / displayed month /
+  // "today" changes — adjusted during render (React's recommended
+  // replacement for an effect that only resets state) instead of via effect.
+  const selectionContext = `${isWeek}|${monthStart}|${today}`;
+  const [prevSelectionContext, setPrevSelectionContext] = useState(selectionContext);
+  if (selectionContext !== prevSelectionContext) {
+    setPrevSelectionContext(selectionContext);
     if (isWeek) {
       setSelectedDay(null);
-      return;
+    } else if (!(selectedDay && isSameMonth(selectedDay, monthStart))) {
+      setSelectedDay(resolveDefaultMonthDay(monthStart, today));
     }
-    setSelectedDay((prev) => {
-      if (prev && isSameMonth(prev, monthStart)) return prev;
-      return resolveDefaultMonthDay(monthStart, today);
-    });
-  }, [isWeek, monthStart, today]);
+  }
 
   const calendarValue = useMemo(() => {
     if (selectedDay) return dayjs(selectedDay);

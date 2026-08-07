@@ -8,6 +8,7 @@ import type {
 import type {
   CreatePaymentTicketInput,
   ReviewPaymentTicketInput,
+  UpdatePaymentTicketInput,
   PaymentTicketQueryParams,
 } from '@/lib/validators/payment-ticket.validator';
 
@@ -89,6 +90,23 @@ export function useReviewPaymentTicket() {
       queryClient.invalidateQueries({
         queryKey: [PaymentTicketQueryKey.SUMMARY],
       });
+    },
+  });
+}
+
+export function useUpdatePaymentTicket() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    PaymentTicket,
+    unknown,
+    { id: number; input: UpdatePaymentTicketInput }
+  >({
+    mutationFn: ({ id, input }) =>
+      api.patch<PaymentTicket>(`${PaymentTicketApiPath.BASE}/${id}`, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [PaymentTicketQueryKey.LIST] });
+      queryClient.invalidateQueries({ queryKey: [PaymentTicketQueryKey.BY_LEAD] });
     },
   });
 }

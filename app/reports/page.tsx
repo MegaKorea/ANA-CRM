@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { App, Card, Space, Typography } from 'antd';
+import { App, Card, Space, Spin, Typography } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
+import dynamic from 'next/dynamic';
 import { DateFormat } from '@/constants/enums';
 import { useLeadStatistics } from '@/lib/hooks/use-lead-statistics';
 import { useLeadStatisticsSummary } from '@/lib/hooks/use-lead-statistics-summary';
@@ -11,11 +12,34 @@ import { useSmaxSupporterStatistics } from '@/lib/hooks/use-smax-supporter-stati
 import { LeadStatisticsFilters } from '@/app/lead/components/LeadStatisticsFilters';
 import { previousPeriodOfSameLength } from '@/lib/utils/vn-date';
 import { ReportsOverviewCards } from './components/ReportsOverviewCards';
-import { ReportsDailyTable } from './components/ReportsDailyTable';
-import { ReportsCustomerTags } from './components/ReportsCustomerTags';
-import { ReportsUpcomingAppointments } from './components/ReportsUpcomingAppointments';
-import { ReportsSupportersTable } from './components/ReportsSupportersTable';
 import styles from './page.module.css';
+
+const cardFallback = (
+  <Card style={{ borderRadius: 12, minHeight: 160 }}>
+    <Spin />
+  </Card>
+);
+
+const ReportsDailyTable = dynamic(
+  () => import('./components/ReportsDailyTable').then((m) => m.ReportsDailyTable),
+  { ssr: false, loading: () => cardFallback },
+);
+const ReportsCustomerTags = dynamic(
+  () => import('./components/ReportsCustomerTags').then((m) => m.ReportsCustomerTags),
+  { ssr: false, loading: () => cardFallback },
+);
+const ReportsUpcomingAppointments = dynamic(
+  () => import('./components/ReportsUpcomingAppointments').then((m) => m.ReportsUpcomingAppointments),
+  { ssr: false, loading: () => cardFallback },
+);
+const ReportsSupportersTable = dynamic(
+  () => import('./components/ReportsSupportersTable').then((m) => m.ReportsSupportersTable),
+  { ssr: false, loading: () => cardFallback },
+);
+const TeamSalesExportButton = dynamic(
+  () => import('./components/TeamSalesExportButton').then((m) => m.TeamSalesExportButton),
+  { ssr: false },
+);
 
 const { Title, Text } = Typography;
 
@@ -79,7 +103,7 @@ export default function ReportsPage() {
   const { chartData, funnel } = useLeadStatisticsSummary(data);
   const { funnel: previousFunnel } = useLeadStatisticsSummary(prevData);
 
-  return (
+  return (  
     <div className={styles.page}>
       <header className={styles.header}>
         <div>
@@ -91,11 +115,14 @@ export default function ReportsPage() {
           </Text>
         </div>
         <div className={styles.filtersWrap}>
-          <LeadStatisticsFilters
-            dateRange={dateRange}
-            onDateRangeChange={(range) => setDateRange(normalizeRange(range))}
-            showTitle={false}
-          />
+          <Space wrap>
+            <LeadStatisticsFilters
+              dateRange={dateRange}
+              onDateRangeChange={(range) => setDateRange(normalizeRange(range))}
+              showTitle={false}
+            />
+            <TeamSalesExportButton />
+          </Space>
         </div>
       </header>
 

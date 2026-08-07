@@ -5,9 +5,12 @@ export interface PaymentTicketsTable {
   Row: {
     id: number;
     lead_id: number;
+    enrollment_id: number | null;
+    course_id: string | null;
     amount: number;
     payment_type: PaymentType;
     payment_date: string;
+    recipient_account: string | null;
     images: string[] | null;
     note: string | null;
     status: TicketStatus;
@@ -21,9 +24,12 @@ export interface PaymentTicketsTable {
   Insert: {
     id?: number;
     lead_id: number;
+    enrollment_id?: number | null;
+    course_id?: string | null;
     amount: number;
     payment_type?: PaymentType;
     payment_date?: string;
+    recipient_account?: string | null;
     images?: string[] | null;
     note?: string | null;
     status?: TicketStatus;
@@ -37,9 +43,12 @@ export interface PaymentTicketsTable {
   Update: {
     id?: number;
     lead_id?: number;
+    enrollment_id?: number | null;
+    course_id?: string | null;
     amount?: number;
     payment_type?: PaymentType;
     payment_date?: string;
+    recipient_account?: string | null;
     images?: string[] | null;
     note?: string | null;
     status?: TicketStatus;

@@ -2,7 +2,7 @@
 
 import { Card, Empty, Pagination, Table, Typography, Spin, theme } from 'antd';
 import dayjs from 'dayjs';
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { LeadStatisticsDayCard } from '@/app/lead/components/LeadStatisticsDayCard';
 import type { LeadStatisticsChartRow } from '@/lib/hooks/use-lead-statistics';
 import styles from './ReportsDailyTable.module.css';
@@ -23,10 +23,11 @@ export const ReportsDailyTable = memo(function ReportsDailyTable({
 }: Props) {
   const { token } = theme.useToken();
   const [page, setPage] = useState(1);
-
-  useEffect(() => {
+  const [prevChartData, setPrevChartData] = useState(chartData);
+  if (chartData !== prevChartData) {
+    setPrevChartData(chartData);
     setPage(1);
-  }, [chartData]);
+  }
 
   const pagedDays = useMemo(() => {
     const start = (page - 1) * MOBILE_PAGE_SIZE;

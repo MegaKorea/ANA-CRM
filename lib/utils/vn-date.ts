@@ -125,6 +125,22 @@ export function eachDateInclusive(startDate: string, endDate: string): string[] 
   return dates;
 }
 
+/**
+ * Splits an arbitrary [startAt, endAt) instant range into one segment per VN
+ * calendar day it touches, clipping the first/last segment to the actual
+ * start/end instants. A range fully inside one VN day yields a single segment.
+ */
+export function splitIntoVnDaySegments(
+  startAt: string,
+  endAt: string,
+): { start: string; end: string }[] {
+  const days = eachDateInclusive(toVnDate(startAt), toVnDate(endAt));
+  return days.map((day, index) => ({
+    start: index === 0 ? startAt : vnDayStartIso(day),
+    end: index === days.length - 1 ? endAt : vnDayEndIso(day),
+  }));
+}
+
 export function previousPeriodOfSameLength(
   startDate: string,
   endDate: string,

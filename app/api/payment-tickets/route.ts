@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchPaymentTickets, createPaymentTicket } from '@/lib/services/payment-ticket.service';
 import { validateCreatePaymentTicketInput } from '@/lib/validators/payment-ticket.validator';
+import { getCurrentUser } from '@/lib/services/auth.service';
 import { HttpStatusCode, PaymentTicketErrorCode, TicketStatus } from '@/constants/enums';
 import { handleRouteError } from '@/lib/utils/route-handler';
 
@@ -37,9 +38,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    const currentUser = await getCurrentUser();
     const body = await request.json();
     const input = validateCreatePaymentTicketInput(body);
-    const ticket = await createPaymentTicket(input);
+    const ticket = await createPaymentTicket(input, currentUser.id);
     return NextResponse.json(ticket, { status: HttpStatusCode.CREATED });
   } catch (error) {
     return handleRouteError(error, PaymentTicketErrorCode.INTERNAL_SERVER_ERROR);

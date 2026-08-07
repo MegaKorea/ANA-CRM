@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
   // Allow the dev server to accept cross-origin requests from a Cloudflare quick
   // tunnel (phone testing over HTTPS) and the LAN IP. Dev-only; harmless in prod.
   allowedDevOrigins: ["*.trycloudflare.com", "192.168.1.18"],
+  experimental: {
+    optimizePackageImports: ["antd", "@ant-design/icons", "react-icons", "lodash"],
+  },
 };
 
 export default nextConfig;

@@ -1,0 +1,66 @@
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+@media (min-width: 640px) {
+  .tiles {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.tile {
+  border: 1px solid var(--color-divider, #eee);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.tileLabel {
+  font-size: 12px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.tileValue {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.breakdownRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .breakdownRow {
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .breakdownCol:first-child {
+    border-right: 1px solid var(--color-divider, #eee);
+    padding-right: 24px;
+  }
+}
+
+.breakdownCol {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.breakdownTitle {
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

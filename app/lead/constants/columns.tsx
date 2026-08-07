@@ -364,7 +364,6 @@ export const getLeadTableColumns = ({
         );
       },
     },
-
     {
       title: LeadPageText.COLUMN_APPOINTMENT_DATE,
       dataIndex: 'appointment_date',

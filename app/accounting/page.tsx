@@ -1,22 +1,49 @@
 'use client';
 
-import { useCallback, useState } from 'react';
-import { App, Button, Col, DatePicker, Row, Space, Table, Typography } from 'antd';
-import { CheckCircleOutlined, ReloadOutlined } from '@ant-design/icons';
-import dayjs, { type Dayjs } from 'dayjs';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  usePaymentTickets,
-  useReviewPaymentTicket,
-} from '@/lib/hooks/use-payment-tickets';
-import { TicketStatus } from '@/constants/enums';
-import { getPaymentTicketColumns } from './columns';
+  App, Alert, Button, Card, Col, DatePicker, Empty, Pagination, Popconfirm, Row, Space, Spin, Table, Tag, Tooltip,
+  Typography,
+} from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import {CheckCircleOutlined, CloseCircleOutlined, DeleteOutlined, DollarOutlined, EditOutlined, PlusOutlined, ReloadOutlined,
+} from '@ant-design/icons';
+import dayjs, { type Dayjs } from 'dayjs';
+import { usePaymentTickets, useReviewPaymentTicket } from '@/lib/hooks/use-payment-tickets';
+import {
+  useEnrollments, useEnrolledLeadIds, useDeleteEnrollment, useEnsureEnrollmentForLead,
+} from '@/lib/hooks/use-enrollments';
+import { useCourses } from '@/lib/hooks/use-courses';
+import { useClasses } from '@/lib/hooks/use-classes';
+import { useLeads } from '@/lib/hooks/use-leads';
+import type { PaymentTicket } from '@/lib/services/payment-ticket.service';
+import type { Enrollment } from '@/lib/services/enrollment.service';
+import { formatCurrencyVnd } from '@/lib/utils/numberFormat';
+import { getLatestNoteContent } from '@/lib/utils/notes';
+import { EnrollmentStatus, LeadStatus } from '@/constants/enums';
+import { PaymentTypeColor, PaymentTypeLabel } from './columns';
 import { PaymentStatsCards } from './PaymentStatsCards';
 import { RejectTicketModal } from './RejectTicketModal';
+import { EnrollmentModal } from './EnrollmentModal';
+import { EnrollmentPaymentModal } from './EnrollmentPaymentModal';
+import { EnrollmentCreateDrawer } from './EnrollmentCreateDrawer';
+import { MainRowCard, type MainRow } from './MainRowCard';
+import { useIsMobile } from '@/lib/hooks/use-mobile';
+
+const autoMaterializedLeadIds = new Set<number>();
 
 export default function AccountingPage() {
+  return (
+    <Suspense fallback={null}>
+      <AccountingPageContent />
+    </Suspense>
+  );
+}
+
+function AccountingPageContent() {
   const { message, modal } = App.useApp();
-  const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs());
-  const [statusFilter, setStatusFilter] = useState<TicketStatus | undefined>(undefined);
+  const isMobile = useIsMobile();
+  const [filterMonth, setFilterMonth] = useState<Dayjs>(dayjs());
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
@@ -24,28 +51,135 @@ export default function AccountingPage() {
   const [rejectTicketId, setRejectTicketId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  const { data, isLoading, isFetching, refetch } = usePaymentTickets({
-    date: selectedDate.format('YYYY-MM-DD'),
-    status: statusFilter,
-    page: currentPage,
-    limit: pageSize,
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingEnrollment, setEditingEnrollment] = useState<Enrollment | null>(null);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [payingEnrollment, setPayingEnrollment] = useState<Enrollment | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const monthStart = filterMonth.startOf('month').format('YYYY-MM-DD');
+  const monthEnd = filterMonth.endOf('month').format('YYYY-MM-DD');
+
+  const {
+    data: ticketData,
+    isLoading: ticketsLoading,
+    isFetching: ticketsFetching,
+    refetch: refetchTickets,
+  } = usePaymentTickets({
+    startDate: `${monthStart}T00:00:00.000Z`,
+    endDate: `${monthEnd}T23:59:59.999Z`,
+    page: 1,
+    limit: 200,
   });
 
+  const {
+    data: enrollmentData,
+    isLoading: enrollmentsLoading,
+    isFetching: enrollmentsFetching,
+    refetch: refetchEnrollments,
+  } = useEnrollments({
+    sales_month: filterMonth.format('YYYY-MM'),
+    page: 1,
+    limit: 200,
+  });
+
+  const {
+    data: convertedLeadData,
+    isLoading: convertedLeadsLoading,
+    isFetching: convertedLeadsFetching,
+    refetch: refetchConvertedLeads,
+  } = useLeads({
+    status: LeadStatus.CONVERTED,
+    page: 1,
+    limit: 200,
+  });
+
+  const { data: enrolledLeadIdsData, isLoading: enrolledLeadIdsLoading } = useEnrolledLeadIds();
+
+  const { data: courses } = useCourses();
+  const { data: classes } = useClasses();
   const reviewMutation = useReviewPaymentTicket();
+  const deleteEnrollment = useDeleteEnrollment();
+  const ensureEnrollment = useEnsureEnrollmentForLead();
 
-  const tickets = data?.data || [];
-  const total = data?.total || 0;
+  const tickets = ticketData?.data ?? [];
+  const enrollments = enrollmentData?.data ?? [];
+  const convertedLeads = convertedLeadData?.data ?? [];
+  const allEnrolledLeadIds = useMemo(
+    () => new Set(enrolledLeadIdsData?.data ?? []),
+    [enrolledLeadIdsData],
+  );
+  // While the enrolled-lead-ids query hasn't loaded yet, allEnrolledLeadIds is
+  // empty — treating that as "nothing enrolled" would flash every already-enrolled
+  // lead as a duplicate "pending" row next to its real enrollment row, and would
+  // re-trigger auto-materialization for leads that already have one. Show/process
+  // none until we actually know which leads are enrolled.
+  const pendingConvertedLeads = useMemo(
+    () => (enrolledLeadIdsLoading ? [] : convertedLeads.filter((l) => !allEnrolledLeadIds.has(l.id))),
+    [enrolledLeadIdsLoading, convertedLeads, allEnrolledLeadIds],
+  );
+  const pendingTickets = useMemo(() => tickets.filter((t) => t.status === 'pending'), [tickets]);
 
-  const pendingCount = tickets.filter((t) => t.status === 'pending').length;
-  const approvedTotal = tickets
-    .filter((t) => t.status === 'approved')
-    .reduce((sum, t) => sum + t.amount, 0);
-  const pendingTotal = tickets
-    .filter((t) => t.status === 'pending')
-    .reduce((sum, t) => sum + t.amount, 0);
+  const pendingLeadIdsKey = pendingConvertedLeads.map((l) => l.id).join(',');
+  useEffect(() => {
+    if (!courses || courses.length === 0) return;
+    if (enrolledLeadIdsLoading) return;
+    pendingConvertedLeads.forEach((lead) => {
+      if (autoMaterializedLeadIds.has(lead.id)) return;
+      const courseId = lead.course_ids?.[0] ?? courses[0].id;
+
+      autoMaterializedLeadIds.add(lead.id);
+      ensureEnrollment.mutate({
+        lead_id: lead.id,
+        course_id: courseId,
+        enrollment_date: lead.appointment_date ?? lead.created_at ?? undefined,
+        sales_month: filterMonth.format('YYYY-MM'),
+        source: lead.source ?? undefined,
+        tuition_fee: lead.tuition_fee ?? 0,
+        status: EnrollmentStatus.DEPOSITED,
+        note: getLatestNoteContent(lead.note),
+      });
+    });
+  }, [pendingLeadIdsKey, courses, enrolledLeadIdsLoading]);
+
+  const mainRows: MainRow[] = useMemo(() => {
+    const enrollmentRows: MainRow[] = enrollments.map((e) => ({ rowType: 'enrollment', ...e }));
+    const leadRows: MainRow[] = pendingConvertedLeads.map((l) => ({ rowType: 'lead', ...l }));
+    return [...enrollmentRows, ...leadRows].sort((a, b) => {
+      const dateOf = (r: MainRow) => (r.rowType === 'enrollment' ? r.enrollment_date : r.created_at);
+      return dayjs(dateOf(b) ?? undefined).valueOf() - dayjs(dateOf(a) ?? undefined).valueOf();
+    });
+  }, [enrollments, pendingConvertedLeads]);
+
+  const pagedMainRows = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return mainRows.slice(start, start + pageSize);
+  }, [mainRows, currentPage, pageSize]);
+
+  const pendingLeadsTuition = useMemo(
+    () => pendingConvertedLeads.reduce((sum, l) => sum + (l.tuition_fee ?? 0), 0),
+    [pendingConvertedLeads],
+  );
+  const revenueTotal = useMemo(
+    () => enrollments.reduce((sum, e) => sum + (e.tuition_fee ?? 0), 0) + pendingLeadsTuition,
+    [enrollments, pendingLeadsTuition],
+  );
+  const debtTotal = useMemo(
+    () => enrollments.reduce((sum, e) => sum + (e.debt_amount ?? 0), 0) + pendingLeadsTuition,
+    [enrollments, pendingLeadsTuition],
+  );
+
+  const courseName = useCallback(
+    (courseId: string) => courses?.find((c) => c.id === courseId)?.name ?? courseId,
+    [courses]
+  );
+  const className = useCallback(
+    (classId: string | null) => (classId ? (classes?.find((c) => c.id === classId)?.name ?? classId) : null),
+    [classes]
+  );
 
   const handleApprove = useCallback(
-    (ticketId: number) => {
+    (ticket: PaymentTicket) => {
       modal.confirm({
         title: 'Xác nhận duyệt',
         icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
@@ -54,14 +188,10 @@ export default function AccountingPage() {
         cancelText: 'Hủy',
         onOk: () => {
           reviewMutation.mutate(
-            { id: ticketId, input: { status: 'approved' } },
+            { id: ticket.id, input: { status: 'approved' } },
             {
-              onSuccess: () => {
-                message.success('Đã duyệt phiếu thu');
-              },
-              onError: () => {
-                message.error('Duyệt thất bại');
-              },
+              onSuccess: () => message.success('Đã duyệt phiếu thu'),
+              onError: () => message.error('Duyệt thất bại'),
             }
           );
         },
@@ -70,8 +200,8 @@ export default function AccountingPage() {
     [message, modal, reviewMutation]
   );
 
-  const handleOpenRejectModal = useCallback((ticketId: number) => {
-    setRejectTicketId(ticketId);
+  const handleOpenRejectModal = useCallback((ticket: PaymentTicket) => {
+    setRejectTicketId(ticket.id);
     setRejectReason('');
     setRejectModalOpen(true);
   }, []);
@@ -82,13 +212,7 @@ export default function AccountingPage() {
       return;
     }
     reviewMutation.mutate(
-      {
-        id: rejectTicketId,
-        input: {
-          status: 'rejected',
-          reject_reason: rejectReason.trim(),
-        },
-      },
+      { id: rejectTicketId, input: { status: 'rejected', reject_reason: rejectReason.trim() } },
       {
         onSuccess: () => {
           message.success('Đã từ chối phiếu thu');
@@ -96,85 +220,372 @@ export default function AccountingPage() {
           setRejectTicketId(null);
           setRejectReason('');
         },
-        onError: () => {
-          message.error('Từ chối thất bại');
-        },
+        onError: () => message.error('Từ chối thất bại'),
       }
     );
   }, [message, rejectTicketId, rejectReason, reviewMutation]);
 
-  const columns = getPaymentTicketColumns({
-    statusFilter,
-    onApprove: handleApprove,
-    onOpenReject: handleOpenRejectModal,
-  });
+  const openEditForm = (enrollment: Enrollment) => {
+    setEditingEnrollment(enrollment);
+    setFormOpen(true);
+  };
+
+  const openPaymentForm = (enrollment: Enrollment) => {
+    setPayingEnrollment(enrollment);
+    setPaymentOpen(true);
+  };
+
+  const handleDeleteEnrollment = useCallback(
+    (enrollment: Enrollment) => {
+      deleteEnrollment.mutate(enrollment.id, {
+        onSuccess: () => message.success('Đã xóa đăng ký'),
+        onError: () => message.error('Xóa đăng ký thất bại'),
+      });
+    },
+    [deleteEnrollment, message]
+  );
+
+  const columns: ColumnsType<MainRow> = useMemo(
+    () => [
+      {
+        title: 'STT',
+        key: 'stt',
+        width: 60,
+        render: (_: unknown, __: MainRow, index: number) => (currentPage - 1) * pageSize + index + 1,
+      },
+      {
+        title: 'Họ và tên',
+        key: 'customer_name',
+        width: 160,
+        render: (_: unknown, record: MainRow) => {
+          const name = record.rowType === 'lead' ? record.full_name : record.lead_full_name || `Lead #${record.lead_id}`;
+          return (
+            <Typography.Text strong style={{ fontSize: 13 }}>
+              {name}
+            </Typography.Text>
+          );
+        },
+      },
+      {
+        title: 'Số điện thoại',
+        key: 'customer_phone',
+        width: 140,
+        render: (_: unknown, record: MainRow) => {
+          const phone = record.rowType === 'lead' ? record.phone_number : record.lead_phone_number;
+          return phone || '-';
+        },
+      },
+      {
+        title: 'Khóa học',
+        key: 'course',
+        width: 200,
+        render: (_: unknown, record: MainRow) => {
+          if (record.rowType === 'lead') {
+            const leadCourseId = record.course_ids?.[0];
+            return leadCourseId ? <span>{courseName(leadCourseId)}</span> : '-';
+          }
+          const crs = courseName(record.course_id);
+          const cls = className(record.class_id);
+          return (
+            <Space orientation="vertical" size={2}>
+              <span>{crs}</span>
+              {cls && cls !== crs && <Tag>{cls}</Tag>}
+            </Space>
+          );
+        },
+      },
+      {
+        title: 'Nguồn',
+        key: 'source',
+        width: 110,
+        render: (_: unknown, record: MainRow) => record.source || '-',
+      },
+      {
+        title: 'Học phí',
+        key: 'tuition_fee',
+        width: 140,
+        render: (_: unknown, record: MainRow) => (
+          <Typography.Text strong style={{ color: '#1890ff' }}>
+            {formatCurrencyVnd(record.tuition_fee ?? 0)}
+          </Typography.Text>
+        ),
+      },
+      {
+        title: 'Đã đóng',
+        key: 'paid_amount',
+        width: 130,
+        render: (_: unknown, record: MainRow) =>
+          formatCurrencyVnd(record.rowType === 'enrollment' ? record.paid_amount : 0),
+      },
+      {
+        title: 'Còn nợ',
+        key: 'debt_amount',
+        width: 130,
+        render: (_: unknown, record: MainRow) => {
+          const debt = record.rowType === 'enrollment' ? record.debt_amount : record.tuition_fee ?? 0;
+          return <span style={{ color: debt > 0 ? '#cf1322' : undefined }}>{formatCurrencyVnd(debt)}</span>;
+        },
+      },
+      {
+        title: 'Ngày',
+        key: 'date',
+        width: 120,
+        render: (_: unknown, record: MainRow) => {
+          const date = record.rowType === 'enrollment' ? record.enrollment_date : record.created_at;
+          return date ? dayjs(date).format('DD/MM/YYYY') : '';
+        },
+      },
+      {
+        title: 'Tư vấn viên',
+        key: 'created_by_name',
+        width: 140,
+        render: (_: unknown, record: MainRow) => (record.rowType === 'enrollment' ? record.created_by_name : null),
+      },
+      {
+        title: 'Ghi chú',
+        key: 'note',
+        width: 180,
+        ellipsis: true,
+        render: (_: unknown, record: MainRow) =>
+          record.rowType === 'lead' ? getLatestNoteContent(record.note) : record.note,
+      },
+      {
+        title: 'Thao tác',
+        key: 'action',
+        align: 'center' as const,
+        fixed: 'right' as const,
+        width: 150,
+        render: (_: unknown, record: MainRow) => {
+          if (record.rowType === 'lead') return null;
+          return (
+            <Space>
+              <Tooltip title="Thu tiền">
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<DollarOutlined />}
+                  onClick={() => openPaymentForm(record)}
+                />
+              </Tooltip>
+              <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEditForm(record)} />
+              <Popconfirm
+                title="Xóa đăng ký này?"
+                okText="Xóa"
+                cancelText="Hủy"
+                onConfirm={() => handleDeleteEnrollment(record)}
+              >
+                <Button type="text" danger size="small" icon={<DeleteOutlined />} />
+              </Popconfirm>
+            </Space>
+          );
+        },
+      },
+    ],
+    [courseName, className, handleDeleteEnrollment, currentPage, pageSize]
+  );
+
+  const pendingColumns: ColumnsType<PaymentTicket> = useMemo(
+    () => [
+      {
+        title: 'Khách hàng',
+        key: 'customer',
+        render: (_: unknown, record: PaymentTicket) => (
+          <Space orientation="vertical" size={2}>
+            <Typography.Text strong style={{ fontSize: 13 }}>
+              {record.lead_full_name || `Lead #${record.lead_id}`}
+            </Typography.Text>
+            {record.lead_phone_number && (
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {record.lead_phone_number}
+              </Typography.Text>
+            )}
+          </Space>
+        ),
+      },
+      {
+        title: 'Số tiền',
+        dataIndex: 'amount',
+        key: 'amount',
+        render: (amount: number) => (
+          <Typography.Text strong style={{ color: '#1890ff' }}>
+            {formatCurrencyVnd(amount)}
+          </Typography.Text>
+        ),
+      },
+      {
+        title: 'Phương thức',
+        dataIndex: 'payment_type',
+        key: 'payment_type',
+        render: (type: string) => <Tag color={PaymentTypeColor[type] ?? 'default'}>{PaymentTypeLabel[type] ?? type}</Tag>,
+      },
+      {
+        title: 'Ngày',
+        dataIndex: 'payment_date',
+        key: 'payment_date',
+        render: (date: string) => (date ? dayjs(date).format('DD/MM/YYYY') : ''),
+      },
+      {
+        title: 'Ghi chú',
+        dataIndex: 'note',
+        key: 'note',
+        ellipsis: true,
+      },
+      {
+        title: 'Thao tác',
+        key: 'action',
+        align: 'center' as const,
+        render: (_: unknown, record: PaymentTicket) => (
+          <Space>
+            <Tooltip title="Duyệt">
+              <Button
+                type="primary"
+                size="small"
+                icon={<CheckCircleOutlined />}
+                onClick={() => handleApprove(record)}
+                style={{ background: '#52c41a', borderColor: '#52c41a' }}
+              />
+            </Tooltip>
+            <Tooltip title="Từ chối">
+              <Button danger size="small" icon={<CloseCircleOutlined />} onClick={() => handleOpenRejectModal(record)} />
+            </Tooltip>
+          </Space>
+        ),
+      },
+    ],
+    [handleApprove, handleOpenRejectModal]
+  );
 
   return (
     <div className="p-page">
       <Row justify="space-between" align="middle" className="mb-section">
         <Col>
           <Typography.Title level={2} style={{ margin: 0 }}>
-            Kế toán — Quản lý phiếu thu
+            Kế toán
           </Typography.Title>
         </Col>
-        <Col>
-          <Space>
+      </Row>
+
+      <PaymentStatsCards
+        enrollmentCount={enrollments.length + pendingConvertedLeads.length}
+        debtTotal={debtTotal}
+        revenueTotal={revenueTotal}
+      />
+
+      {pendingTickets.length > 0 && (
+        <Card
+          size="small"
+          style={{ marginBottom: 16, borderRadius: 12 }}
+          title={
+            <Alert
+              type="warning"
+              showIcon
+              banner
+              message={`${pendingTickets.length} phiếu thu đang chờ duyệt (không tính vào Đã đóng cho đến khi được duyệt)`}
+            />
+          }
+          styles={{ header: { border: 'none', padding: 0 }, body: { paddingTop: 12 } }}
+        >
+          <Table
+            columns={pendingColumns}
+            dataSource={pendingTickets}
+            rowKey="id"
+            size="small"
+            pagination={false}
+            scroll={{ x: 'max-content' }}
+          />
+        </Card>
+      )}
+
+      <Row align="middle" className="mb-section" gutter={[12, 12]}>
+        <Col xs={24} md={16}>
+          <Space wrap style={isMobile ? { width: '100%' } : undefined}>
             <DatePicker
-              value={selectedDate}
-              onChange={(date) => {
-                if (date) {
-                  setSelectedDate(date);
-                  setCurrentPage(1);
-                }
-              }}
-              format="DD/MM/YYYY"
+              picker="month"
+              value={filterMonth}
+              onChange={(date) => date && setFilterMonth(date)}
+              format="MM/YYYY"
               allowClear={false}
+              style={isMobile ? { flex: 1, minWidth: 140 } : undefined}
             />
             <Button
               icon={<ReloadOutlined />}
-              loading={isFetching}
-              onClick={() => refetch()}
+              loading={ticketsFetching || enrollmentsFetching || convertedLeadsFetching}
+              onClick={() => {
+                refetchTickets();
+                refetchEnrollments();
+                refetchConvertedLeads();
+              }}
+              style={isMobile ? { flex: 1 } : undefined}
             >
               Làm mới
             </Button>
           </Space>
         </Col>
+        <Col xs={24} md={8} style={isMobile ? undefined : { textAlign: 'right' }}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            block={isMobile}
+            onClick={() => setCreateOpen(true)}
+          >
+            Thêm đăng ký
+          </Button>
+        </Col>
       </Row>
 
-      <PaymentStatsCards
-        total={total}
-        pendingCount={pendingCount}
-        pendingTotal={pendingTotal}
-        approvedTotal={approvedTotal}
-      />
-
-      <Table
-        columns={columns}
-        dataSource={tickets}
-        loading={isLoading}
-        rowKey="id"
-        scroll={{ x: 'max-content' }}
-        bordered={false}
-        className="minimal-table"
-        pagination={{
-          current: currentPage,
-          pageSize: pageSize,
-          total: total,
-          showSizeChanger: true,
-        }}
-        onChange={(pagination, filters) => {
-          if (pagination.current) setCurrentPage(pagination.current);
-          if (pagination.pageSize) setPageSize(pagination.pageSize);
-          const nextStatus = filters.status?.[0] as TicketStatus | undefined;
-          if (nextStatus !== statusFilter) {
-            setStatusFilter(nextStatus);
-            setCurrentPage(1);
-          }
-        }}
-        rowClassName={(record) =>
-          record.status === 'pending' ? 'ant-table-row-pending' : ''
-        }
-      />
+      {isMobile ? (
+        <Spin spinning={ticketsLoading || enrollmentsLoading || convertedLeadsLoading}>
+          {mainRows.length === 0 ? (
+            <Empty description="Chưa có dữ liệu" style={{ padding: '32px 0' }} />
+          ) : (
+            <>
+              {pagedMainRows.map((record) => (
+                <MainRowCard
+                  key={`${record.rowType}-${record.id}`}
+                  record={record}
+                  courseName={courseName}
+                  className={className}
+                  onPay={openPaymentForm}
+                  onEdit={openEditForm}
+                  onDelete={handleDeleteEnrollment}
+                />
+              ))}
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
+                <Pagination
+                  current={currentPage}
+                  pageSize={pageSize}
+                  total={mainRows.length}
+                  simple
+                  onChange={(page, size) => {
+                    setCurrentPage(page);
+                    setPageSize(size);
+                  }}
+                />
+              </div>
+            </>
+          )}
+        </Spin>
+      ) : (
+        <Table
+          columns={columns}
+          dataSource={mainRows}
+          loading={ticketsLoading || enrollmentsLoading || convertedLeadsLoading}
+          rowKey={(record) => `${record.rowType}-${record.id}`}
+          scroll={{ x: 'max-content' }}
+          bordered={false}
+          className="minimal-table"
+          pagination={{
+            current: currentPage,
+            pageSize,
+            total: mainRows.length,
+            showSizeChanger: true,
+            onChange: (page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            },
+          }}
+        />
+      )}
 
       <RejectTicketModal
         open={rejectModalOpen}
@@ -188,6 +599,21 @@ export default function AccountingPage() {
         }}
         onOk={handleReject}
       />
+
+      <EnrollmentModal
+        open={formOpen}
+        leadName={editingEnrollment?.lead_full_name}
+        enrollment={editingEnrollment}
+        onClose={() => setFormOpen(false)}
+      />
+
+      <EnrollmentPaymentModal
+        open={paymentOpen}
+        enrollment={payingEnrollment}
+        onClose={() => setPaymentOpen(false)}
+      />
+
+      <EnrollmentCreateDrawer open={createOpen} onClose={() => setCreateOpen(false)} />
     </div>
   );
 }

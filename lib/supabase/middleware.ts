@@ -14,10 +14,23 @@ function isAuthRoute(pathname: string): boolean {
 export async function updateSession(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
-  // Block extraneous Socket.IO polling from browser extensions or local apps 
+  // Block extraneous Socket.IO polling from browser extensions or local apps
   // (e.g. Kaspersky/Zalo) that floods the Next.js dev server with SSR requests.
   if (searchParams.has('EIO') || searchParams.has('transport')) {
     return new NextResponse('Bad Request: Socket.IO polling not supported', { status: 400 });
+  }
+
+  const isPublic = isPublicRoute(pathname);
+  const isAuth = isAuthRoute(pathname);
+  const isApiRoute = pathname.startsWith('/api');
+  const isStudentRoute = pathname.startsWith('/student');
+
+  // Every gate below only fires when `!isPublic` (or is the login page, handled
+  // via `isAuth`) — so a public route that isn't also the login page never needs
+  // auth state at all. Skip the Supabase round trips entirely for those instead
+  // of paying for them on every request and only checking pathname afterwards.
+  if (isPublic && !isAuth) {
+    return NextResponse.next({ request });
   }
 
   let supabaseResponse = NextResponse.next({
@@ -47,11 +60,13 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser();
+  // getClaims verifies the signed JWT locally (when JWKS is available), avoiding
+  // the extra Auth-server round trip that getUser makes on every request — same
+  // pattern already used by getCurrentUser() in lib/services/auth.service.ts.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const authUserId = claimsData?.claims?.sub;
 
-  const isAuthenticated = !!authUser;
+  const isAuthenticated = !!authUserId;
 
   let roleCode: string | undefined;
   if (isAuthenticated) {
@@ -59,7 +74,7 @@ export async function updateSession(request: NextRequest) {
     const { data: profile } = await admin
       .from('users')
       .select('roles(code)')
-      .eq('id', authUser.id)
+      .eq('id', authUserId)
       .maybeSingle();
     roleCode = (profile as { roles?: { code?: string } | null } | null)?.roles?.code;
   }
@@ -69,11 +84,6 @@ export async function updateSession(request: NextRequest) {
   // otherwise be true for `undefined`).
   const isStudentAuthenticated = isAuthenticated && roleCode === 'STU';
   const isAdminAuthenticated = isAuthenticated && roleCode != null && roleCode !== 'STU';
-
-  const isPublic = isPublicRoute(pathname);
-  const isAuth = isAuthRoute(pathname);
-  const isApiRoute = pathname.startsWith('/api');
-  const isStudentRoute = pathname.startsWith('/student');
 
   // Handle API Routes Security
   if (isApiRoute && !isPublic) {
