@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Card, Col, Row, Space, Typography } from 'antd';
 import { DollarOutlined, ExclamationCircleOutlined, TeamOutlined } from '@ant-design/icons';
 import { formatNumberVi } from '@/lib/utils/numberFormat';
+import { useIsMobile } from '@/lib/hooks/use-mobile';
 
 type Props = {
   enrollmentCount: number;
@@ -14,14 +15,20 @@ function StatTile({
   color,
   label,
   value,
+  isMobile,
 }: {
   icon: ReactNode;
   color: string;
   label: string;
   value: string;
+  isMobile: boolean;
 }) {
   return (
-    <Card size="small" style={{ borderRadius: 12 }} styles={{ body: { padding: '14px 16px' } }}>
+    <Card
+      size="small"
+      style={{ borderRadius: 12, height: '100%' }}
+      styles={{ body: { padding: isMobile ? '14px 16px' : '28px 24px' } }}
+    >
       <Space size={12} align="center">
         <span
           style={{
@@ -53,10 +60,12 @@ function StatTile({
 }
 
 export function PaymentStatsCards({ enrollmentCount, debtTotal, revenueTotal }: Props) {
+  const isMobile = useIsMobile();
   return (
     <Row gutter={[12, 12]} style={{ marginBottom: 24 }}>
       <Col xs={24} sm={12} lg={8}>
         <StatTile
+          isMobile={isMobile}
           icon={<TeamOutlined />}
           color="#1890ff"
           label="Học viên đã đăng ký"
@@ -65,6 +74,7 @@ export function PaymentStatsCards({ enrollmentCount, debtTotal, revenueTotal }: 
       </Col>
       <Col xs={24} sm={12} lg={8}>
         <StatTile
+          isMobile={isMobile}
           icon={<DollarOutlined />}
           color="#52c41a"
           label="Doanh thu"
@@ -73,6 +83,7 @@ export function PaymentStatsCards({ enrollmentCount, debtTotal, revenueTotal }: 
       </Col>
       <Col xs={24} sm={12} lg={8}>
         <StatTile
+          isMobile={isMobile}
           icon={<ExclamationCircleOutlined />}
           color="#cf1322"
           label="Còn nợ"

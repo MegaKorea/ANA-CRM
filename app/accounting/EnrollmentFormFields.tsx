@@ -2,12 +2,12 @@
 
 import { useMemo } from 'react';
 import { Form, Select, DatePicker, InputNumber, Input, Row, Col, type FormInstance } from 'antd';
-import { PaymentType } from '@/constants/enums';
+import { PaymentMethod } from '@/constants/enums';
+import { SMAX_SUPPORTER_DIRECTORY } from '@/constants/smax';
 import { useCourses } from '@/lib/hooks/use-courses';
 import { useClasses } from '@/lib/hooks/use-classes';
-import { useUsers } from '@/lib/hooks/use-users';
 import { formatIntegerInput, parseIntegerInput } from '@/lib/utils/numberFormat';
-import { PaymentTypeLabel } from './columns';
+import { PaymentMethodLabel } from './columns';
 import type { EnrollmentFormValues } from './enrollment-form-types';
 
 const ENROLLMENT_SOURCE_OPTIONS = ['Hotline', 'Facebook', 'Zalo', 'Khác'].map((value) => ({
@@ -28,15 +28,14 @@ export function EnrollmentFormFields({
 }: EnrollmentFormFieldsProps) {
   const { data: courses } = useCourses();
   const { data: classes } = useClasses();
-  const { data: users } = useUsers();
 
   const courseOptions = useMemo(
     () => (courses ?? []).map((course) => ({ label: course.name, value: course.id })),
     [courses],
   );
-  const userOptions = useMemo(
-    () => (users ?? []).map((u) => ({ label: u.full_name || u.email, value: u.id })),
-    [users],
+  const consultantOptions = useMemo(
+    () => Object.entries(SMAX_SUPPORTER_DIRECTORY).map(([id, name]) => ({ label: name, value: id })),
+    [],
   );
 
   const selectedCourseId = Form.useWatch('course_id', form);
@@ -48,9 +47,7 @@ export function EnrollmentFormFields({
     [classes, selectedCourseId],
   );
 
-  const depositAmount = Form.useWatch('deposit_amount', form);
-  const depositPaymentType = Form.useWatch('deposit_payment_type', form);
-  const showDepositMethodFields = showDepositPaymentMethod && !!depositAmount;
+  const depositPaymentMethod = Form.useWatch('deposit_payment_method', form);
 
   const fieldSpan = columns === 3 ? 8 : 12;
 
@@ -101,7 +98,7 @@ export function EnrollmentFormFields({
       </Col>
 
       <Col xs={24} sm={fieldSpan}>
-        <Form.Item name="deposit_amount" label="Tiền cọc (VND)">
+        <Form.Item name="deposit_amount" label="Đã đóng (VND)">
           <InputNumber
             style={{ width: '100%' }}
             min={0}
@@ -111,26 +108,26 @@ export function EnrollmentFormFields({
         </Form.Item>
       </Col>
 
-      {showDepositMethodFields && (
+      {showDepositPaymentMethod && (
         <Col xs={24} sm={fieldSpan}>
           <Form.Item
-            name="deposit_payment_type"
-            label="Hình thức nhận cọc"
+            name="deposit_payment_method"
+            label="Hình thức thanh toán"
             rules={[{ required: true, message: 'Vui lòng chọn hình thức' }]}
           >
             <Select
-              options={Object.values(PaymentType).map((type) => ({
-                label: PaymentTypeLabel[type],
-                value: type,
+              options={Object.values(PaymentMethod).map((method) => ({
+                label: PaymentMethodLabel[method],
+                value: method,
               }))}
             />
           </Form.Item>
         </Col>
       )}
 
-      {showDepositMethodFields && depositPaymentType === PaymentType.BANK_TRANSFER && (
+      {showDepositPaymentMethod && depositPaymentMethod && depositPaymentMethod !== PaymentMethod.CASH && (
         <Col xs={24} sm={fieldSpan}>
-          <Form.Item name="deposit_recipient_account" label="Tài khoản nhận cọc">
+          <Form.Item name="deposit_recipient_account" label="Tài khoản nhận tiền">
             <Input placeholder="Ví dụ: Lê Thị Toàn, hoặc tài khoản CTY" />
           </Form.Item>
         </Col>
@@ -155,15 +152,7 @@ export function EnrollmentFormFields({
 
       <Col xs={24} sm={fieldSpan}>
         <Form.Item name="created_by" label="Tư vấn viên">
-          <Select
-            allowClear
-            showSearch
-            placeholder="Chọn tư vấn viên"
-            options={userOptions}
-            filterOption={(input, option) =>
-              (option?.label as string).toLowerCase().includes(input.toLowerCase())
-            }
-          />
+          <Select allowClear placeholder="Chọn tư vấn viên" options={consultantOptions} />
         </Form.Item>
       </Col>
 

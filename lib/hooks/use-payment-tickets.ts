@@ -63,6 +63,9 @@ export function useCreatePaymentTicket() {
       queryClient.invalidateQueries({
         queryKey: [PaymentTicketQueryKey.SUMMARY, variables.lead_id],
       });
+      // A new approved ticket changes the linked enrollment's paid_amount/debt_amount
+      // (synced server-side via DB trigger) — refresh so the accounting table catches up.
+      queryClient.invalidateQueries({ queryKey: ['enrollments'] });
     },
   });
 }
@@ -90,6 +93,8 @@ export function useReviewPaymentTicket() {
       queryClient.invalidateQueries({
         queryKey: [PaymentTicketQueryKey.SUMMARY],
       });
+      // Approving/rejecting changes whether this ticket counts toward paid_amount.
+      queryClient.invalidateQueries({ queryKey: ['enrollments'] });
     },
   });
 }
@@ -107,6 +112,8 @@ export function useUpdatePaymentTicket() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [PaymentTicketQueryKey.LIST] });
       queryClient.invalidateQueries({ queryKey: [PaymentTicketQueryKey.BY_LEAD] });
+      // Editing the amount changes the linked enrollment's paid_amount/debt_amount.
+      queryClient.invalidateQueries({ queryKey: ['enrollments'] });
     },
   });
 }

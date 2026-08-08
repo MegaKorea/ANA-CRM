@@ -16,15 +16,14 @@ import {
 import { UploadOutlined, DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Lead } from '@/lib/services/lead.service';
-import { PaymentType } from '@/constants/enums';
+import { PaymentMethod } from '@/constants/enums';
 import { useCreatePaymentTicket } from '@/lib/hooks/use-payment-tickets';
 import { formatIntegerInput, parseIntegerInput } from '@/lib/utils/numberFormat';
 
-const PaymentTypeLabel: Record<PaymentType, string> = {
-  [PaymentType.CASH]: 'Tiền mặt',
-  [PaymentType.BANK_TRANSFER]: 'Chuyển khoản',
-  [PaymentType.MOMO]: 'Momo',
-  [PaymentType.OTHER]: 'Khác',
+const PaymentMethodLabel: Record<PaymentMethod, string> = {
+  [PaymentMethod.CASH]: 'Tiền mặt',
+  [PaymentMethod.BANK_PERSONAL]: 'Chuyển khoản - TK cá nhân',
+  [PaymentMethod.BANK_COMPANY]: 'Chuyển khoản - TK công ty',
 };
 
 interface PaymentTicketModalProps {
@@ -35,7 +34,7 @@ interface PaymentTicketModalProps {
 
 interface TicketFormValues {
   amount: number;
-  payment_type: PaymentType;
+  payment_method: PaymentMethod;
   payment_date: dayjs.Dayjs;
   note?: string;
 }
@@ -93,7 +92,7 @@ export function PaymentTicketModal({ open, lead, onClose }: PaymentTicketModalPr
       {
         lead_id: lead.id,
         amount: values.amount,
-        payment_type: values.payment_type,
+        payment_method: values.payment_method,
         payment_date: values.payment_date.toISOString(),
         images,
         note: values.note,
@@ -136,7 +135,7 @@ export function PaymentTicketModal({ open, lead, onClose }: PaymentTicketModalPr
         layout="vertical"
         onFinish={handleSubmit}
         initialValues={{
-          payment_type: PaymentType.CASH,
+          payment_method: PaymentMethod.CASH,
           payment_date: dayjs(),
         }}
       >
@@ -156,14 +155,14 @@ export function PaymentTicketModal({ open, lead, onClose }: PaymentTicketModalPr
         </Form.Item>
 
         <Form.Item
-          name="payment_type"
+          name="payment_method"
           label="Loại hình thanh toán"
           rules={[{ required: true, message: 'Vui lòng chọn loại thanh toán' }]}
         >
           <Select
-            options={Object.values(PaymentType).map((type) => ({
-              label: PaymentTypeLabel[type],
-              value: type,
+            options={Object.values(PaymentMethod).map((method) => ({
+              label: PaymentMethodLabel[method],
+              value: method,
             }))}
           />
         </Form.Item>

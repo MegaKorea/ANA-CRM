@@ -1,5 +1,5 @@
 import type { Dayjs } from 'dayjs';
-import type { EnrollmentStatus, PaymentType } from '@/constants/enums';
+import type { PaymentMethod } from '@/constants/enums';
 
 export interface EnrollmentFormValues {
   course_id: string;
@@ -9,9 +9,8 @@ export interface EnrollmentFormValues {
   expected_study_month?: Dayjs;
   tuition_fee?: number;
   deposit_amount?: number;
-  deposit_payment_type?: PaymentType;
+  deposit_payment_method?: PaymentMethod;
   deposit_recipient_account?: string;
-  status: EnrollmentStatus;
   note?: string;
   debt_note?: string;
   created_by?: string;

@@ -1,4 +1,4 @@
-export type PaymentType = 'cash' | 'bank_transfer' | 'momo' | 'other';
+export type PaymentMethod = 'cash' | 'bank_personal' | 'bank_company';
 export type TicketStatus = 'pending' | 'approved' | 'rejected';
 
 export interface PaymentTicketsTable {
@@ -8,7 +8,7 @@ export interface PaymentTicketsTable {
     enrollment_id: number | null;
     course_id: string | null;
     amount: number;
-    payment_type: PaymentType;
+    payment_method: PaymentMethod;
     payment_date: string;
     recipient_account: string | null;
     images: string[] | null;
@@ -27,7 +27,7 @@ export interface PaymentTicketsTable {
     enrollment_id?: number | null;
     course_id?: string | null;
     amount: number;
-    payment_type?: PaymentType;
+    payment_method?: PaymentMethod;
     payment_date?: string;
     recipient_account?: string | null;
     images?: string[] | null;
@@ -46,7 +46,7 @@ export interface PaymentTicketsTable {
     enrollment_id?: number | null;
     course_id?: string | null;
     amount?: number;
-    payment_type?: PaymentType;
+    payment_method?: PaymentMethod;
     payment_date?: string;
     recipient_account?: string | null;
     images?: string[] | null;

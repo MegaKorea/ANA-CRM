@@ -2,8 +2,6 @@
 
 import { Alert, Card, Skeleton, Tag, Typography } from 'antd';
 import { memo } from 'react';
-import { EnrollmentStatus } from '@/constants/enums';
-import { EnrollmentStatusConfig } from '@/constants/enrollment';
 import { useEnrollmentRevenue } from '@/lib/hooks/use-enrollments';
 import { formatCurrencyVnd } from '@/lib/utils/numberFormat';
 import styles from './EnrollmentRevenueSummary.module.css';
@@ -68,22 +66,6 @@ export const EnrollmentRevenueSummary = memo(function EnrollmentRevenueSummary({
           </div>
 
           <div className={styles.breakdownRow}>
-            <div className={styles.breakdownCol}>
-              <Text type="secondary" className={styles.breakdownTitle}>
-                Theo trạng thái
-              </Text>
-              <div className={styles.tagList}>
-                {data.byStatus.map((item) => {
-                  const cfg = EnrollmentStatusConfig[item.status as EnrollmentStatus];
-                  return (
-                    <Tag key={item.status} color={cfg?.color ?? 'default'}>
-                      {cfg?.label ?? item.status}: {item.count}
-                    </Tag>
-                  );
-                })}
-              </div>
-            </div>
-
             <div className={styles.breakdownCol}>
               <Text type="secondary" className={styles.breakdownTitle}>
                 Theo nguồn

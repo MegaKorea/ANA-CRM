@@ -1,23 +1,23 @@
 import { AppError } from '@/errors';
-import { HttpStatusCode, PaymentTicketErrorCode, PaymentType, TicketStatus, ValidationPattern } from '@/constants/enums';
+import {
+  HttpStatusCode,
+  PaymentMethod,
+  PaymentTicketErrorCode,
+  TicketStatus,
+  ValidationPattern,
+} from '@/constants/enums';
 
 export interface CreatePaymentTicketInput {
   lead_id: number;
   enrollment_id?: number;
   course_id?: string;
   amount: number;
-  payment_type: PaymentType;
+  payment_method: PaymentMethod;
   payment_date?: string;
   recipient_account?: string;
   images?: string[];
   note?: string;
   created_by?: string;
-  /**
-   * Defaults to 'pending' (needs review in the "Phiếu thu" tab). Pass 'approved'
-   * only for tickets the creator is asserting as already collected — e.g. the
-   * initial deposit recorded at enrollment creation time — where reviewed_by
-   * is set to the same creator (self-approved, not a second reviewer).
-   */
   status?: 'pending' | 'approved';
 }
 
@@ -28,6 +28,9 @@ export interface ReviewPaymentTicketInput {
 
 export interface UpdatePaymentTicketInput {
   course_id?: string | null;
+  amount?: number;
+  payment_method?: PaymentMethod;
+  recipient_account?: string | null;
 }
 
 export interface PaymentTicketQueryParams {
@@ -97,11 +100,11 @@ export function validateCreatePaymentTicketInput(input: unknown): CreatePaymentT
     throw new AppError(PaymentTicketErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
   }
 
-  // payment_type — required, must be valid
-  if (!data.payment_type || typeof data.payment_type !== 'string') {
+  // payment_method — required, must be valid
+  if (!data.payment_method || typeof data.payment_method !== 'string') {
     throw new AppError(PaymentTicketErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
   }
-  if (!Object.values(PaymentType).includes(data.payment_type as PaymentType)) {
+  if (!Object.values(PaymentMethod).includes(data.payment_method as PaymentMethod)) {
     throw new AppError(PaymentTicketErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
   }
 
@@ -169,7 +172,7 @@ export function validateCreatePaymentTicketInput(input: unknown): CreatePaymentT
     enrollment_id: enrollmentId,
     course_id: courseId,
     amount,
-    payment_type: data.payment_type as PaymentType,
+    payment_method: data.payment_method as PaymentMethod,
     payment_date: paymentDate,
     recipient_account: recipientAccount,
     images,
@@ -222,6 +225,31 @@ export function validateUpdatePaymentTicketInput(input: unknown): UpdatePaymentT
       result.course_id = null;
     } else if (typeof data.course_id === 'string' && new RegExp(ValidationPattern.UUID, 'i').test(data.course_id)) {
       result.course_id = data.course_id;
+    } else {
+      throw new AppError(PaymentTicketErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+    }
+  }
+
+  if (data.amount !== undefined) {
+    const amount = Number(data.amount);
+    if (Number.isNaN(amount) || amount <= 0) {
+      throw new AppError(PaymentTicketErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+    }
+    result.amount = amount;
+  }
+
+  if (data.payment_method !== undefined) {
+    if (!Object.values(PaymentMethod).includes(data.payment_method as PaymentMethod)) {
+      throw new AppError(PaymentTicketErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+    }
+    result.payment_method = data.payment_method as PaymentMethod;
+  }
+
+  if (data.recipient_account !== undefined) {
+    if (data.recipient_account === null) {
+      result.recipient_account = null;
+    } else if (typeof data.recipient_account === 'string') {
+      result.recipient_account = data.recipient_account.trim() || null;
     } else {
       throw new AppError(PaymentTicketErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
     }

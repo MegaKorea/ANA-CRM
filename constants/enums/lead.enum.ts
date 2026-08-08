@@ -41,11 +41,10 @@ export enum AttendanceStatus {
   NO_SHOW = 'no_show',
 }
 
-export enum PaymentType {
+export enum PaymentMethod {
   CASH = 'cash',
-  BANK_TRANSFER = 'bank_transfer',
-  MOMO = 'momo',
-  OTHER = 'other',
+  BANK_PERSONAL = 'bank_personal',
+  BANK_COMPANY = 'bank_company',
 }
 
 export enum TicketStatus {
@@ -86,13 +85,6 @@ export enum PaymentTicketErrorCode {
   BAD_REQUEST = 'PAYMENT_TICKET_BAD_REQUEST',
   ALREADY_REVIEWED = 'PAYMENT_TICKET_ALREADY_REVIEWED',
   INTERNAL_SERVER_ERROR = 'PAYMENT_TICKET_INTERNAL_SERVER_ERROR',
-}
-
-export enum EnrollmentStatus {
-  DEPOSITED = 'cọc',
-  STUDYING = 'đang học',
-  COMPLETED = 'hoàn thành',
-  CANCELLED = 'hủy',
 }
 
 export enum EnrollmentErrorCode {

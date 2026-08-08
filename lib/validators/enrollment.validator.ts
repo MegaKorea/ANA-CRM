@@ -1,5 +1,5 @@
 import { AppError } from '@/errors';
-import { EnrollmentErrorCode, EnrollmentStatus, HttpStatusCode, ValidationPattern } from '@/constants/enums';
+import { EnrollmentErrorCode, HttpStatusCode, ValidationPattern } from '@/constants/enums';
 
 export interface CreateEnrollmentInput {
   lead_id: number;
@@ -12,7 +12,6 @@ export interface CreateEnrollmentInput {
   tuition_fee?: number;
   deposit_amount?: number;
   debt_note?: string;
-  status?: EnrollmentStatus;
   note?: string;
   created_by?: string;
 }
@@ -27,7 +26,6 @@ export interface UpdateEnrollmentInput {
   tuition_fee?: number;
   deposit_amount?: number;
   debt_note?: string | null;
-  status?: EnrollmentStatus;
   note?: string | null;
   created_by?: string | null;
 }
@@ -36,8 +34,9 @@ export interface EnrollmentQueryParams {
   lead_id?: number;
   course_id?: string;
   class_id?: string;
-  status?: EnrollmentStatus;
   sales_month?: string;
+  startDate?: string;
+  endDate?: string;
   page?: number;
   limit?: number;
 }
@@ -123,17 +122,6 @@ function validateAmountField(value: unknown): number | undefined {
   return numericValue;
 }
 
-function validateStatusField(value: unknown): EnrollmentStatus | undefined {
-  if (value === undefined || value === null) {
-    return undefined;
-  }
-  if (typeof value !== 'string' || !Object.values(EnrollmentStatus).includes(value as EnrollmentStatus)) {
-    throw new AppError(EnrollmentErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
-  }
-  return value as EnrollmentStatus;
-}
-
-/** Defaults sales_month to the enrollment's own month when the caller doesn't pass one. */
 function deriveSalesMonth(explicit: string | undefined, enrollmentDate: string | undefined): string {
   if (explicit) return explicit;
   const base = enrollmentDate ? new Date(enrollmentDate) : new Date();
@@ -171,9 +159,8 @@ export function validateCreateEnrollmentInput(input: unknown): CreateEnrollmentI
     tuition_fee: validateAmountField(data.tuition_fee),
     deposit_amount: validateAmountField(data.deposit_amount),
     debt_note: validateOptionalStringField(data.debt_note),
-    status: validateStatusField(data.status),
     note: validateOptionalStringField(data.note),
-    created_by: validateOptionalUuidField(data.created_by),
+    created_by: validateOptionalStringField(data.created_by),
   };
 }
 
@@ -217,15 +204,20 @@ export function validateUpdateEnrollmentInput(input: unknown): UpdateEnrollmentI
     result.debt_note = data.debt_note === null ? null : validateOptionalStringField(data.debt_note) ?? null;
   }
 
-  const status = validateStatusField(data.status);
-  if (status !== undefined) result.status = status;
-
   if (data.note !== undefined) {
     result.note = data.note === null ? null : validateOptionalStringField(data.note) ?? null;
   }
 
   if (data.created_by !== undefined) {
-    result.created_by = data.created_by === null ? null : validateRequiredUuidField(data.created_by);
+    if (data.created_by === null) {
+      result.created_by = null;
+    } else {
+      const createdBy = validateOptionalStringField(data.created_by);
+      if (!createdBy) {
+        throw new AppError(EnrollmentErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+      }
+      result.created_by = createdBy;
+    }
   }
 
   return result;

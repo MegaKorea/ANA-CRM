@@ -1,5 +1,3 @@
-import { EnrollmentStatus } from '@/constants/enums';
-
 export interface EnrollmentsTable {
   Row: {
     id: number;
@@ -15,7 +13,6 @@ export interface EnrollmentsTable {
     paid_amount: number;
     debt_amount: number;
     debt_note: string | null;
-    status: EnrollmentStatus;
     note: string | null;
     created_by: string | null;
     created_at: string;
@@ -33,7 +30,6 @@ export interface EnrollmentsTable {
     tuition_fee?: number;
     deposit_amount?: number;
     debt_note?: string | null;
-    status?: EnrollmentStatus;
     note?: string | null;
     created_by?: string | null;
     created_at?: string;
@@ -51,7 +47,6 @@ export interface EnrollmentsTable {
     tuition_fee?: number;
     deposit_amount?: number;
     debt_note?: string | null;
-    status?: EnrollmentStatus;
     note?: string | null;
     created_by?: string | null;
     updated_at?: string;

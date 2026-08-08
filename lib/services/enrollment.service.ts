@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { handleServiceError, handleSupabaseError, validateDataExists } from '@/lib/utils/error-handler';
-import { EnrollmentErrorCode } from '@/constants/enums';
+import { EnrollmentErrorCode, LeadStatus } from '@/constants/enums';
+import { SMAX_SUPPORTER_DIRECTORY } from '@/constants/smax';
 import type {
   CreateEnrollmentInput,
   UpdateEnrollmentInput,
@@ -17,7 +18,7 @@ export type Enrollment = EnrollmentsTable['Row'] & {
 
 export interface PaginatedEnrollments {
   data: Enrollment[];
-  total: number;
+  total: number;  
 }
 
 export async function fetchEnrolledLeadIds(): Promise<number[]> {
@@ -54,12 +55,16 @@ export async function fetchAllEnrollments(params?: EnrollmentQueryParams): Promi
       query = query.eq('class_id', params.class_id);
     }
 
-    if (params?.status) {
-      query = query.eq('status', params.status);
-    }
-
     if (params?.sales_month) {
       query = query.eq('sales_month', params.sales_month);
+    }
+
+    if (params?.startDate) {
+      query = query.gte('enrollment_date', params.startDate);
+    }
+
+    if (params?.endDate) {
+      query = query.lte('enrollment_date', params.endDate);
     }
 
     query = query.order('created_at', { ascending: false });
@@ -83,11 +88,17 @@ export async function fetchAllEnrollments(params?: EnrollmentQueryParams): Promi
     let leadMap: Map<number, { full_name: string | null; phone_number: string | null }> = new Map();
     let userMap: Map<string, string | null> = new Map();
     if (rawEnrollments.length > 0) {
-      const leadIds = [...new Set(rawEnrollments.map((e) => e.lead_id))];
+      // .in('id', leadIds) sends a literal "null" into the Postgres IN-list if a
+      // stray null slips through, which errors the whole query (400) rather than
+      // just skipping that one id — silently emptying leadMap for every row in
+      // the batch, not just the null one. Filter nulls out before the query.
+      const leadIds = [...new Set(rawEnrollments.map((e) => e.lead_id).filter((id): id is number => id != null))];
       const userIds = [...new Set(rawEnrollments.map((e) => e.created_by).filter((id): id is string => !!id))];
 
       const [{ data: leadsData }, { data: usersData }] = await Promise.all([
-        supabase.from('leads').select('id, full_name, phone_number').in('id', leadIds),
+        leadIds.length > 0
+          ? supabase.from('leads').select('id, full_name, phone_number').in('id', leadIds)
+          : Promise.resolve({ data: [] }),
         userIds.length > 0
           ? supabase.from('users').select('id, full_name').in('id', userIds)
           : Promise.resolve({ data: [] }),
@@ -114,7 +125,9 @@ export async function fetchAllEnrollments(params?: EnrollmentQueryParams): Promi
         ...enrollment,
         lead_full_name: lead?.full_name ?? null,
         lead_phone_number: lead?.phone_number ?? null,
-        created_by_name: enrollment.created_by ? (userMap.get(enrollment.created_by) ?? null) : null,
+        created_by_name: enrollment.created_by
+          ? (userMap.get(enrollment.created_by) ?? SMAX_SUPPORTER_DIRECTORY[enrollment.created_by] ?? null)
+          : null,
       };
     });
 
@@ -164,7 +177,6 @@ export async function createEnrollment(input: CreateEnrollmentInput): Promise<En
       tuition_fee: input.tuition_fee ?? 0,
       deposit_amount: input.deposit_amount ?? 0,
       debt_note: input.debt_note ?? null,
-      status: input.status,
       note: input.note ?? null,
       created_by: input.created_by ?? null,
     };
@@ -254,7 +266,6 @@ export interface EnrollmentRevenueSummary {
   totalTuitionFee: number;
   totalPaid: number;
   totalDebt: number;
-  byStatus: { status: string; count: number }[];
   bySource: { source: string; count: number; tuitionFee: number }[];
 }
 
@@ -266,7 +277,7 @@ export async function getEnrollmentRevenueSummary(
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from('enrollments')
-      .select('status, source, tuition_fee, paid_amount, debt_amount')
+      .select('source, tuition_fee, paid_amount, debt_amount')
       .gte('enrollment_date', startAt)
       .lte('enrollment_date', endAt);
 
@@ -275,14 +286,12 @@ export async function getEnrollmentRevenueSummary(
     }
 
     const rows = (data ?? []) as unknown as {
-      status: string;
       source: string | null;
       tuition_fee: number;
       paid_amount: number;
       debt_amount: number;
     }[];
 
-    const statusCounts = new Map<string, number>();
     const sourceStats = new Map<string, { count: number; tuitionFee: number }>();
     let totalTuitionFee = 0;
     let totalPaid = 0;
@@ -292,8 +301,6 @@ export async function getEnrollmentRevenueSummary(
       totalTuitionFee += row.tuition_fee;
       totalPaid += row.paid_amount;
       totalDebt += row.debt_amount;
-
-      statusCounts.set(row.status, (statusCounts.get(row.status) ?? 0) + 1);
 
       const sourceKey = row.source?.trim() || 'Khác';
       const existing = sourceStats.get(sourceKey) ?? { count: 0, tuitionFee: 0 };
@@ -308,7 +315,6 @@ export async function getEnrollmentRevenueSummary(
       totalTuitionFee,
       totalPaid,
       totalDebt,
-      byStatus: Array.from(statusCounts.entries()).map(([status, count]) => ({ status, count })),
       bySource: Array.from(sourceStats.entries()).map(([source, stats]) => ({
         source,
         count: stats.count,
@@ -323,10 +329,50 @@ export async function getEnrollmentRevenueSummary(
 export async function deleteEnrollmentById(id: number): Promise<void> {
   try {
     const supabase = createAdminClient();
+
+    const { data: enrollmentRow } = await supabase
+      .from('enrollments')
+      .select('lead_id')
+      .eq('id', id)
+      .single();
+
+    // payment_tickets.enrollment_id is ON DELETE SET NULL, not CASCADE — left
+    // alone, deleting the enrollment would silently orphan its payment
+    // tickets (still in the DB, but no longer counted in any enrollment's
+    // paid_amount/debt_amount). Delete them explicitly so removing an
+    // enrollment actually removes its money history instead of hiding it.
+    const { error: ticketsError } = await supabase
+      .from('payment_tickets')
+      .delete()
+      .eq('enrollment_id', id);
+
+    if (ticketsError) {
+      handleSupabaseError(ticketsError, { defaultErrorCode: EnrollmentErrorCode.DELETE_FAILED });
+    }
+
     const { error } = await supabase.from('enrollments').delete().eq('id', id);
 
     if (error) {
       handleSupabaseError(error, { defaultErrorCode: EnrollmentErrorCode.DELETE_FAILED });
+    }
+
+    // The accounting page auto-materializes a blank enrollment for any
+    // "converted" lead that doesn't already have one — left as CONVERTED,
+    // this lead would immediately get a fresh empty enrollment back the
+    // next time that page loads, making the delete look like it never
+    // happened. Best-effort: an enrollment delete having already succeeded
+    // shouldn't fail just because this follow-up status flip did.
+    const leadId = (enrollmentRow as { lead_id: number } | null)?.lead_id;
+    if (leadId) {
+      try {
+        await supabase
+          .from('leads')
+          .update({ status: LeadStatus.INTERESTED } as never)
+          .eq('id', leadId)
+          .eq('status', LeadStatus.CONVERTED);
+      } catch {
+        // best-effort — see comment above
+      }
     }
   } catch (error) {
     handleServiceError(error, EnrollmentErrorCode.DELETE_FAILED);

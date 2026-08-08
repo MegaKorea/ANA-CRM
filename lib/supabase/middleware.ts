@@ -11,11 +11,22 @@ function isAuthRoute(pathname: string): boolean {
   return AUTH_ROUTES.some((route) => pathname === route);
 }
 
+const ROLE_CACHE_TTL_MS = 30_000;
+const roleCache = new Map<string, { roleCode: string | undefined; expiresAt: number }>();
+
+function getCachedRoleCode(userId: string): { hit: true; roleCode: string | undefined } | { hit: false } {
+  const entry = roleCache.get(userId);
+  if (!entry) return { hit: false };
+  if (entry.expiresAt < Date.now()) {
+    roleCache.delete(userId);
+    return { hit: false };
+  }
+  return { hit: true, roleCode: entry.roleCode };
+}
+
 export async function updateSession(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
-  // Block extraneous Socket.IO polling from browser extensions or local apps
-  // (e.g. Kaspersky/Zalo) that floods the Next.js dev server with SSR requests.
   if (searchParams.has('EIO') || searchParams.has('transport')) {
     return new NextResponse('Bad Request: Socket.IO polling not supported', { status: 400 });
   }
@@ -25,10 +36,6 @@ export async function updateSession(request: NextRequest) {
   const isApiRoute = pathname.startsWith('/api');
   const isStudentRoute = pathname.startsWith('/student');
 
-  // Every gate below only fires when `!isPublic` (or is the login page, handled
-  // via `isAuth`) — so a public route that isn't also the login page never needs
-  // auth state at all. Skip the Supabase round trips entirely for those instead
-  // of paying for them on every request and only checking pathname afterwards.
   if (isPublic && !isAuth) {
     return NextResponse.next({ request });
   }
@@ -60,9 +67,6 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // getClaims verifies the signed JWT locally (when JWKS is available), avoiding
-  // the extra Auth-server round trip that getUser makes on every request — same
-  // pattern already used by getCurrentUser() in lib/services/auth.service.ts.
   const { data: claimsData } = await supabase.auth.getClaims();
   const authUserId = claimsData?.claims?.sub;
 
@@ -70,22 +74,24 @@ export async function updateSession(request: NextRequest) {
 
   let roleCode: string | undefined;
   if (isAuthenticated) {
-    const admin = createAdminClient();
-    const { data: profile } = await admin
-      .from('users')
-      .select('roles(code)')
-      .eq('id', authUserId)
-      .maybeSingle();
-    roleCode = (profile as { roles?: { code?: string } | null } | null)?.roles?.code;
+    const cached = getCachedRoleCode(authUserId);
+    if (cached.hit) {
+      roleCode = cached.roleCode;
+    } else {
+      const admin = createAdminClient();
+      const { data: profile } = await admin
+        .from('users')
+        .select('roles(code)')
+        .eq('id', authUserId)
+        .maybeSingle();
+      roleCode = (profile as { roles?: { code?: string } | null } | null)?.roles?.code;
+      roleCache.set(authUserId, { roleCode, expiresAt: Date.now() + ROLE_CACHE_TTL_MS });
+    }
   }
-  // Fail closed: if the role lookup errored or the profile row is missing,
-  // `roleCode` stays undefined — treat that as neither student nor staff
-  // rather than defaulting to staff access (`roleCode !== 'STU'` would
-  // otherwise be true for `undefined`).
+
   const isStudentAuthenticated = isAuthenticated && roleCode === 'STU';
   const isAdminAuthenticated = isAuthenticated && roleCode != null && roleCode !== 'STU';
 
-  // Handle API Routes Security
   if (isApiRoute && !isPublic) {
     if (!isAuthenticated) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -115,7 +121,6 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // Handle Login Routes
   if (isAuth) {
     const nextParam = searchParams.get('next');
     const safeNext =
@@ -142,7 +147,6 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // Handle Protected Student Routes
   if (isStudentRoute && !isStudentAuthenticated) {
     if (!isPublic && !isApiRoute) {
       const url = request.nextUrl.clone();
@@ -151,7 +155,6 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // Handle Protected Admin Routes
   if (!isStudentRoute && !isAdminAuthenticated && !isPublic && !isApiRoute) {
     if (
       isStudentAuthenticated &&

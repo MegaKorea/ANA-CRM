@@ -1,17 +1,15 @@
 import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 
-export const PaymentTypeLabel: Record<string, string> = {
+export const PaymentMethodLabel: Record<string, string> = {
   cash: 'Tiền mặt',
-  bank_transfer: 'Chuyển khoản',
-  momo: 'Momo',
-  other: 'Khác',
+  bank_personal: 'Chuyển khoản - TK cá nhân',
+  bank_company: 'Chuyển khoản - TK công ty',
 };
 
-export const PaymentTypeColor: Record<string, string> = {
+export const PaymentMethodColor: Record<string, string> = {
   cash: 'green',
-  bank_transfer: 'blue',
-  momo: 'magenta',
-  other: 'default',
+  bank_personal: 'blue',
+  bank_company: 'geekblue',
 };
 
 export const TicketStatusConfig: Record<

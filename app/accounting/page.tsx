@@ -20,8 +20,8 @@ import type { PaymentTicket } from '@/lib/services/payment-ticket.service';
 import type { Enrollment } from '@/lib/services/enrollment.service';
 import { formatCurrencyVnd } from '@/lib/utils/numberFormat';
 import { getLatestNoteContent } from '@/lib/utils/notes';
-import { EnrollmentStatus, LeadStatus } from '@/constants/enums';
-import { PaymentTypeColor, PaymentTypeLabel } from './columns';
+import { LeadStatus } from '@/constants/enums';
+import { PaymentMethodColor, PaymentMethodLabel } from './columns';
 import { PaymentStatsCards } from './PaymentStatsCards';
 import { RejectTicketModal } from './RejectTicketModal';
 import { EnrollmentModal } from './EnrollmentModal';
@@ -43,9 +43,12 @@ export default function AccountingPage() {
 function AccountingPageContent() {
   const { message, modal } = App.useApp();
   const isMobile = useIsMobile();
-  const [filterMonth, setFilterMonth] = useState<Dayjs>(dayjs());
+  const [filterRange, setFilterRange] = useState<[Dayjs, Dayjs]>([
+    dayjs().startOf('month'),
+    dayjs().endOf('month'),
+  ]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(10);
 
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectTicketId, setRejectTicketId] = useState<number | null>(null);
@@ -57,8 +60,8 @@ function AccountingPageContent() {
   const [payingEnrollment, setPayingEnrollment] = useState<Enrollment | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
-  const monthStart = filterMonth.startOf('month').format('YYYY-MM-DD');
-  const monthEnd = filterMonth.endOf('month').format('YYYY-MM-DD');
+  const rangeStart = filterRange[0].format('YYYY-MM-DD');
+  const rangeEnd = filterRange[1].format('YYYY-MM-DD');
 
   const {
     data: ticketData,
@@ -66,8 +69,8 @@ function AccountingPageContent() {
     isFetching: ticketsFetching,
     refetch: refetchTickets,
   } = usePaymentTickets({
-    startDate: `${monthStart}T00:00:00.000Z`,
-    endDate: `${monthEnd}T23:59:59.999Z`,
+    startDate: `${rangeStart}T00:00:00.000Z`,
+    endDate: `${rangeEnd}T23:59:59.999Z`,
     page: 1,
     limit: 200,
   });
@@ -78,7 +81,8 @@ function AccountingPageContent() {
     isFetching: enrollmentsFetching,
     refetch: refetchEnrollments,
   } = useEnrollments({
-    sales_month: filterMonth.format('YYYY-MM'),
+    startDate: rangeStart,
+    endDate: rangeEnd,
     page: 1,
     limit: 200,
   });
@@ -109,37 +113,57 @@ function AccountingPageContent() {
     () => new Set(enrolledLeadIdsData?.data ?? []),
     [enrolledLeadIdsData],
   );
-  // While the enrolled-lead-ids query hasn't loaded yet, allEnrolledLeadIds is
-  // empty — treating that as "nothing enrolled" would flash every already-enrolled
-  // lead as a duplicate "pending" row next to its real enrollment row, and would
-  // re-trigger auto-materialization for leads that already have one. Show/process
-  // none until we actually know which leads are enrolled.
   const pendingConvertedLeads = useMemo(
     () => (enrolledLeadIdsLoading ? [] : convertedLeads.filter((l) => !allEnrolledLeadIds.has(l.id))),
     [enrolledLeadIdsLoading, convertedLeads, allEnrolledLeadIds],
   );
   const pendingTickets = useMemo(() => tickets.filter((t) => t.status === 'pending'), [tickets]);
 
+  // Latest approved payment's method per enrollment — paid_amount is only
+  // ever driven by approved tickets, so "how was this collected" should
+  // reflect the same set, not a still-pending one.
+  const latestPaymentMethodByEnrollmentId = useMemo(() => {
+    const map = new Map<number, { method: string; date: string }>();
+    tickets.forEach((t) => {
+      if (t.status !== 'approved' || !t.enrollment_id) return;
+      const date = t.payment_date ?? '';
+      const existing = map.get(t.enrollment_id);
+      if (!existing || date > existing.date) {
+        map.set(t.enrollment_id, { method: t.payment_method, date });
+      }
+    });
+    return map;
+  }, [tickets]);
+
   const pendingLeadIdsKey = pendingConvertedLeads.map((l) => l.id).join(',');
   useEffect(() => {
     if (!courses || courses.length === 0) return;
     if (enrolledLeadIdsLoading) return;
-    pendingConvertedLeads.forEach((lead) => {
-      if (autoMaterializedLeadIds.has(lead.id)) return;
-      const courseId = lead.course_ids?.[0] ?? courses[0].id;
 
-      autoMaterializedLeadIds.add(lead.id);
-      ensureEnrollment.mutate({
-        lead_id: lead.id,
-        course_id: courseId,
-        enrollment_date: lead.appointment_date ?? lead.created_at ?? undefined,
-        sales_month: filterMonth.format('YYYY-MM'),
-        source: lead.source ?? undefined,
-        tuition_fee: lead.tuition_fee ?? 0,
-        status: EnrollmentStatus.DEPOSITED,
-        note: getLatestNoteContent(lead.note),
-      });
-    });
+    let cancelled = false;
+    (async () => {
+      for (const lead of pendingConvertedLeads) {
+        if (cancelled) return;
+        if (autoMaterializedLeadIds.has(lead.id)) continue;
+        const courseId = lead.course_ids?.[0] ?? courses[0].id;
+
+        autoMaterializedLeadIds.add(lead.id);
+        const enrollmentDate = lead.appointment_date ?? lead.created_at ?? undefined;
+        await ensureEnrollment.mutateAsync({
+          lead_id: lead.id,
+          course_id: courseId,
+          enrollment_date: enrollmentDate,
+          sales_month: dayjs(enrollmentDate).format('YYYY-MM'),
+          source: lead.source ?? undefined,
+          tuition_fee: lead.tuition_fee ?? 0,
+          note: getLatestNoteContent(lead.note),
+        }).catch(() => {});
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [pendingLeadIdsKey, courses, enrolledLeadIdsLoading]);
 
   const mainRows: MainRow[] = useMemo(() => {
@@ -260,7 +284,7 @@ function AccountingPageContent() {
         render: (_: unknown, record: MainRow) => {
           const name = record.rowType === 'lead' ? record.full_name : record.lead_full_name || `Lead #${record.lead_id}`;
           return (
-            <Typography.Text strong style={{ fontSize: 13 }}>
+            <Typography.Text strong style={{ fontSize: 13 }} ellipsis={{ tooltip: name }}>
               {name}
             </Typography.Text>
           );
@@ -327,6 +351,21 @@ function AccountingPageContent() {
         },
       },
       {
+        title: 'Phương thức',
+        key: 'payment_method',
+        width: 170,
+        render: (_: unknown, record: MainRow) => {
+          if (record.rowType !== 'enrollment') return '-';
+          const latest = latestPaymentMethodByEnrollmentId.get(record.id);
+          if (!latest) return '-';
+          return (
+            <Tag color={PaymentMethodColor[latest.method] ?? 'default'}>
+              {PaymentMethodLabel[latest.method] ?? latest.method}
+            </Tag>
+          );
+        },
+      },
+      {
         title: 'Ngày',
         key: 'date',
         width: 120,
@@ -370,6 +409,11 @@ function AccountingPageContent() {
               <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEditForm(record)} />
               <Popconfirm
                 title="Xóa đăng ký này?"
+                description={
+                  record.paid_amount > 0
+                    ? `Sẽ xóa luôn ${formatCurrencyVnd(record.paid_amount)} phiếu thu đã ghi nhận cho đăng ký này.`
+                    : undefined
+                }
                 okText="Xóa"
                 cancelText="Hủy"
                 onConfirm={() => handleDeleteEnrollment(record)}
@@ -381,7 +425,7 @@ function AccountingPageContent() {
         },
       },
     ],
-    [courseName, className, handleDeleteEnrollment, currentPage, pageSize]
+    [courseName, className, handleDeleteEnrollment, currentPage, pageSize, latestPaymentMethodByEnrollmentId]
   );
 
   const pendingColumns: ColumnsType<PaymentTicket> = useMemo(
@@ -414,9 +458,11 @@ function AccountingPageContent() {
       },
       {
         title: 'Phương thức',
-        dataIndex: 'payment_type',
-        key: 'payment_type',
-        render: (type: string) => <Tag color={PaymentTypeColor[type] ?? 'default'}>{PaymentTypeLabel[type] ?? type}</Tag>,
+        dataIndex: 'payment_method',
+        key: 'payment_method',
+        render: (method: string) => (
+          <Tag color={PaymentMethodColor[method] ?? 'default'}>{PaymentMethodLabel[method] ?? method}</Tag>
+        ),
       },
       {
         title: 'Ngày',
@@ -499,13 +545,16 @@ function AccountingPageContent() {
       <Row align="middle" className="mb-section" gutter={[12, 12]}>
         <Col xs={24} md={16}>
           <Space wrap style={isMobile ? { width: '100%' } : undefined}>
-            <DatePicker
-              picker="month"
-              value={filterMonth}
-              onChange={(date) => date && setFilterMonth(date)}
-              format="MM/YYYY"
+            <DatePicker.RangePicker
+              value={filterRange}
+              onChange={(dates) => {
+                if (dates && dates[0] && dates[1]) {
+                  setFilterRange([dates[0], dates[1]]);
+                }
+              }}
+              format="DD/MM/YYYY"
               allowClear={false}
-              style={isMobile ? { flex: 1, minWidth: 140 } : undefined}
+              style={isMobile ? { flex: 1, minWidth: 220 } : undefined}
             />
             <Button
               icon={<ReloadOutlined />}

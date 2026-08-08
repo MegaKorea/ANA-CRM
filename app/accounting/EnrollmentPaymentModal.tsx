@@ -5,15 +5,14 @@ import { App, Modal, Form, InputNumber, Select, DatePicker, Input, Upload, Butto
 import { UploadOutlined, DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Enrollment } from '@/lib/services/enrollment.service';
-import { PaymentType } from '@/constants/enums';
+import { PaymentMethod } from '@/constants/enums';
 import { useCreatePaymentTicket } from '@/lib/hooks/use-payment-tickets';
 import { formatIntegerInput, parseIntegerInput } from '@/lib/utils/numberFormat';
 
-const PaymentTypeLabel: Record<PaymentType, string> = {
-  [PaymentType.CASH]: 'Tiền mặt',
-  [PaymentType.BANK_TRANSFER]: 'Chuyển khoản',
-  [PaymentType.MOMO]: 'Momo',
-  [PaymentType.OTHER]: 'Khác',
+const PaymentMethodLabel: Record<PaymentMethod, string> = {
+  [PaymentMethod.CASH]: 'Tiền mặt',
+  [PaymentMethod.BANK_PERSONAL]: 'Chuyển khoản - TK cá nhân',
+  [PaymentMethod.BANK_COMPANY]: 'Chuyển khoản - TK công ty',
 };
 
 interface EnrollmentPaymentModalProps {
@@ -24,7 +23,7 @@ interface EnrollmentPaymentModalProps {
 
 interface PaymentFormValues {
   amount: number;
-  payment_type: PaymentType;
+  payment_method: PaymentMethod;
   recipient_account?: string;
   payment_date: dayjs.Dayjs;
   note?: string;
@@ -37,7 +36,7 @@ export function EnrollmentPaymentModal({ open, enrollment, onClose }: Enrollment
   const [uploading, setUploading] = useState(false);
   const createTicket = useCreatePaymentTicket();
   const isMountedRef = useRef(true);
-  const paymentType = Form.useWatch('payment_type', form);
+  const paymentMethod = Form.useWatch('payment_method', form);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -86,7 +85,7 @@ export function EnrollmentPaymentModal({ open, enrollment, onClose }: Enrollment
         enrollment_id: enrollment.id,
         course_id: enrollment.course_id,
         amount: values.amount,
-        payment_type: values.payment_type,
+        payment_method: values.payment_method,
         recipient_account: values.recipient_account,
         payment_date: values.payment_date.toISOString(),
         images,
@@ -120,7 +119,7 @@ export function EnrollmentPaymentModal({ open, enrollment, onClose }: Enrollment
         form={form}
         layout="vertical"
         onFinish={handleSubmit}
-        initialValues={{ payment_type: PaymentType.CASH, payment_date: dayjs() }}
+        initialValues={{ payment_method: PaymentMethod.CASH, payment_date: dayjs() }}
       >
         <Form.Item
           name="amount"
@@ -138,19 +137,19 @@ export function EnrollmentPaymentModal({ open, enrollment, onClose }: Enrollment
         </Form.Item>
 
         <Form.Item
-          name="payment_type"
+          name="payment_method"
           label="Hình thức thanh toán"
           rules={[{ required: true, message: 'Vui lòng chọn hình thức' }]}
         >
           <Select
-            options={Object.values(PaymentType).map((type) => ({
-              label: PaymentTypeLabel[type],
-              value: type,
+            options={Object.values(PaymentMethod).map((method) => ({
+              label: PaymentMethodLabel[method],
+              value: method,
             }))}
           />
         </Form.Item>
 
-        {paymentType === PaymentType.BANK_TRANSFER && (
+        {paymentMethod && paymentMethod !== PaymentMethod.CASH && (
           <Form.Item name="recipient_account" label="Tài khoản nhận tiền">
             <Input placeholder="Ví dụ: Lê Thị Toàn, hoặc tài khoản CTY" />
           </Form.Item>

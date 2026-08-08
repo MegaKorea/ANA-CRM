@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { handleServiceError, handleSupabaseError, validateDataExists } from '@/lib/utils/error-handler';
 import { PaymentTicketErrorCode } from '@/constants/enums';
+import { SMAX_SUPPORTER_DIRECTORY } from '@/constants/smax';
 import type {
   CreatePaymentTicketInput,
   ReviewPaymentTicketInput,
@@ -115,7 +116,9 @@ export async function fetchPaymentTickets(
         ...ticket,
         lead_full_name: lead?.full_name ?? null,
         lead_phone_number: lead?.phone ?? null,
-        created_by_name: ticket.created_by ? (userMap.get(ticket.created_by) ?? null) : null,
+        created_by_name: ticket.created_by
+          ? (userMap.get(ticket.created_by) ?? SMAX_SUPPORTER_DIRECTORY[ticket.created_by] ?? null)
+          : null,
       };
     });
 
@@ -186,7 +189,7 @@ export async function createPaymentTicket(
       enrollment_id: input.enrollment_id ?? null,
       course_id: courseId,
       amount: input.amount,
-      payment_type: input.payment_type,
+      payment_method: input.payment_method,
       payment_date: input.payment_date ?? new Date().toISOString(),
       recipient_account: input.recipient_account ?? null,
       images: input.images ?? [],
@@ -292,6 +295,15 @@ export async function updatePaymentTicket(
     };
     if (input.course_id !== undefined) {
       updateData.course_id = input.course_id;
+    }
+    if (input.amount !== undefined) {
+      updateData.amount = input.amount;
+    }
+    if (input.payment_method !== undefined) {
+      updateData.payment_method = input.payment_method;
+    }
+    if (input.recipient_account !== undefined) {
+      updateData.recipient_account = input.recipient_account;
     }
 
     const { data, error } = await supabase
