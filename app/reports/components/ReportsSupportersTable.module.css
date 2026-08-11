@@ -1,4 +1,4 @@
-.card {
+.card:global(.ant-card) {
   border-radius: 12px;
   overflow: hidden;
   height: 100%;

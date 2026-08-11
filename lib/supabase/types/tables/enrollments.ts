@@ -2,8 +2,10 @@ export interface EnrollmentsTable {
   Row: {
     id: number;
     lead_id: number;
-    course_id: string;
+    course_id: string | null;
     class_id: string | null;
+    category: string;
+    item_name: string | null;
     enrollment_date: string;
     sales_month: string;
     source: string | null;
@@ -17,12 +19,20 @@ export interface EnrollmentsTable {
     created_by: string | null;
     created_at: string;
     updated_at: string;
+    student_name: string | null;
+    phone: string | null;
+    course_name_raw: string | null;
+    course_name_normalized: string | null;
+    course_key: string | null;
+    advisor_name: string | null;
   };
   Insert: {
     id?: number;
     lead_id: number;
-    course_id: string;
+    course_id?: string | null;
     class_id?: string | null;
+    category?: string;
+    item_name?: string | null;
     enrollment_date?: string;
     sales_month: string;
     source?: string | null;
@@ -38,8 +48,10 @@ export interface EnrollmentsTable {
   Update: {
     id?: number;
     lead_id?: number;
-    course_id?: string;
+    course_id?: string | null;
     class_id?: string | null;
+    category?: string;
+    item_name?: string | null;
     enrollment_date?: string;
     sales_month?: string;
     source?: string | null;

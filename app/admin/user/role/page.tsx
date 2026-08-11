@@ -9,7 +9,6 @@ import type { CreateRoleInput, UpdateRoleInput } from '@/lib/services/role.servi
 import {
   RolePageGap,
   RolePageMargin,
-  RolePagePadding,
   RolePageText,
   createRoleColumns,
 } from './constants';
@@ -139,11 +138,7 @@ export default function RolePage() {
   );
 
   return (
-    <div
-      style={{
-        padding: RolePagePadding.CONTAINER,
-      }}
-    >
+    <div>
       <Row
         justify="space-between"
         align="middle"

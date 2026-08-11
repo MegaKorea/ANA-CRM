@@ -65,10 +65,6 @@ export const LeadStatisticsDayCard = memo(function LeadStatisticsDayCard({
           <div style={{ fontWeight: 500 }}>{item.totalLeads}</div>
         </Col>
         <Col span={12} style={{ minWidth: 0 }}>
-          <div style={{ color: token.colorTextSecondary, fontSize: 12 }}>Đăng ký</div>
-          <div style={{ fontWeight: 500 }}>{item.registeredLeads}</div>
-        </Col>
-        <Col span={12} style={{ minWidth: 0 }}>
           <div style={{ color: token.colorTextSecondary, fontSize: 12 }}>Lịch hẹn</div>
           <div style={{ fontWeight: 500 }}>{item.totalAppointments}</div>
         </Col>
@@ -77,6 +73,10 @@ export const LeadStatisticsDayCard = memo(function LeadStatisticsDayCard({
           <div style={{ fontWeight: 500, color: token.colorSuccessText }}>
             {item.arrivedAppointments}
           </div>
+        </Col>
+        <Col span={12} style={{ minWidth: 0 }}>
+          <div style={{ color: token.colorTextSecondary, fontSize: 12 }}>Đăng ký</div>
+          <div style={{ fontWeight: 500 }}>{item.registeredLeads}</div>
         </Col>
       </Row>
     </Card>

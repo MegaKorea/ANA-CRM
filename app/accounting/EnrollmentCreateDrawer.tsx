@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { App, Button, Drawer, Divider, Form, Space, Tag, Typography } from 'antd';
 import { UserOutlined, PhoneOutlined, CalendarOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -36,26 +36,21 @@ export function EnrollmentCreateDrawer({ open, onClose, preselectLead }: Enrollm
     form.setFieldsValue({
       enrollment_date: nextLead.appointment_date ? dayjs(nextLead.appointment_date) : dayjs(),
       deposit_payment_method: PaymentMethod.CASH,
+      category: 'khóa học',
       course_id: nextLead.course_ids?.[0] ?? undefined,
       tuition_fee: nextLead.tuition_fee ?? undefined,
       note: getLatestNoteContent(nextLead.note),
     });
   };
 
-  const everOpenedRef = useRef(false);
-  useEffect(() => {
-    if (open) everOpenedRef.current = true;
-
-    if (!open) {
-      if (everOpenedRef.current) {
-        setLead(null);
-        form.resetFields();
-      }
+  const handleAfterOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      if (preselectLead) handleSelectLead(preselectLead);
       return;
     }
-    if (preselectLead) handleSelectLead(preselectLead);
-  }, [open, preselectLead]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+    setLead(null);
+    form.resetFields();
+  };
 
   const handleSubmit = async (values: EnrollmentFormValues) => {
     if (!lead) {
@@ -63,12 +58,16 @@ export function EnrollmentCreateDrawer({ open, onClose, preselectLead }: Enrollm
       return;
     }
 
+    const isCourseCategory = values.category === 'khóa học';
+
     let enrollment;
     try {
       enrollment = await createEnrollment.mutateAsync({
         lead_id: lead.id,
-        course_id: values.course_id,
-        class_id: values.class_id,
+        category: values.category,
+        course_id: isCourseCategory ? values.course_id : undefined,
+        class_id: isCourseCategory ? values.class_id : undefined,
+        item_name: isCourseCategory ? undefined : values.item_name,
         enrollment_date: values.enrollment_date.toISOString(),
         sales_month: values.enrollment_date.format('YYYY-MM'),
         source: values.source,
@@ -89,7 +88,7 @@ export function EnrollmentCreateDrawer({ open, onClose, preselectLead }: Enrollm
         await createPaymentTicket.mutateAsync({
           lead_id: lead.id,
           enrollment_id: enrollment.id,
-          course_id: values.course_id,
+          course_id: isCourseCategory ? values.course_id : undefined,
           amount: values.deposit_amount,
           payment_method: values.deposit_payment_method || PaymentMethod.CASH,
           recipient_account: values.deposit_recipient_account,
@@ -115,7 +114,8 @@ export function EnrollmentCreateDrawer({ open, onClose, preselectLead }: Enrollm
     <Drawer
       open={open}
       onClose={onClose}
-      title="Thêm đăng ký khóa học"
+      afterOpenChange={handleAfterOpenChange}
+      title="Thêm đăng ký"
       size={640}
       destroyOnHidden
       footer={
@@ -171,6 +171,7 @@ export function EnrollmentCreateDrawer({ open, onClose, preselectLead }: Enrollm
         initialValues={{
           enrollment_date: dayjs(),
           deposit_payment_method: PaymentMethod.CASH,
+          category: 'khóa học',
         }}
       >
         <EnrollmentFormFields form={form} columns={2} showDepositPaymentMethod />

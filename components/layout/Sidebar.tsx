@@ -2,7 +2,7 @@
 
 import { Layout, Menu, Skeleton, type MenuProps, Typography } from 'antd';
 import { usePathname } from 'next/navigation';
-import { useMemo } from 'react';
+import { useMemo, useState, useSyncExternalStore } from 'react';
 import styles from './Sidebar.module.scss';
 import logo from '../../app/assets/logo/logo-ana.png';
 import Image from 'next/image';
@@ -14,6 +14,27 @@ import { useAuthLoading, useUserRoleCode } from '@/lib/hooks/use-current-user';
 import { filterMenuByRole } from '@/lib/utils/menu-filter';
 
 const { Sider } = Layout;
+
+const subscribeToClient = () => () => {};
+
+const OPEN_KEYS_STORAGE_KEY = 'sidebar:openKeys';
+
+function readStoredOpenKeys(): string[] | null {
+  try {
+    const raw = localStorage.getItem(OPEN_KEYS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredOpenKeys(keys: string[]): void {
+  try {
+    localStorage.setItem(OPEN_KEYS_STORAGE_KEY, JSON.stringify(keys));
+  } catch {
+  }
+}
 
 interface SidebarProps {
   collapsed: boolean;
@@ -35,14 +56,30 @@ export function Sidebar({ collapsed, isMobile, onClose }: SidebarProps) {
 
   const selectedKeys = useMemo(() => [pathname], [pathname]);
 
-  const defaultOpenKeys = useMemo(() => {
-    if (collapsed) return [];
+  const routeDefaultOpenKeys = useMemo(() => {
     const paths = pathname.split('/').filter(Boolean);
     if (paths.length > 1) {
       return [`/${paths[0]}`];
     }
     return [];
-  }, [pathname, collapsed]);
+  }, [pathname]);
+
+  const computeOpenKeys = () => (collapsed ? [] : readStoredOpenKeys() ?? routeDefaultOpenKeys);
+
+  const mounted = useSyncExternalStore(subscribeToClient, () => true, () => false);
+
+  const [openKeys, setOpenKeys] = useState<string[]>(() => (collapsed ? [] : routeDefaultOpenKeys));
+
+  const [prevHydrationKey, setPrevHydrationKey] = useState([mounted, collapsed]);
+  if (mounted !== prevHydrationKey[0] || collapsed !== prevHydrationKey[1]) {
+    setPrevHydrationKey([mounted, collapsed]);
+    setOpenKeys(computeOpenKeys());
+  }
+
+  const handleOpenChange: MenuProps['onOpenChange'] = (keys) => {
+    setOpenKeys(keys);
+    writeStoredOpenKeys(keys);
+  };
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
     navigateWithDelay(key);
@@ -72,7 +109,8 @@ export function Sidebar({ collapsed, isMobile, onClose }: SidebarProps) {
           theme={themeMode}
           mode="inline"
           selectedKeys={selectedKeys}
-          defaultOpenKeys={defaultOpenKeys}
+          openKeys={openKeys}
+          onOpenChange={handleOpenChange}
           items={filteredMenuItems}
           onClick={handleMenuClick}
           className={styles.menu}

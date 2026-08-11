@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Lexend } from 'next/font/google';
+import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { AppProviders } from '@/providers';
 import { ConditionalLayout } from '@/components/layout/ConditionalLayout';
 import logoAna from '@/app/assets/logo/logo-ana.png';
@@ -30,9 +31,11 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning>
       <body className={lexend.variable}>
-        <AppProviders>
-          <ConditionalLayout>{children}</ConditionalLayout>
-        </AppProviders>
+        <AntdRegistry>
+          <AppProviders>
+            <ConditionalLayout>{children}</ConditionalLayout>
+          </AppProviders>
+        </AntdRegistry>
       </body>
     </html>
   );

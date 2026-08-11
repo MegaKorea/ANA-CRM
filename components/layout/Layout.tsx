@@ -13,12 +13,46 @@ import { useTheme } from '@/lib/hooks/use-theme';
 const { Content } = Layout;
 const subscribeToClient = () => () => {};
 
+const COLLAPSED_STORAGE_KEY = 'sidebar:collapsed';
+const collapsedListeners = new Set<() => void>();
+
+function subscribeCollapsed(callback: () => void) {
+  collapsedListeners.add(callback);
+  const handleStorage = (e: StorageEvent) => {
+    if (e.key === COLLAPSED_STORAGE_KEY) {
+      collapsedListeners.forEach((l) => l());
+    }
+  };
+  window.addEventListener('storage', handleStorage);
+  return () => {
+    collapsedListeners.delete(callback);
+    window.removeEventListener('storage', handleStorage);
+  };
+}
+
+function getCollapsedSnapshot(): boolean {
+  return localStorage.getItem(COLLAPSED_STORAGE_KEY) === '1';
+}
+
+function getCollapsedServerSnapshot(): boolean {
+  return false;
+}
+
+function setStoredCollapsed(value: boolean): void {
+  localStorage.setItem(COLLAPSED_STORAGE_KEY, value ? '1' : '0');
+  collapsedListeners.forEach((l) => l());
+}
+
 interface CRMLayoutProps {
   children: ReactNode;
 }
 
 export function CRMLayout({ children }: CRMLayoutProps) {
-  const [desktopCollapsed, setDesktopCollapsed] = useState(false);
+  const desktopCollapsed = useSyncExternalStore(
+    subscribeCollapsed,
+    getCollapsedSnapshot,
+    getCollapsedServerSnapshot
+  );
   const [mobileOpen, setMobileOpen] = useState(false);
   const mounted = useSyncExternalStore(subscribeToClient, () => true, () => false);
   const isMobile = useIsLayoutMobile();
@@ -39,9 +73,9 @@ export function CRMLayout({ children }: CRMLayoutProps) {
     if (isMobile) {
       setMobileOpen((open) => !open);
     } else {
-      setDesktopCollapsed((value) => !value);
+      setStoredCollapsed(!desktopCollapsed);
     }
-  }, [isMobile]);
+  }, [isMobile, desktopCollapsed]);
 
   const handleClose = useCallback(() => {
     setMobileOpen(false);

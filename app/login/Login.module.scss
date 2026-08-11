@@ -68,7 +68,10 @@
   color: var(--text-secondary);
 }
 
-.loginCard {
+// Compound selector (module class + antd's own class) so this reliably
+// outranks antd's runtime-injected `.ant-card` rule regardless of which
+// stylesheet lands later in the DOM (see AntdRegistry SSR extraction).
+.loginCard:global(.ant-card) {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
