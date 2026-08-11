@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
-import type { LeadAppointment, DueAppointment } from '@/lib/services/appointment.service';
+import type {
+  LeadAppointment,
+  DueAppointment,
+  UpcomingAppointment,
+} from '@/lib/services/appointment.service';
 import type {
   CreateAppointmentInput,
   UpdateAppointmentInput,
@@ -9,11 +13,14 @@ import type {
 const AppointmentQueryKey = {
   BY_LEAD: 'appointments-by-lead',
   REMINDERS: 'appointment-reminders',
+  UPCOMING: 'appointments-upcoming',
+  RANGE: 'appointments-range',
 } as const;
 
 const AppointmentApiPath = {
   BASE: '/appointments',
   REMINDERS: '/appointments/reminders',
+  UPCOMING: '/appointments/upcoming',
   BY_LEAD: (leadId: number) => `/leads/${leadId}/appointments`,
 } as const;
 
@@ -45,6 +52,8 @@ export function useCreateAppointment() {
       });
       // The lead row mirrors its next appointment, so refresh the lead list too.
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: [AppointmentQueryKey.UPCOMING] });
+      queryClient.invalidateQueries({ queryKey: [AppointmentQueryKey.RANGE] });
     },
   });
 }
@@ -64,6 +73,8 @@ export function useUpdateAppointment() {
         queryKey: [AppointmentQueryKey.BY_LEAD, variables.leadId],
       });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: [AppointmentQueryKey.UPCOMING] });
+      queryClient.invalidateQueries({ queryKey: [AppointmentQueryKey.RANGE] });
     },
   });
 }
@@ -78,6 +89,8 @@ export function useDeleteAppointment() {
         queryKey: [AppointmentQueryKey.BY_LEAD, variables.leadId],
       });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: [AppointmentQueryKey.UPCOMING] });
+      queryClient.invalidateQueries({ queryKey: [AppointmentQueryKey.RANGE] });
     },
   });
 }
@@ -110,5 +123,27 @@ export function useMarkRemindersSent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [AppointmentQueryKey.REMINDERS] });
     },
+  });
+}
+
+/** Upcoming appointments for the reports schedule card (leads.appointment_date). */
+export function useUpcomingAppointments() {
+  return useQuery<UpcomingAppointment[]>({
+    queryKey: [AppointmentQueryKey.UPCOMING],
+    queryFn: () => api.get<UpcomingAppointment[]>(AppointmentApiPath.UPCOMING),
+    staleTime: 60 * 1000,
+  });
+}
+
+/** Appointments whose appointment_date falls in [startDate, endDate] (VN days). */
+export function useAppointmentsInRange(startDate: string, endDate: string) {
+  return useQuery<UpcomingAppointment[]>({
+    queryKey: [AppointmentQueryKey.RANGE, startDate, endDate],
+    enabled: !!startDate && !!endDate,
+    queryFn: () =>
+      api.get<UpcomingAppointment[]>(AppointmentApiPath.UPCOMING, {
+        params: { startDate, endDate },
+      }),
+    staleTime: 60 * 1000,
   });
 }

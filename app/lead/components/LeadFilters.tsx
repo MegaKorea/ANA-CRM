@@ -13,6 +13,8 @@ import type { Dayjs } from 'dayjs';
 import { memo } from 'react';
 
 interface LeadFiltersProps {
+  searchKey?: number;
+  searchDefaultValue?: string;
   onSearch: (value: string) => void;
   statusFilter: LeadStatus | undefined;
   onStatusChange: (status: LeadStatus | undefined) => void;
@@ -26,6 +28,8 @@ interface LeadFiltersProps {
 }
 
 export const LeadFilters = memo(function LeadFilters({
+  searchKey = 0,
+  searchDefaultValue,
   onSearch,
   statusFilter,
   onStatusChange,
@@ -41,6 +45,8 @@ export const LeadFilters = memo(function LeadFilters({
     <Row gutter={[16, 16]} className="mb-section">
       <Col xs={24} md={8}>
         <DebouncedInput
+          key={searchKey}
+          defaultValue={searchDefaultValue}
           placeholder={`${LeadPageText.COLUMN_FULL_NAME} / ${LeadPageText.COLUMN_EMAIL} / ${LeadPageText.COLUMN_PHONE_NUMBER}`}
           onChange={onSearch}
           allowClear

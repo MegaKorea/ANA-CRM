@@ -115,6 +115,7 @@ function LeadPageContent() {
   const paymentHistoryModal = useLeadModal();
 
   const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchInputKey, setSearchInputKey] = useState(0);
   const [statusFilter, setStatusFilter] = useState<LeadStatus | undefined>(undefined);
   const [sourceFilter, setSourceFilter] = useState<LeadSource | undefined>(undefined);
   const [courseFilter, setCourseFilter] = useState<string | undefined>(undefined);
@@ -123,6 +124,37 @@ function LeadPageContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const isMobile = useIsMobile();
+
+  const appointmentParam = searchParams.get('appointment');
+  const appointmentLeadId = appointmentParam ? Number(appointmentParam) : null;
+  const { data: appointmentDeepLinkLead } = useLead(
+    appointmentLeadId != null && !Number.isNaN(appointmentLeadId) ? appointmentLeadId : null,
+  );
+  const [appliedAppointmentId, setAppliedAppointmentId] = useState<number | null>(null);
+  const [focusAppointmentLeadId, setFocusAppointmentLeadId] = useState<number | null>(null);
+
+  if (appointmentDeepLinkLead && appointmentDeepLinkLead.id !== appliedAppointmentId) {
+    setAppliedAppointmentId(appointmentDeepLinkLead.id);
+    const lookup =
+      appointmentDeepLinkLead.phone_number?.trim() ||
+      appointmentDeepLinkLead.full_name?.trim() ||
+      '';
+    if (lookup) {
+      setSearchKeyword(lookup);
+      setSearchInputKey((key) => key + 1);
+    }
+    setStatusFilter(undefined);
+    setSourceFilter(undefined);
+    setCourseFilter(undefined);
+    setCreatedAtRange(null);
+    setCurrentPage(1);
+    setFocusAppointmentLeadId(appointmentDeepLinkLead.id);
+  }
+  useEffect(() => {
+    if (appliedAppointmentId != null) {
+      router.replace('/lead', { scroll: false });
+    }
+  }, [appliedAppointmentId, router]);
 
   const handleSearch = useCallback((val: string) => {
     setSearchKeyword(val);
@@ -164,6 +196,20 @@ function LeadPageContent() {
 
   const leads = useMemo(() => data?.data || [], [data?.data]);
   const total = data?.total || 0;
+
+  useEffect(() => {
+    if (focusAppointmentLeadId == null || isLoading) return;
+    if (!leads.some((lead) => lead.id === focusAppointmentLeadId)) return;
+
+    const timer = window.setTimeout(() => {
+      const target = document.querySelector<HTMLElement>(
+        `[data-lead-appointment="${focusAppointmentLeadId}"]`,
+      );
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    }, 100);
+
+    return () => window.clearTimeout(timer);
+  }, [focusAppointmentLeadId, leads, isLoading]);
 
   // Batch-fetch payment counts for visible leads
   const leadIds = useMemo(() => leads.map((l) => l.id), [leads]);
@@ -371,6 +417,8 @@ function LeadPageContent() {
       </Row>
 
       <LeadFilters
+        searchKey={searchInputKey}
+        searchDefaultValue={searchKeyword}
         onSearch={handleSearch}
         statusFilter={statusFilter}
         onStatusChange={handleStatusChange}
@@ -392,6 +440,9 @@ function LeadPageContent() {
               dataSource={leads}
               loading={isLoading}
               rowKey="id"
+              rowClassName={(record) =>
+                record.id === focusAppointmentLeadId ? 'lead-appointment-focus' : ''
+              }
               pagination={{
                 current: currentPage,
                 pageSize: pageSize,
@@ -415,7 +466,13 @@ function LeadPageContent() {
             <>
               <div role="list" style={{ display: 'grid', gap: 16 }}>
                 {leads.map((lead) => (
-                  <div role="listitem" key={lead.id}>
+                  <div
+                    role="listitem"
+                    key={lead.id}
+                    className={
+                      lead.id === focusAppointmentLeadId ? 'lead-appointment-focus' : undefined
+                    }
+                  >
                     <LeadMobileCard
                       lead={lead}
                       courses={courses || []}

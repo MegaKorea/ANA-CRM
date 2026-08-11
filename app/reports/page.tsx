@@ -1,17 +1,45 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { App, Card, Space, Typography } from 'antd';
+import { App, Card, Space, Spin, Typography } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
+import dynamic from 'next/dynamic';
 import { DateFormat } from '@/constants/enums';
-import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import { useLeadStatistics } from '@/lib/hooks/use-lead-statistics';
 import { useLeadStatisticsSummary } from '@/lib/hooks/use-lead-statistics-summary';
+import { useSmaxTagStatistics } from '@/lib/hooks/use-smax-tag-statistics';
+import { useSmaxSupporterStatistics } from '@/lib/hooks/use-smax-supporter-statistics';
 import { LeadStatisticsFilters } from '@/app/lead/components/LeadStatisticsFilters';
 import { previousPeriodOfSameLength } from '@/lib/utils/vn-date';
 import { ReportsOverviewCards } from './components/ReportsOverviewCards';
-import { ReportsDailyTable } from './components/ReportsDailyTable';
 import styles from './page.module.css';
+
+const cardFallback = (
+  <Card style={{ borderRadius: 12, minHeight: 160 }}>
+    <Spin />
+  </Card>
+);
+
+const ReportsDailyTable = dynamic(
+  () => import('./components/ReportsDailyTable').then((m) => m.ReportsDailyTable),
+  { ssr: false, loading: () => cardFallback },
+);
+const ReportsCustomerTags = dynamic(
+  () => import('./components/ReportsCustomerTags').then((m) => m.ReportsCustomerTags),
+  { ssr: false, loading: () => cardFallback },
+);
+const ReportsUpcomingAppointments = dynamic(
+  () => import('./components/ReportsUpcomingAppointments').then((m) => m.ReportsUpcomingAppointments),
+  { ssr: false, loading: () => cardFallback },
+);
+const ReportsSupportersTable = dynamic(
+  () => import('./components/ReportsSupportersTable').then((m) => m.ReportsSupportersTable),
+  { ssr: false, loading: () => cardFallback },
+);
+const TeamSalesExportButton = dynamic(
+  () => import('./components/TeamSalesExportButton').then((m) => m.TeamSalesExportButton),
+  { ssr: false },
+);
 
 const { Title, Text } = Typography;
 
@@ -24,7 +52,6 @@ function normalizeRange(next: DateRange): DateRange {
 
 export default function ReportsPage() {
   const { message } = App.useApp();
-  const { hasPermission: isAdmin } = useAuthPermission(['ADMIN']);
   const [dateRange, setDateRange] = useState<DateRange>([dayjs(), dayjs()]);
 
   const startDate = dateRange?.[0]?.format(DateFormat.ISO_DATE) || '';
@@ -40,6 +67,18 @@ export default function ReportsPage() {
     prevRange.startDate,
     prevRange.endDate,
   );
+  const {
+    data: tagData,
+    isLoading: isTagsLoading,
+    isError: isTagsError,
+    error: tagsError,
+  } = useSmaxTagStatistics(startDate, endDate);
+  const {
+    data: supporterData,
+    isLoading: isSupportersLoading,
+    isError: isSupportersError,
+    error: supportersError,
+  } = useSmaxSupporterStatistics(startDate, endDate);
 
   useEffect(() => {
     if (isError) {
@@ -47,10 +86,24 @@ export default function ReportsPage() {
     }
   }, [isError, error, message]);
 
+  useEffect(() => {
+    if (isTagsError) {
+      message.error((tagsError as Error).message || 'Lỗi khi lấy thống kê tag SMAX');
+    }
+  }, [isTagsError, tagsError, message]);
+
+  useEffect(() => {
+    if (isSupportersError) {
+      message.error(
+        (supportersError as Error).message || 'Lỗi khi lấy thống kê nhân viên SMAX',
+      );
+    }
+  }, [isSupportersError, supportersError, message]);
+
   const { chartData, funnel } = useLeadStatisticsSummary(data);
   const { funnel: previousFunnel } = useLeadStatisticsSummary(prevData);
 
-  return (
+  return (  
     <div className={styles.page}>
       <header className={styles.header}>
         <div>
@@ -62,11 +115,14 @@ export default function ReportsPage() {
           </Text>
         </div>
         <div className={styles.filtersWrap}>
-          <LeadStatisticsFilters
-            dateRange={dateRange}
-            onDateRangeChange={(range) => setDateRange(normalizeRange(range))}
-            showTitle={false}
-          />
+          <Space wrap>
+            <LeadStatisticsFilters
+              dateRange={dateRange}
+              onDateRangeChange={(range) => setDateRange(normalizeRange(range))}
+              showTitle={false}
+            />
+            <TeamSalesExportButton />
+          </Space>
         </div>
       </header>
 
@@ -85,11 +141,31 @@ export default function ReportsPage() {
           />
         </Card>
 
-        <ReportsDailyTable
-          chartData={chartData}
-          isAdmin={isAdmin}
-          isLoading={isLoading}
+        <ReportsDailyTable chartData={chartData} isLoading={isLoading} />
+
+        <ReportsCustomerTags
+          tags={tagData?.tags ?? []}
+          totalNet={tagData?.totalNet ?? 0}
+          startDate={startDate}
+          endDate={endDate}
+          isLoading={isTagsLoading}
+          isError={isTagsError}
+          errorMessage={(tagsError as Error | undefined)?.message}
         />
+
+        <div className={styles.splitRow}>
+          <div className={styles.halfCol}>
+            <ReportsUpcomingAppointments />
+          </div>
+          <div className={styles.halfCol}>
+            <ReportsSupportersTable
+              rows={supporterData?.rows ?? []}
+              isLoading={isSupportersLoading}
+              isError={isSupportersError}
+              errorMessage={(supportersError as Error | undefined)?.message}
+            />
+          </div>
+        </div>
       </Space>
     </div>
   );

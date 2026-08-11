@@ -6,16 +6,23 @@ import {
   SMAX_DEFAULT_BIZ_ALIAS,
   SMAX_DEFAULT_PAGE_PIDS,
   SMAX_MESSAGES_LIMIT,
+  SMAX_SUPPORTERS_TOP,
+  SMAX_TAGS_TOP,
   SmaxCustomerStatTarget,
   SmaxCustomerStatType,
+  SmaxSupporterStatType,
 } from '@/constants/smax';
 import { mapSmaxMessagesPayload } from '@/lib/smax/map-messages';
 import { mapSmaxCustomerStatistics } from '@/lib/smax/map-statistics';
+import { mapSmaxSupporterStatistics } from '@/lib/smax/map-supporters';
+import { mapSmaxTagStatistics } from '@/lib/smax/map-tags';
 import { withFbPrefix } from '@/lib/smax/utils';
 import type {
   SmaxConversationResult,
   SmaxCustomerStatistics,
   SmaxCustomerStatisticsRequest,
+  SmaxSupporterStatistics,
+  SmaxTagStatistics,
   SmaxThreadRef,
 } from '@/lib/smax/types';
 
@@ -75,8 +82,28 @@ function buildCustomerStatisticsUrl(bizAlias?: string): string {
   );
 }
 
+function buildTagStatisticsUrl(bizAlias?: string): string {
+  return (
+    `${getBaseUrl()}/bizs/${encodeURIComponent(getBizAlias(bizAlias))}` +
+    `/statistics/tags`
+  );
+}
+
+function buildBizUrl(bizAlias?: string): string {
+  return `${getBaseUrl()}/bizs/${encodeURIComponent(getBizAlias(bizAlias))}`;
+}
+
+function buildSupportersStatisticsUrl(bizAlias?: string): string {
+  return (
+    `${getBaseUrl()}/bizs/${encodeURIComponent(getBizAlias(bizAlias))}` +
+    `/statistics/supporters`
+  );
+}
+
 function normalizePagePid(pid: string): string {
-  return withFbPrefix(pid.replace(/^fb:/i, 'fb'));
+  const trimmed = pid.trim();
+  if (/^(zl|zlw|ig)/i.test(trimmed)) return trimmed;
+  return withFbPrefix(trimmed.replace(/^fb:/i, 'fb'));
 }
 
 function parsePagePids(raw: string | undefined): string[] {
@@ -89,7 +116,6 @@ function parsePagePids(raw: string | undefined): string[] {
   return pids.length > 0 ? pids : [...SMAX_DEFAULT_PAGE_PIDS];
 }
 
-/** Always constrained to SMAX_PAGE_PIDS / defaults — never expands beyond allowlist. */
 function resolveAllowedPagePids(requested?: string[]): string[] {
   const allowed = parsePagePids(getOptionalEnv(EnvKey.SMAX_PAGE_PIDS));
   if (!requested || requested.length === 0) return allowed;
@@ -223,4 +249,101 @@ export async function fetchSmaxCustomerStatistics(
 
   const payload = await parseSmaxJsonResponse(response, 'statistics');
   return mapSmaxCustomerStatistics(payload);
+}
+
+export async function fetchSmaxTagStatistics(
+  params: FetchSmaxCustomerStatisticsParams,
+): Promise<SmaxTagStatistics> {
+  const token = getRequiredEnv(EnvKey.SMAX_API_TOKEN);
+  const url = buildTagStatisticsUrl(params.bizAlias);
+
+  const top = params.top ?? SMAX_TAGS_TOP;
+  const body: SmaxCustomerStatisticsRequest = {
+    from: toSmaxUtcRangeBound(params.startDate, false),
+    to: toSmaxUtcRangeBound(params.endDate, true),
+    apply_all: params.applyAll ?? true,
+    key_time: params.keyTime ?? resolveKeyTime(params.startDate, params.endDate),
+    page_pids: params.pagePids?.length
+      ? resolveAllowedPagePids(params.pagePids)
+      : [],
+    target: SmaxCustomerStatTarget.CUSTOMER_AND_PAGE,
+    type: params.type ?? SmaxCustomerStatType.MESSAGE_AND_COMMENT,
+    tag_aliases: [],
+    top,
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+    cache: 'no-store',
+  });
+
+  const payload = await parseSmaxJsonResponse(response, 'tags');
+  return mapSmaxTagStatistics(payload, { top });
+}
+
+async function fetchSmaxBiz(bizAlias?: string): Promise<unknown> {
+  const token = getRequiredEnv(EnvKey.SMAX_API_TOKEN);
+  const response = await fetch(buildBizUrl(bizAlias), {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+    },
+    cache: 'no-store',
+  });
+
+  return parseSmaxJsonResponse(response, 'biz');
+}
+
+async function fetchSmaxSupportersByType(
+  params: FetchSmaxCustomerStatisticsParams,
+  type: string,
+): Promise<unknown> {
+  const token = getRequiredEnv(EnvKey.SMAX_API_TOKEN);
+  const url = buildSupportersStatisticsUrl(params.bizAlias);
+  const pagePids = resolveAllowedPagePids(params.pagePids);
+
+  const body: SmaxCustomerStatisticsRequest = {
+    from: toSmaxUtcRangeBound(params.startDate, false),
+    to: toSmaxUtcRangeBound(params.endDate, true),
+    apply_all: params.applyAll ?? true,
+    key_time: params.keyTime ?? resolveKeyTime(params.startDate, params.endDate),
+    page_pids: pagePids,
+    target: SmaxCustomerStatTarget.CUSTOMER_AND_PAGE,
+    type,
+    tag_aliases: [],
+    top: params.top ?? SMAX_SUPPORTERS_TOP,
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+    cache: 'no-store',
+  });
+
+  return parseSmaxJsonResponse(response, `supporters:${type}`);
+}
+
+export async function fetchSmaxSupporterStatistics(
+  params: FetchSmaxCustomerStatisticsParams,
+): Promise<SmaxSupporterStatistics> {
+  const [message, conversation, timeReply, biz] = await Promise.all([
+    fetchSmaxSupportersByType(params, SmaxSupporterStatType.MESSAGE),
+    fetchSmaxSupportersByType(params, SmaxSupporterStatType.CONVERSATION),
+    fetchSmaxSupportersByType(params, SmaxSupporterStatType.TIME_REPLY),
+    fetchSmaxBiz(params.bizAlias),
+  ]);
+
+  return mapSmaxSupporterStatistics({ message, conversation, timeReply, biz });
 }

@@ -18,18 +18,16 @@ import type { PaymentTicket } from '@/lib/services/payment-ticket.service';
 import { DateLocale } from '@/constants/enums';
 import styles from './PaymentHistory.module.scss';
 
-const PaymentTypeLabel: Record<string, string> = {
+const PaymentMethodLabel: Record<string, string> = {
   cash: 'Tiền mặt',
-  bank_transfer: 'Chuyển khoản',
-  momo: 'Momo',
-  other: 'Khác',
+  bank_personal: 'Chuyển khoản - TK cá nhân',
+  bank_company: 'Chuyển khoản - TK công ty',
 };
 
-const PaymentTypeColor: Record<string, string> = {
+const PaymentMethodColor: Record<string, string> = {
   cash: 'green',
-  bank_transfer: 'blue',
-  momo: 'magenta',
-  other: 'default',
+  bank_personal: 'blue',
+  bank_company: 'geekblue',
 };
 
 const TicketStatusConfig: Record<
@@ -102,8 +100,8 @@ export function PaymentHistoryModal({
             <Tag color={cfg.color} icon={cfg.icon}>
               {cfg.label}
             </Tag>
-            <Tag color={PaymentTypeColor[ticket.payment_type] ?? 'default'}>
-              {PaymentTypeLabel[ticket.payment_type] ?? ticket.payment_type}
+            <Tag color={PaymentMethodColor[ticket.payment_method] ?? 'default'}>
+              {PaymentMethodLabel[ticket.payment_method] ?? ticket.payment_method}
             </Tag>
           </div>
         </div>
@@ -118,7 +116,7 @@ export function PaymentHistoryModal({
               )}
             </span>
           )}
-          {ticket.payment_type && (
+          {ticket.payment_method && (
             <span>
               <CreditCardOutlined className={styles.ticketMetaIcon} />
               #{ticket.id}

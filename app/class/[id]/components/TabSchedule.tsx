@@ -5,6 +5,7 @@ import {
   Empty,
 } from 'antd';
 import type { CalendarProps } from 'antd';
+import dynamic from 'next/dynamic';
 import { ClockCircleOutlined, SyncOutlined, ScanOutlined } from '@ant-design/icons';
 import { useIsMobile } from '@/lib/hooks/use-mobile';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -23,7 +24,11 @@ import { useSubjectTeachers, useClassStudents } from '@/lib/hooks/use-classes';
 import { EditSessionModal, type EditSessionValues } from './modals/EditSessionModal';
 import { AttendanceModal, type AttendanceRecord } from './modals/AttendanceModal';
 import { QrCodeModal } from './modals/QrCodeModal';
-import { StudentScannerModal } from './modals/StudentScannerModal';
+
+const StudentScannerModal = dynamic(
+  () => import('./modals/StudentScannerModal').then((mod) => mod.StudentScannerModal),
+  { ssr: false }
+);
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 import { ClassMemberRole } from '@/constants/enums';
 import { normalizeClassTimetable } from '@/lib/validators/class.validator';
@@ -66,7 +71,6 @@ export function TabSchedule({ classData }: { classData: Class }) {
   const classCa = normalizeClassTimetable(classData.timetable);
   const caLabel = formatCaLabel(classCa);
 
-  // Single source of truth for calendar panel + day detail
   const [activeDate, setActiveDate] = useState<Dayjs>(() => {
     const fromQr = searchParams.get('date');
     const parsed = fromQr ? dayjs(fromQr) : dayjs();
@@ -116,7 +120,6 @@ export function TabSchedule({ classData }: { classData: Class }) {
 
   const studentList = useMemo(() => {
     if (!classStudents) return [];
-    // session_attendances.student_id FK → users.id
     return classStudents
       .filter((cs: { user_id?: string | null }) => !!cs.user_id)
       .map((cs: {
@@ -137,7 +140,6 @@ export function TabSchedule({ classData }: { classData: Class }) {
   const sessionsByDate = useMemo(() => {
     const map = new Map<string, (typeof allRows)[number]>();
     for (const row of allRows) {
-      // Keep first session per date (rows are ordered by session_number)
       if (!map.has(row.dateKey)) map.set(row.dateKey, row);
     }
     return map;

@@ -2,33 +2,32 @@
 
 import { Card, Empty, Pagination, Table, Typography, Spin, theme } from 'antd';
 import dayjs from 'dayjs';
-import { memo, useEffect, useMemo, useState } from 'react';
-import { formatCurrencyVnd } from '@/lib/utils/numberFormat';
+import { memo, useMemo, useState } from 'react';
 import { LeadStatisticsDayCard } from '@/app/lead/components/LeadStatisticsDayCard';
 import type { LeadStatisticsChartRow } from '@/lib/hooks/use-lead-statistics';
 import styles from './ReportsDailyTable.module.css';
 
 const { Title, Text } = Typography;
 
-const MOBILE_PAGE_SIZE = 7;
+const MOBILE_PAGE_SIZE = 10;
+const DESKTOP_PAGE_SIZE = 10;
 
 type Props = {
   chartData: LeadStatisticsChartRow[];
-  isAdmin: boolean;
   isLoading: boolean;
 };
 
 export const ReportsDailyTable = memo(function ReportsDailyTable({
   chartData,
-  isAdmin,
   isLoading,
 }: Props) {
   const { token } = theme.useToken();
   const [page, setPage] = useState(1);
-
-  useEffect(() => {
+  const [prevChartData, setPrevChartData] = useState(chartData);
+  if (chartData !== prevChartData) {
+    setPrevChartData(chartData);
     setPage(1);
-  }, [chartData]);
+  }
 
   const pagedDays = useMemo(() => {
     const start = (page - 1) * MOBILE_PAGE_SIZE;
@@ -47,16 +46,6 @@ export const ReportsDailyTable = memo(function ReportsDailyTable({
     { title: 'Đăng ký', dataIndex: 'registeredLeads', key: 'registeredLeads' },
     { title: 'Lịch hẹn', dataIndex: 'totalAppointments', key: 'totalAppointments' },
     { title: 'Đến tư vấn', dataIndex: 'arrivedAppointments', key: 'arrivedAppointments' },
-    ...(isAdmin
-      ? [
-          {
-            title: 'Chi Tiêu',
-            dataIndex: 'fbSpend',
-            key: 'fbSpend',
-            render: (val: number) => formatCurrencyVnd(val),
-          },
-        ]
-      : []),
   ];
 
   const summaryRow = () => {
@@ -64,7 +53,6 @@ export const ReportsDailyTable = memo(function ReportsDailyTable({
     let tRegLeads = 0;
     let tAppts = 0;
     let tArrAppts = 0;
-    let tFbSpend = 0;
     let tFbMsgs = 0;
 
     chartData.forEach(
@@ -73,14 +61,12 @@ export const ReportsDailyTable = memo(function ReportsDailyTable({
         registeredLeads,
         totalAppointments,
         arrivedAppointments,
-        fbSpend,
         fbMessages,
       }) => {
         tLeads += totalLeads;
         tRegLeads += registeredLeads;
         tAppts += totalAppointments;
         tArrAppts += arrivedAppointments;
-        tFbSpend += fbSpend || 0;
         tFbMsgs += fbMessages || 0;
       },
     );
@@ -95,11 +81,6 @@ export const ReportsDailyTable = memo(function ReportsDailyTable({
         <Table.Summary.Cell index={3}>{tRegLeads}</Table.Summary.Cell>
         <Table.Summary.Cell index={4}>{tAppts}</Table.Summary.Cell>
         <Table.Summary.Cell index={5}>{tArrAppts}</Table.Summary.Cell>
-        {isAdmin && (
-          <Table.Summary.Cell index={6}>
-            {formatCurrencyVnd(tFbSpend)}
-          </Table.Summary.Cell>
-        )}
       </Table.Summary.Row>
     );
   };
@@ -111,7 +92,6 @@ export const ReportsDailyTable = memo(function ReportsDailyTable({
           Bảng thống kê theo ngày
         </Title>
 
-        {/* Desktop: bảng — ẩn trên mobile bằng CSS (tránh flash layout) */}
         <div className={styles.desktopOnly}>
           <Table
             columns={columns}
@@ -119,9 +99,8 @@ export const ReportsDailyTable = memo(function ReportsDailyTable({
             rowKey="date"
             loading={isLoading}
             pagination={{
-              pageSize: 14,
-              showSizeChanger: true,
-              pageSizeOptions: [7, 14, 31],
+              pageSize: DESKTOP_PAGE_SIZE,
+              showSizeChanger: false,
             }}
             scroll={{ x: 'max-content' }}
             bordered
@@ -129,7 +108,6 @@ export const ReportsDailyTable = memo(function ReportsDailyTable({
           />
         </div>
 
-        {/* Mobile: card + phân trang 7 ngày/trang */}
         <div className={styles.mobileOnly}>
           {isLoading ? (
             <div style={{ padding: 24, textAlign: 'center' }}>
@@ -142,7 +120,7 @@ export const ReportsDailyTable = memo(function ReportsDailyTable({
               <div className={styles.dayList} role="list">
                 {pagedDays.map((item) => (
                   <div role="listitem" key={item.date} className={styles.dayItem}>
-                    <LeadStatisticsDayCard item={item} isAdmin={isAdmin} />
+                    <LeadStatisticsDayCard item={item} />
                   </div>
                 ))}
               </div>

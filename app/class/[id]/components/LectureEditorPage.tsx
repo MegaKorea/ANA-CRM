@@ -185,21 +185,21 @@ export function LectureEditorPage({ mode, classId, sessionId, lectureId }: Props
   const [html, setHtml] = useState('');
   const [links, setLinks] = useState<SessionLectureLink[]>([]);
   const [attachments, setAttachments] = useState<SessionLectureAttachment[]>([]);
-  const [hydrated, setHydrated] = useState(mode === 'create');
+  const [hydratedLectureId, setHydratedLectureId] = useState<string | null>(null);
+  const hydrated = mode === 'create' || hydratedLectureId === (lectureId ?? null);
 
-  useEffect(() => {
-    if (mode !== 'edit') return;
-    if (lecturesLoading) return;
-    if (!existing) {
-      setHydrated(true);
-      return;
+  // Hydrate local editable state from the fetched lecture once per lectureId
+  // (not on every `existing` reference change) so a background refetch of the
+  // lectures list doesn't clobber the user's in-progress edits.
+  if (mode === 'edit' && !lecturesLoading && !hydrated) {
+    setHydratedLectureId(lectureId ?? null);
+    if (existing) {
+      setTitle(existing.title);
+      setHtml(existing.html || '');
+      setLinks(existing.links.length ? existing.links : []);
+      setAttachments(existing.attachments ?? []);
     }
-    setTitle(existing.title);
-    setHtml(existing.html || '');
-    setLinks(existing.links.length ? existing.links : []);
-    setAttachments(existing.attachments ?? []);
-    setHydrated(true);
-  }, [mode, lecturesLoading, existing]);
+  }
 
   const scheduleHref = (() => {
     const params = new URLSearchParams();

@@ -7,6 +7,7 @@ import { ClassSessionsTable } from './class_sessions';
 import { SessionAttendancesTable } from './session_attendances';
 import { PaymentTicketsTable } from './payment_tickets';
 import { LeadAppointmentsTable } from './lead_appointments';
+import { EnrollmentsTable } from './enrollments';
 import { PushSubscriptionsTable } from './push_subscriptions';
 import { QuizzesTable, QuizAttemptsTable } from './quizzes';
 import { UserNotificationsTable } from './user_notifications';
@@ -21,6 +22,7 @@ export interface TablesMap {
   session_attendances: SessionAttendancesTable;
   payment_tickets: PaymentTicketsTable;
   lead_appointments: LeadAppointmentsTable;
+  enrollments: EnrollmentsTable;
   push_subscriptions: PushSubscriptionsTable;
   quizzes: QuizzesTable;
   quiz_attempts: QuizAttemptsTable;

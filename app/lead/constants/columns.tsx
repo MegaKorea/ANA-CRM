@@ -364,7 +364,6 @@ export const getLeadTableColumns = ({
         );
       },
     },
-
     {
       title: LeadPageText.COLUMN_APPOINTMENT_DATE,
       dataIndex: 'appointment_date',
@@ -372,39 +371,43 @@ export const getLeadTableColumns = ({
       render: (_: unknown, record: Lead) => {
         if (!record.appointment_date) {
           return (
-            <Tooltip title="Đặt lịch hẹn">
-              <Button
-                size="small"
-                type="text"
-                icon={<CalendarOutlined />}
-                onClick={() => handleOpenAppointmentModal(record)}
-              />
-            </Tooltip>
+            <span data-lead-appointment={record.id}>
+              <Tooltip title="Đặt lịch hẹn">
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<CalendarOutlined />}
+                  onClick={() => handleOpenAppointmentModal(record)}
+                />
+              </Tooltip>
+            </span>
           );
         }
 
         return (
-          <Space>
-            <span>{new Date(record.appointment_date).toLocaleString(DateLocale.VIET_NAM)}</span>
-            <Tooltip title="Quản lý lịch hẹn">
-              <Button
-                size="small"
-                type="text"
-                icon={<CalendarOutlined />}
-                onClick={() => handleOpenAppointmentModal(record)}
-              />
-            </Tooltip>
-            <Tooltip title="Cập nhật trạng thái điểm danh">
-              <Badge dot={record.attendance_status === AttendanceStatus.NOT_ARRIVED} offset={[-2, 2]}>
+          <span data-lead-appointment={record.id}>
+            <Space>
+              <span>{new Date(record.appointment_date).toLocaleString(DateLocale.VIET_NAM)}</span>
+              <Tooltip title="Quản lý lịch hẹn">
                 <Button
                   size="small"
                   type="text"
-                  icon={<AttendanceStatusIcon status={record.attendance_status} />}
-                  onClick={() => handleOpenAttendanceModal(record)}
+                  icon={<CalendarOutlined />}
+                  onClick={() => handleOpenAppointmentModal(record)}
                 />
-              </Badge>
-            </Tooltip>
-          </Space>
+              </Tooltip>
+              <Tooltip title="Cập nhật trạng thái điểm danh">
+                <Badge dot={record.attendance_status === AttendanceStatus.NOT_ARRIVED} offset={[-2, 2]}>
+                  <Button
+                    size="small"
+                    type="text"
+                    icon={<AttendanceStatusIcon status={record.attendance_status} />}
+                    onClick={() => handleOpenAttendanceModal(record)}
+                  />
+                </Badge>
+              </Tooltip>
+            </Space>
+          </span>
         );
       },
     },

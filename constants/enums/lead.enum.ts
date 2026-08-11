@@ -41,11 +41,10 @@ export enum AttendanceStatus {
   NO_SHOW = 'no_show',
 }
 
-export enum PaymentType {
+export enum PaymentMethod {
   CASH = 'cash',
-  BANK_TRANSFER = 'bank_transfer',
-  MOMO = 'momo',
-  OTHER = 'other',
+  BANK_PERSONAL = 'bank_personal',
+  BANK_COMPANY = 'bank_company',
 }
 
 export enum TicketStatus {
@@ -86,5 +85,16 @@ export enum PaymentTicketErrorCode {
   BAD_REQUEST = 'PAYMENT_TICKET_BAD_REQUEST',
   ALREADY_REVIEWED = 'PAYMENT_TICKET_ALREADY_REVIEWED',
   INTERNAL_SERVER_ERROR = 'PAYMENT_TICKET_INTERNAL_SERVER_ERROR',
+}
+
+export enum EnrollmentErrorCode {
+  NOT_FOUND = 'ENROLLMENT_NOT_FOUND',
+  INVALID_ID = 'ENROLLMENT_INVALID_ID',
+  CREATE_FAILED = 'ENROLLMENT_CREATE_FAILED',
+  UPDATE_FAILED = 'ENROLLMENT_UPDATE_FAILED',
+  DELETE_FAILED = 'ENROLLMENT_DELETE_FAILED',
+  FETCH_FAILED = 'ENROLLMENT_FETCH_FAILED',
+  BAD_REQUEST = 'ENROLLMENT_BAD_REQUEST',
+  INTERNAL_SERVER_ERROR = 'ENROLLMENT_INTERNAL_SERVER_ERROR',
 }
 

@@ -8,12 +8,12 @@ const { Title } = Typography;
 
 interface LeadStatisticsDayCardProps {
   item: LeadStatisticsChartRow;
-  isAdmin: boolean;
+  isAdmin?: boolean;
 }
 
 export const LeadStatisticsDayCard = memo(function LeadStatisticsDayCard({
   item,
-  isAdmin,
+  isAdmin = false,
 }: LeadStatisticsDayCardProps) {
   const { token } = theme.useToken();
 
@@ -42,7 +42,7 @@ export const LeadStatisticsDayCard = memo(function LeadStatisticsDayCard({
       </Title>
 
       <Row gutter={[8, 10]} style={{ marginTop: 8 }}>
-        {isAdmin && (
+        {isAdmin ? (
           <Col span={12} style={{ minWidth: 0 }}>
             <div style={{ color: token.colorTextSecondary, fontSize: 12 }}>Chi tiêu</div>
             <div
@@ -55,7 +55,7 @@ export const LeadStatisticsDayCard = memo(function LeadStatisticsDayCard({
               {formatCurrencyVnd(item.fbSpend || 0)}
             </div>
           </Col>
-        )}
+        ) : null}
         <Col span={12} style={{ minWidth: 0 }}>
           <div style={{ color: token.colorTextSecondary, fontSize: 12 }}>Tương tác</div>
           <div style={{ fontWeight: 'bold' }}>{item.fbMessages}</div>

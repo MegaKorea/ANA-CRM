@@ -1,4 +1,4 @@
-export interface SmaxFacebookRef {
+﻿export interface SmaxFacebookRef {
   id?: string;
   name?: string;
   page_id?: string;
@@ -27,9 +27,7 @@ export interface SmaxThreadRef {
   facebookId: string;
   bizAlias: string;
   customerName: string;
-  /** Primary avatar URL (smax_log.picture). */
   customerAvatar: string;
-  /** Extra URLs to try if primary fails (e.g. facebook.picture). */
   customerAvatarFallbacks: string[];
   pageName: string;
 }
@@ -93,5 +91,42 @@ export interface SmaxStatisticsApiResponse {
   data: number;
   orders: number;
   calendars: SmaxStatisticsCalendarDay[];
+  source: 'smax';
+}
+
+export interface SmaxTagTotal {
+  name: string;
+  add: number;
+  curAdd: number;
+  remove: number;
+  net: number;
+}
+
+export interface SmaxTagStatistics {
+  tags: SmaxTagTotal[];
+  totalNet: number;
+}
+
+export interface SmaxTagStatisticsApiResponse {
+  tags: SmaxTagTotal[];
+  totalNet: number;
+  source: 'smax';
+}
+
+export interface SmaxSupporterRow {
+  id: string;
+  name: string;
+  avatar: string | null;
+  messages: number;
+  conversations: number;
+  replyTimeSec: number;
+}
+
+export interface SmaxSupporterStatistics {
+  rows: SmaxSupporterRow[];
+}
+
+export interface SmaxSupporterStatisticsApiResponse {
+  rows: SmaxSupporterRow[];
   source: 'smax';
 }

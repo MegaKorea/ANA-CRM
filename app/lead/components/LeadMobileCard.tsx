@@ -233,7 +233,12 @@ export const LeadMobileCard = memo(function LeadMobileCard({
           );
         })()}
 
-        <Flex justify="space-between" align="center" className="text-body-small">
+        <Flex
+          justify="space-between"
+          align="center"
+          className="text-body-small"
+          data-lead-appointment={lead.id}
+        >
           <Typography.Text type="secondary">Lịch hẹn</Typography.Text>
           {lead.appointment_date ? (
             <Space>
