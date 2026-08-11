@@ -9,6 +9,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') ?? undefined;
     const status = searchParams.get('status') ?? undefined;
+    const excludeStatus = searchParams.get('excludeStatus') ?? undefined;
     const telesalesId = searchParams.get('telesales_id') ?? undefined;
     const source = searchParams.get('source') ?? undefined;
     const courseId = searchParams.get('course_id') ?? undefined;
@@ -24,6 +25,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const leads = await fetchAllLeads({
       search: search || undefined,
       status: status as never,
+      excludeStatus: excludeStatus as never,
       telesales_id: telesalesId || undefined,
       source: source || undefined,
       course_id: courseId || undefined,

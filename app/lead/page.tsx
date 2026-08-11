@@ -184,6 +184,7 @@ function LeadPageContent() {
   const { data, isLoading, isFetching, refetch } = useLeads({
     search: searchKeyword || undefined,
     status: statusFilter,
+    excludeStatus: statusFilter ? undefined : LeadStatus.CONVERTED,
     source: sourceFilter,
     course_id: courseFilter,
     startDate: createdAtRange?.[0] ? createdAtRange[0].format(DateFormat.ISO_DATE) : undefined,

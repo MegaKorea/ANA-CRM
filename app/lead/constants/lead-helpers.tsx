@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+import { Tag } from 'antd';
 import { FiGlobe, FiMail, FiPhone, FiFacebook, FiMessageSquare, FiMoreHorizontal } from 'react-icons/fi';
 import { AttendanceStatus, LeadSource, LeadStatus } from '@/constants/enums';
 import type { LocationValue } from '@/components/common/LocationSelect';
@@ -320,6 +322,18 @@ export function getSmaxTagColor(tagName: string): string {
   }
   const index = Math.abs(hash) % SMAX_TAG_PRESET_COLORS.length;
   return SMAX_TAG_PRESET_COLORS[index];
+}
+
+export function renderSmaxTagList(tags: SmaxTag[], tagStyle?: CSSProperties) {
+  return tags.map((tag, idx) => {
+    const tagName = tag.name || tag.alias;
+    if (!tagName) return null;
+    return (
+      <Tag key={tag.id || idx} color={getSmaxTagColor(tagName)} style={tagStyle}>
+        {tagName}
+      </Tag>
+    );
+  });
 }
 
 export const Ethnicity = [

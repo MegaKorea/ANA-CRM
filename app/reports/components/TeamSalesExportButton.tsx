@@ -151,14 +151,6 @@ interface CellEditControls {
   onChangeValue: (key: string, value: string) => void;
 }
 
-interface TextCellEditControls {
-  overrides: Record<string, string>;
-  editingKey: string | null;
-  onStartEdit: (key: string) => void;
-  onStopEdit: () => void;
-  onChangeValue: (key: string, value: string) => void;
-}
-
 interface EditableTextCellProps {
   rawValue: string;
   isEditing: boolean;
@@ -209,7 +201,7 @@ function EditableTextCell({
   );
 }
 
-function renderEditableTextCell(cellEdit: TextCellEditControls, cellKey: string, value: string) {
+function renderEditableTextCell(cellEdit: CellEditControls, cellKey: string, value: string) {
   return (
     <EditableTextCell
       rawValue={cellEdit.overrides[cellKey] ?? value}
@@ -249,7 +241,7 @@ function renderEditableCell(
 function buildReportColumns(
   token: Token,
   cellEdit: CellEditControls,
-  textCellEdit: TextCellEditControls,
+  textCellEdit: CellEditControls,
 ) {
   return [
     {
@@ -338,7 +330,7 @@ export function TeamSalesExportButton() {
     onChangeValue: (key, value) => setCellOverrides((prev) => ({ ...prev, [key]: value })),
   };
 
-  const textCellEdit: TextCellEditControls = {
+  const textCellEdit: CellEditControls = {
     overrides: textOverrides,
     editingKey: editingTextKey,
     onStartEdit: (key) => setEditingTextKey(key),

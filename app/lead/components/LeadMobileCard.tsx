@@ -9,13 +9,14 @@ import {
   MessageOutlined,
 } from '@ant-design/icons';
 import { HiOutlineInformationCircle, HiOutlinePencilAlt, HiOutlineTrash } from 'react-icons/hi';
-import { LeadStatus, DateLocale, AttendanceStatus } from '@/constants/enums';
+import { DateLocale, AttendanceStatus } from '@/constants/enums';
 import type { Lead } from '@/lib/services/lead.service';
 import {
   getZaloChatUrl,
   getSmaxThreadUrl,
   getSmaxTags,
-  getSmaxTagColor,
+  renderSmaxTagList,
+  getLeadStatusColor,
   LeadPageText,
   LeadStatusLabel,
   LeadSourceIcon,
@@ -88,19 +89,7 @@ export const LeadMobileCard = memo(function LeadMobileCard({
       }
       extra={
         lead.status ? (
-          <Tag
-            style={{ margin: 0, fontWeight: 500 }}
-            color={
-              lead.status === LeadStatus.NEW
-                ? 'blue'
-                : lead.status === LeadStatus.CONVERTED
-                  ? 'green'
-                  : lead.status === LeadStatus.NOT_CONTACTED ||
-                      lead.status === ('lost' as LeadStatus)
-                    ? 'red'
-                    : 'default'
-            }
-          >
+          <Tag style={{ margin: 0, fontWeight: 500 }} color={getLeadStatusColor(lead.status)}>
             {LeadStatusLabel[lead.status as keyof typeof LeadStatusLabel] ?? lead.status}
           </Tag>
         ) : null
@@ -226,20 +215,7 @@ export const LeadMobileCard = memo(function LeadMobileCard({
                   maxWidth: '70%',
                 }}
               >
-                {smaxTags.map((tag, idx) => {
-                  const tagName = tag.name || tag.alias;
-                  if (!tagName) return null;
-                  const color = getSmaxTagColor(tagName);
-                  return (
-                    <Tag
-                      key={tag.id || idx}
-                      color={color}
-                      style={{ margin: 0, flexShrink: 0 }}
-                    >
-                      {tagName}
-                    </Tag>
-                  );
-                })}
+                {renderSmaxTagList(smaxTags, { margin: 0, flexShrink: 0 })}
               </div>
             </Flex>
           );

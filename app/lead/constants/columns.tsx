@@ -37,18 +37,11 @@ import {
   formatLocationValueV2,
   getLeadFacebookUrl,
   getLeadStatusColor,
-  getSmaxTagColor,
   getSmaxTags,
+  renderSmaxTagList,
   getZaloChatUrl,
 } from '@/app/lead/constants/lead-helpers';
 
-/**
- * `getLeadTableColumns` — the antd Table column factory for the lead list.
- * Split out of `index.tsx` (which stays a thin barrel) because this pulls in
- * the full lead-row action components (modals, telesales assign, etc.) that
- * plainer consumers of the constants (mobile card, filters, `/lead-form`)
- * don't need.
- */
 
 export type HandleOpenAttendanceModal = (lead: Lead) => void;
 export type HandleOpenAppointmentModal = (lead: Lead) => void;
@@ -271,20 +264,7 @@ export const getLeadTableColumns = ({
         if (!tags || tags.length === 0) {
           return null;
         }
-        return (
-          <Space size={[0, 4]} wrap>
-            {tags.map((tag, idx) => {
-              const tagName = tag.name || tag.alias;
-              if (!tagName) return null;
-              const color = getSmaxTagColor(tagName);
-              return (
-                <Tag key={tag.id || idx} color={color}>
-                  {tagName}
-                </Tag>
-              );
-            })}
-          </Space>
-        );
+        return <Space size={[0, 4]} wrap>{renderSmaxTagList(tags)}</Space>;
       },
     },
     {
