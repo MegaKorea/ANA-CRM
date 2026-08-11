@@ -1,5 +1,5 @@
 import { FiGlobe, FiMail, FiPhone, FiFacebook, FiMessageSquare, FiMoreHorizontal } from 'react-icons/fi';
-import { AttendanceStatus, LeadSource } from '@/constants/enums';
+import { AttendanceStatus, LeadSource, LeadStatus } from '@/constants/enums';
 import type { LocationValue } from '@/components/common/LocationSelect';
 import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
 import { isSafeHttpUrl } from '@/lib/utils/openInNewTab';
@@ -295,6 +295,22 @@ const SMAX_TAG_PRESET_COLORS = [
   'geekblue',
   'lime',
 ] as const;
+
+export const LEAD_STATUS_COLORS: Record<LeadStatus, string> = {
+  [LeadStatus.NEW]: 'default',
+  [LeadStatus.NOT_CONTACTED]: 'purple',
+  [LeadStatus.INTERESTED]: 'magenta',
+  [LeadStatus.NOT_INTERESTED]: 'volcano',
+  [LeadStatus.NURTURING]: 'orange',
+  [LeadStatus.CONVERTED]: 'green',
+  [LeadStatus.REJECT]: 'red',
+  [LeadStatus.OTHER]: 'default',
+};
+
+export function getLeadStatusColor(status: string | null | undefined): string {
+  if (!status) return 'default';
+  return LEAD_STATUS_COLORS[status as LeadStatus] ?? 'default';
+}
 
 export function getSmaxTagColor(tagName: string): string {
   if (!tagName) return 'default';

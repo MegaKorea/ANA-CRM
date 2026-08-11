@@ -1,5 +1,3 @@
--- Customer potential rating (0–5 stars), edited inline on the lead table.
--- 0 = not yet rated. Constrained to the 0–5 range at the DB level.
 ALTER TABLE leads
   ADD COLUMN IF NOT EXISTS rate smallint NOT NULL DEFAULT 0;
 

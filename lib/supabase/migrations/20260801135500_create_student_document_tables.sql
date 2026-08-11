@@ -1,8 +1,3 @@
--- student_document_types / student_documents / student_deferrals exist in
--- production with no create-table migration in this repo. Column list /
--- types / nullability / defaults and enum values confirmed against the
--- live database (information_schema.columns + pg_enum dump).
-
 do $$
 begin
   create type public.student_document_status as enum ('missing', 'submitted', 'verified', 'rejected', 'returned');

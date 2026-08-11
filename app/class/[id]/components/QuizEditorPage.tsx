@@ -54,8 +54,6 @@ import formStyles from './quiz-editor.module.scss';
 
 dayjs.locale('vi');
 
-// Server-thrown AppError codes without a custom message reach the client as the
-// raw code string (e.g. "QUIZ_DUPLICATE_OPTION_TEXT") — map the known ones to copy.
 const QUIZ_ERROR_MESSAGES: Partial<Record<string, string>> = {
   [QuizErrorCode.FORBIDDEN]: QuizUiMessage.FORBIDDEN,
   [QuizErrorCode.TITLE_REQUIRED]: QuizUiMessage.TITLE_REQUIRED,
@@ -174,9 +172,6 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
       try {
         setUploadingQuestionId(questionId);
         const uploaded = await uploadSessionImage(file as File);
-        // Re-resolve the question by stable id, not the index captured at
-        // upload start: questions may have been added/removed/reordered
-        // while the upload was in flight.
         const questions = form.getFieldValue('questions') as QuizQuestionForm[];
         const targetIndex = questions.findIndex((question) => question.id === questionId);
         if (targetIndex === -1) {
@@ -241,8 +236,6 @@ export function QuizEditorPage({ mode, classId, sessionId, quizId }: Props) {
   };
 
   const handleSubmit = (values: QuizFormValues) => {
-    // Flipping a quiz to published fires an immediate notification to every
-    // student in the class — that's a one-way action worth a confirm step.
     const willFirstPublish = Boolean(values.is_published) && !existing?.is_published;
     if (willFirstPublish) {
       modal.confirm({

@@ -217,18 +217,30 @@ export const LeadMobileCard = memo(function LeadMobileCard({
           return (
             <Flex justify="space-between" align="center" className="text-body-small">
               <Typography.Text type="secondary">Thẻ Smax</Typography.Text>
-              <Space size={[0, 4]} wrap>
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'nowrap',
+                  gap: 4,
+                  overflowX: 'auto',
+                  maxWidth: '70%',
+                }}
+              >
                 {smaxTags.map((tag, idx) => {
                   const tagName = tag.name || tag.alias;
                   if (!tagName) return null;
                   const color = getSmaxTagColor(tagName);
                   return (
-                    <Tag key={tag.id || idx} color={color} style={{ margin: 0 }}>
+                    <Tag
+                      key={tag.id || idx}
+                      color={color}
+                      style={{ margin: 0, flexShrink: 0 }}
+                    >
                       {tagName}
                     </Tag>
                   );
                 })}
-              </Space>
+              </div>
             </Flex>
           );
         })()}

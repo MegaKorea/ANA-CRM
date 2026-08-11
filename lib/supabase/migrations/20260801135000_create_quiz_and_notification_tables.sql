@@ -1,11 +1,3 @@
--- quizzes / quiz_attempts / user_notifications / session_attendances exist
--- in production with no create-table migration in this repo — only
--- 20260801143000_optimize_quiz_notification_queries.sql, which indexes
--- them assuming they already exist. Column list/types/nullability/defaults
--- confirmed against the live database (information_schema.columns dump).
--- "status" columns are kept as plain text since they aren't backed by an
--- enum in production either.
-
 CREATE TABLE IF NOT EXISTS public.quizzes (
   id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   class_id          uuid NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,

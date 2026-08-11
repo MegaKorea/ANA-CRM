@@ -5,13 +5,7 @@ ALTER TABLE public.enrollments
   ADD COLUMN category varchar(20),
   ADD COLUMN item_name text NULL;
 
--- Backfill existing rows before the NOT NULL / CHECK constraints go on, so
--- the migration doesn't fail against data imported before this feature
--- existed. Rows with a real course_id become 'khóa học'; the rest (raw
--- imported rows with no course match) are classified from course_name_raw —
--- anything mentioning "chứng" (chứng chỉ/chứng nhận) becomes 'chứng chỉ',
--- everything else falls into 'vật tư', preserving the original text in
--- item_name so nothing imported is lost.
+
 UPDATE public.enrollments
 SET category = 'khóa học'
 WHERE course_id IS NOT NULL;

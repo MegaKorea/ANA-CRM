@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { App, Button, Checkbox, DatePicker, Input, InputNumber, Modal, Space, Table, Typography, theme } from 'antd';
+import { App, Button, DatePicker, Input, Modal, Space, Table, Typography, theme } from 'antd';
 import { BarChartOutlined, TableOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import type { TeamSalesReportRow } from '@/lib/services/team-sales-report.service';
@@ -17,10 +17,9 @@ type Token = ReturnType<typeof theme.useToken>['token'];
 async function fetchTeamSalesReportRows(
   startAt: string,
   endAt: string,
-  splitByDay: boolean,
 ): Promise<TeamSalesReportRow[]> {
   const res = await fetch(
-    `/api/reports/team-sales-export?startAt=${encodeURIComponent(startAt)}&endAt=${encodeURIComponent(endAt)}&splitByDay=${splitByDay}`,
+    `/api/reports/team-sales-export?startAt=${encodeURIComponent(startAt)}&endAt=${encodeURIComponent(endAt)}`,
   );
   if (!res.ok) {
     const body = await res.json().catch(() => null);
@@ -105,8 +104,6 @@ function renderMetricValue(
   return format(value);
 }
 
-const DEFAULT_SPAN_STYLE: React.CSSProperties = { display: 'block', width: '100%', cursor: 'text' };
-
 interface EditableMetricCellProps {
   displayValue: React.ReactNode;
   editValue: string;
@@ -114,7 +111,6 @@ interface EditableMetricCellProps {
   onStartEdit: () => void;
   onChangeValue: (value: string) => void;
   onStopEdit: () => void;
-  spanStyle?: React.CSSProperties;
 }
 
 function EditableMetricCell({
@@ -124,63 +120,16 @@ function EditableMetricCell({
   onStartEdit,
   onChangeValue,
   onStopEdit,
-  spanStyle = DEFAULT_SPAN_STYLE,
 }: EditableMetricCellProps) {
   if (isEditing) {
     return (
-      <Input.TextArea
+      <Input
         autoFocus
-        autoSize={{ minRows: 1, maxRows: 4 }}
+        size="small"
         variant="borderless"
         value={editValue}
         style={{ width: '100%', textAlign: 'center' }}
         onChange={(e) => onChangeValue(e.target.value)}
-        onBlur={onStopEdit}
-      />
-    );
-  }
-
-  return (
-    <span onClick={onStartEdit} style={spanStyle}>
-      {displayValue}
-    </span>
-  );
-}
-
-// Doanh thu / Công nợ stay number-only and always keep their colored/"đ"
-// formatting — only the underlying number changes, never the styling.
-interface EditableNumericMetricCellProps {
-  metricKey: MetricKey;
-  value: number;
-  format: (val: number) => string;
-  token: Token;
-  isEditing: boolean;
-  onStartEdit: () => void;
-  onChangeValue: (value: number) => void;
-  onStopEdit: () => void;
-}
-
-function EditableNumericMetricCell({
-  metricKey,
-  value,
-  format,
-  token,
-  isEditing,
-  onStartEdit,
-  onChangeValue,
-  onStopEdit,
-}: EditableNumericMetricCellProps) {
-  if (isEditing) {
-    return (
-      <InputNumber
-        autoFocus
-        size="small"
-        variant="borderless"
-        controls={false}
-        min={0}
-        value={value}
-        style={{ width: '100%', textAlign: 'center' }}
-        onChange={(v) => onChangeValue(v ?? 0)}
         onBlur={onStopEdit}
         onPressEnter={onStopEdit}
       />
@@ -189,7 +138,7 @@ function EditableNumericMetricCell({
 
   return (
     <span onClick={onStartEdit} style={{ display: 'block', width: '100%', cursor: 'text' }}>
-      {renderMetricValue(metricKey, value, format, token)}
+      {displayValue}
     </span>
   );
 }
@@ -202,31 +151,75 @@ interface CellEditControls {
   onChangeValue: (key: string, value: string) => void;
 }
 
-const NOTE_SPAN_STYLE: React.CSSProperties = {
-  display: 'block',
-  width: '100%',
-  minHeight: 22,
-  cursor: 'text',
-  whiteSpace: 'pre-wrap',
-  wordBreak: 'break-word',
-};
+interface TextCellEditControls {
+  overrides: Record<string, string>;
+  editingKey: string | null;
+  onStartEdit: (key: string) => void;
+  onStopEdit: () => void;
+  onChangeValue: (key: string, value: string) => void;
+}
 
-function renderEditableTextCell(cellEdit: CellEditControls, cellKey: string, value: string) {
-  const rawValue = cellEdit.overrides[cellKey] ?? value;
+interface EditableTextCellProps {
+  rawValue: string;
+  isEditing: boolean;
+  onStartEdit: () => void;
+  onChangeValue: (value: string) => void;
+  onStopEdit: () => void;
+}
+
+function EditableTextCell({
+  rawValue,
+  isEditing,
+  onStartEdit,
+  onChangeValue,
+  onStopEdit,
+}: EditableTextCellProps) {
+  if (isEditing) {
+    return (
+      <Input.TextArea
+        autoFocus
+        autoSize={{ minRows: 1, maxRows: 4 }}
+        variant="borderless"
+        value={rawValue}
+        style={{ width: '100%', textAlign: 'center' }}
+        onChange={(e) => onChangeValue(e.target.value)}
+        onBlur={onStopEdit}
+        onPressEnter={(e) => {
+          e.preventDefault();
+          onStopEdit();
+        }}
+      />
+    );
+  }
+
   return (
-    <EditableMetricCell
-      displayValue={rawValue}
-      editValue={rawValue}
+    <span
+      onClick={onStartEdit}
+      style={{
+        display: 'block',
+        width: '100%',
+        minHeight: 22,
+        cursor: 'text',
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
+      }}
+    >
+      {rawValue || <span style={{ opacity: 0.35 }}>Nhập ghi chú...</span>}
+    </span>
+  );
+}
+
+function renderEditableTextCell(cellEdit: TextCellEditControls, cellKey: string, value: string) {
+  return (
+    <EditableTextCell
+      rawValue={cellEdit.overrides[cellKey] ?? value}
       isEditing={cellEdit.editingKey === cellKey}
       onStartEdit={() => cellEdit.onStartEdit(cellKey)}
       onChangeValue={(v) => cellEdit.onChangeValue(cellKey, v)}
       onStopEdit={cellEdit.onStopEdit}
-      spanStyle={NOTE_SPAN_STYLE}
     />
   );
 }
-
-const NUMERIC_ONLY_METRIC_KEYS = new Set<MetricKey>(['doanhThu', 'congNo']);
 
 function renderEditableCell(
   cellEdit: CellEditControls,
@@ -238,24 +231,6 @@ function renderEditableCell(
 ) {
   const override = cellEdit.overrides[cellKey];
   const hasOverride = override !== undefined;
-  const isEditing = cellEdit.editingKey === cellKey;
-
-  if (NUMERIC_ONLY_METRIC_KEYS.has(metricKey)) {
-    const numericValue = hasOverride ? Number(override) || 0 : value;
-    return (
-      <EditableNumericMetricCell
-        metricKey={metricKey}
-        value={numericValue}
-        format={format}
-        token={token}
-        isEditing={isEditing}
-        onStartEdit={() => cellEdit.onStartEdit(cellKey)}
-        onChangeValue={(v) => cellEdit.onChangeValue(cellKey, String(v))}
-        onStopEdit={cellEdit.onStopEdit}
-      />
-    );
-  }
-
   const displayValue = hasOverride ? override : renderMetricValue(metricKey, value, format, token);
   const editValue = hasOverride ? override : String(value);
 
@@ -263,7 +238,7 @@ function renderEditableCell(
     <EditableMetricCell
       displayValue={displayValue}
       editValue={editValue}
-      isEditing={isEditing}
+      isEditing={cellEdit.editingKey === cellKey}
       onStartEdit={() => cellEdit.onStartEdit(cellKey)}
       onChangeValue={(v) => cellEdit.onChangeValue(cellKey, v)}
       onStopEdit={cellEdit.onStopEdit}
@@ -274,7 +249,7 @@ function renderEditableCell(
 function buildReportColumns(
   token: Token,
   cellEdit: CellEditControls,
-  textCellEdit: CellEditControls,
+  textCellEdit: TextCellEditControls,
 ) {
   return [
     {
@@ -316,9 +291,7 @@ export function TeamSalesExportButton() {
     dayjs().subtract(1, 'day').hour(17).minute(0),
     dayjs().hour(10).minute(0),
   ]);
-  const [splitByDay, setSplitByDay] = useState(false);
   const [rows, setRows] = useState<TeamSalesReportRow[] | null>(null);
-
   const [cellOverrides, setCellOverrides] = useState<Record<string, string>>({});
   const [editingCellKey, setEditingCellKey] = useState<string | null>(null);
   const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
@@ -347,7 +320,7 @@ export function TeamSalesExportButton() {
     try {
       const startAt = range[0].toISOString();
       const endAt = range[1].toISOString();
-      setRows(await fetchTeamSalesReportRows(startAt, endAt, splitByDay));
+      setRows(await fetchTeamSalesReportRows(startAt, endAt));
     } catch (error) {
       message.error(error instanceof Error ? error.message : 'Lấy dữ liệu báo cáo thất bại');
     } finally {
@@ -365,7 +338,7 @@ export function TeamSalesExportButton() {
     onChangeValue: (key, value) => setCellOverrides((prev) => ({ ...prev, [key]: value })),
   };
 
-  const textCellEdit: CellEditControls = {
+  const textCellEdit: TextCellEditControls = {
     overrides: textOverrides,
     editingKey: editingTextKey,
     onStartEdit: (key) => setEditingTextKey(key),
@@ -384,10 +357,9 @@ export function TeamSalesExportButton() {
       <Modal
         open={open}
         onCancel={resetAndClose}
-        maskClosable={false}
-        width={rows ? '98vw' : 'min(92vw, 520px)'}
+        width={rows ? '95vw' : 'min(92vw, 520px)'}
         centered
-        style={rows ? { maxWidth: 1900 } : undefined}
+        style={rows ? { maxWidth: 1680 } : undefined}
         styles={rows ? { body: { paddingTop: 4 } } : undefined}
         footer={
           rows
@@ -436,7 +408,7 @@ export function TeamSalesExportButton() {
               bordered
               size="middle"
               tableLayout="fixed"
-              scroll={{ x: 'max-content' }}
+              scroll={{ x: 'max-content', y: 'calc(75vh - 220px)' }}
               onRow={(_, index) =>
                 index !== undefined && index % 2 === 1
                   ? { style: { backgroundColor: token.colorFillQuaternary } }
@@ -487,9 +459,6 @@ export function TeamSalesExportButton() {
               onChange={(dates) => setRange(dates as [Dayjs | null, Dayjs | null] | null)}
               style={{ width: '100%' }}
             />
-            <Checkbox checked={splitByDay} onChange={(e) => setSplitByDay(e.target.checked)}>
-              Tách riêng từng ngày (mỗi ngày 1 dòng)
-            </Checkbox>
           </Space>
         )}
       </Modal>

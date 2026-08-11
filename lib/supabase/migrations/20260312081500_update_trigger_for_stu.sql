@@ -1,4 +1,3 @@
--- Clean up mistakenly created user records for students
 DELETE FROM public.users 
 WHERE id IN (
   SELECT auth_id 
@@ -12,7 +11,6 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  -- Do not insert into public.users if the user is a student (STU)
   IF new.raw_user_meta_data->>'role' = 'STU' THEN
     RETURN new;
   END IF;

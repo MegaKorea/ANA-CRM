@@ -36,6 +36,7 @@ import {
   formatLocationValue,
   formatLocationValueV2,
   getLeadFacebookUrl,
+  getLeadStatusColor,
   getSmaxTagColor,
   getSmaxTags,
   getZaloChatUrl,
@@ -247,7 +248,11 @@ export const getLeadTableColumns = ({
         if (!status) {
           return null;
         }
-        return LeadStatusLabel[status as keyof typeof LeadStatusLabel] ?? status;
+        return (
+          <Tag color={getLeadStatusColor(status)}>
+            {LeadStatusLabel[status as keyof typeof LeadStatusLabel] ?? status}
+          </Tag>
+        );
       },
     },
     {

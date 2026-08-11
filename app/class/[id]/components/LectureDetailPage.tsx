@@ -40,8 +40,7 @@ export function LectureDetailPage({ classId, sessionId, lectureId }: Props) {
     () => lectures.find((item) => item.id === lectureId) ?? null,
     [lectures, lectureId],
   );
-  // Defense in depth: the write path already sanitizes, but re-sanitize on render
-  // too so any lecture saved before that fix (or written directly) can't run scripts.
+
   const sanitizedHtml = useMemo(
     () => (lecture?.html ? DOMPurify.sanitize(lecture.html) : ''),
     [lecture],
