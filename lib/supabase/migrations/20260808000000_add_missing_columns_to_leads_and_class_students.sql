@@ -1,9 +1,3 @@
--- education_level/education_detail on leads, and the job-commitment/PCLN
--- fields on class_students, already exist on the live tables (added
--- directly, never through a migration). Column types/nullability/defaults
--- and education_level enum values confirmed against the live database
--- (information_schema.columns + pg_enum dump).
-
 do $$
 begin
   create type public.education_level as enum (

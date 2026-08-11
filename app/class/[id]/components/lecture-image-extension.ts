@@ -51,7 +51,6 @@ function isFloatingAlign(align: unknown): boolean {
   return align === 'left' || align === 'right';
 }
 
-/** Layout track for center (full row + optional slide) or float L/R (text wraps). */
 function syncTrackAlign(track: HTMLElement, align: unknown) {
   const next = isAlign(align) ? align : 'center';
   track.dataset.align = next;

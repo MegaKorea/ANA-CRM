@@ -1,8 +1,3 @@
--- class_sessions exists in production with no create-table migration in
--- this repo (only 20260314040000_add_room_to_class_sessions.sql, which
--- ALTERs a table that was never created here). Column list/types/defaults
--- confirmed against the live database (information_schema.columns dump).
-
 CREATE TABLE IF NOT EXISTS public.class_sessions (
   id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   class_id          uuid NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,

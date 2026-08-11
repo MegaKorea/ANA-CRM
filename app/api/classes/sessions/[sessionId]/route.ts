@@ -3,7 +3,6 @@ import { getSessionById, updateSession, generateQrCodeToken } from '@/lib/servic
 import { validateUpdateSessionInput } from '@/lib/validators/class_session.validator';
 import { HttpStatusCode } from '@/constants/enums';
 
-// GET /api/classes/sessions/[sessionId] — Get single session
 export async function GET(
     _request: NextRequest,
     { params }: { params: Promise<{ sessionId: string }> }
@@ -17,7 +16,6 @@ export async function GET(
     }
 }
 
-// PATCH /api/classes/sessions/[sessionId] — Update session (teacher, content, date)
 export async function PATCH(
     request: NextRequest,
     { params }: { params: Promise<{ sessionId: string }> }
@@ -33,7 +31,6 @@ export async function PATCH(
     }
 }
 
-// POST /api/classes/sessions/[sessionId] — Generate QR code token
 export async function POST(
     _request: NextRequest,
     { params }: { params: Promise<{ sessionId: string }> }

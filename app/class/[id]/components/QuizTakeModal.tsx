@@ -148,10 +148,6 @@ export function QuizTakeModal({
     answersRef.current = answers;
   }, [answers]);
 
-  /* eslint-disable react-hooks/set-state-in-effect -- tears down the in-progress
-     attempt (state + timers + refs) when the modal closes or flips to read-only;
-     this genuinely synchronizes local state to the `open`/`readOnly` props changing,
-     not something derivable at render time. */
   useEffect(() => {
     if (!open) {
       setAnswers({});
@@ -175,15 +171,10 @@ export function QuizTakeModal({
       setRemainingSeconds(null);
     }
   }, [open, readOnly]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   const startAttemptMutate = startAttempt.mutateAsync;
   const onCloseEvent = useEffectEvent(onClose);
 
-  /* eslint-disable react-hooks/set-state-in-effect -- hydrates local answer/timer
-     state from the server-fetched attempt (and starts a new attempt via mutation
-     when none exists yet); genuinely syncing to async external data, not derivable
-     at render time. */
   useEffect(() => {
     if (!open || readOnly || attemptLoading || !quizId || !sessionId) return;
     if (!quizContentReady) return;
@@ -231,7 +222,6 @@ export function QuizTakeModal({
     startAttemptMutate,
     message,
   ]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   const persistDraft = useCallback(
     async (nextAnswers: Record<string, string[]>) => {

@@ -64,7 +64,6 @@ export function validateCreatePaymentTicketInput(input: unknown): CreatePaymentT
 
   const data = input as Record<string, unknown>;
 
-  // lead_id — required
   if (data.lead_id === undefined || data.lead_id === null) {
     throw new AppError(PaymentTicketErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
   }
@@ -73,7 +72,6 @@ export function validateCreatePaymentTicketInput(input: unknown): CreatePaymentT
     throw new AppError(PaymentTicketErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
   }
 
-  // enrollment_id — optional
   let enrollmentId: number | undefined;
   if (data.enrollment_id !== undefined && data.enrollment_id !== null) {
     enrollmentId = Number(data.enrollment_id);
@@ -82,7 +80,6 @@ export function validateCreatePaymentTicketInput(input: unknown): CreatePaymentT
     }
   }
 
-  // course_id — optional uuid
   let courseId: string | undefined;
   if (data.course_id !== undefined && data.course_id !== null) {
     if (typeof data.course_id !== 'string' || !new RegExp(ValidationPattern.UUID, 'i').test(data.course_id)) {
@@ -91,7 +88,6 @@ export function validateCreatePaymentTicketInput(input: unknown): CreatePaymentT
     courseId = data.course_id;
   }
 
-  // amount — required, positive
   if (data.amount === undefined || data.amount === null) {
     throw new AppError(PaymentTicketErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
   }
@@ -100,7 +96,6 @@ export function validateCreatePaymentTicketInput(input: unknown): CreatePaymentT
     throw new AppError(PaymentTicketErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
   }
 
-  // payment_method — required, must be valid
   if (!data.payment_method || typeof data.payment_method !== 'string') {
     throw new AppError(PaymentTicketErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
   }
@@ -108,7 +103,6 @@ export function validateCreatePaymentTicketInput(input: unknown): CreatePaymentT
     throw new AppError(PaymentTicketErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
   }
 
-  // payment_date — optional
   let paymentDate: string | undefined;
   if (data.payment_date !== undefined && data.payment_date !== null) {
     if (typeof data.payment_date !== 'string') {
@@ -121,7 +115,6 @@ export function validateCreatePaymentTicketInput(input: unknown): CreatePaymentT
     paymentDate = data.payment_date;
   }
 
-  // recipient_account — optional
   let recipientAccount: string | undefined;
   if (data.recipient_account !== undefined && data.recipient_account !== null) {
     if (typeof data.recipient_account !== 'string') {
@@ -130,7 +123,6 @@ export function validateCreatePaymentTicketInput(input: unknown): CreatePaymentT
     recipientAccount = data.recipient_account.trim() || undefined;
   }
 
-  // images — optional string array
   let images: string[] | undefined;
   if (data.images !== undefined && data.images !== null) {
     if (!Array.isArray(data.images)) {
@@ -139,7 +131,6 @@ export function validateCreatePaymentTicketInput(input: unknown): CreatePaymentT
     images = data.images.filter((img): img is string => typeof img === 'string' && img.trim().length > 0);
   }
 
-  // note — optional
   let note: string | undefined;
   if (data.note !== undefined && data.note !== null) {
     if (typeof data.note !== 'string') {
@@ -149,7 +140,6 @@ export function validateCreatePaymentTicketInput(input: unknown): CreatePaymentT
     if (trimmed) note = trimmed;
   }
 
-  // created_by — optional uuid
   let createdBy: string | undefined;
   if (data.created_by !== undefined && data.created_by !== null) {
     if (typeof data.created_by !== 'string') {
@@ -158,7 +148,6 @@ export function validateCreatePaymentTicketInput(input: unknown): CreatePaymentT
     createdBy = data.created_by.trim() || undefined;
   }
 
-  // status — optional, only 'pending' (default) or 'approved' at creation time
   let status: 'pending' | 'approved' | undefined;
   if (data.status !== undefined && data.status !== null) {
     if (data.status !== 'pending' && data.status !== 'approved') {
@@ -189,7 +178,6 @@ export function validateReviewPaymentTicketInput(input: unknown): ReviewPaymentT
 
   const data = input as Record<string, unknown>;
 
-  // status — required
   if (!data.status || typeof data.status !== 'string') {
     throw new AppError(PaymentTicketErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
   }
@@ -197,7 +185,6 @@ export function validateReviewPaymentTicketInput(input: unknown): ReviewPaymentT
     throw new AppError(PaymentTicketErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
   }
 
-  // reject_reason — required if rejected
   let rejectReason: string | undefined;
   if (data.status === 'rejected') {
     if (!data.reject_reason || typeof data.reject_reason !== 'string' || !data.reject_reason.trim()) {

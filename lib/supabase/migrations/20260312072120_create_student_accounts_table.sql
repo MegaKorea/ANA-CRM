@@ -8,10 +8,8 @@ CREATE TABLE IF NOT EXISTS public.student_accounts (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Enable RLS
 ALTER TABLE public.student_accounts ENABLE ROW LEVEL SECURITY;
 
--- Policies
 CREATE POLICY "Admin full access to student_accounts" ON public.student_accounts
     FOR ALL
     USING (
@@ -19,12 +17,10 @@ CREATE POLICY "Admin full access to student_accounts" ON public.student_accounts
         (auth.jwt() ->> 'role')::text = 'AO'::text
     );
 
--- Allow students to read their own account info (Optional, depending on JWT setup)
 CREATE POLICY "Students can view own account" ON public.student_accounts
     FOR SELECT
     USING (id::text = (auth.jwt() ->> 'sub')::text);
 
--- Trigger for updated_at
 CREATE OR REPLACE FUNCTION update_student_accounts_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -38,6 +34,5 @@ CREATE TRIGGER update_student_accounts_timestamp
     FOR EACH ROW
     EXECUTE FUNCTION update_student_accounts_updated_at();
 
--- Add index for faster login lookups
 CREATE INDEX idx_student_accounts_phone ON public.student_accounts(phone_number);
 CREATE INDEX idx_student_accounts_lead_id ON public.student_accounts(lead_id);

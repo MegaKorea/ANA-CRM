@@ -1,5 +1,4 @@
 .page {
-  /* Grow with content; Layout .content is the only vertical scroller */
   min-height: 0;
   padding: 12px 12px 32px;
   background: var(--bg-app);
@@ -241,7 +240,6 @@
 
     p {
       margin: 0 0 0.85em;
-      // Allow line boxes to wrap around floated images (don't create a new BFC).
       overflow: visible;
     }
 

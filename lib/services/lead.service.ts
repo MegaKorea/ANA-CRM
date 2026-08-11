@@ -11,6 +11,7 @@ export type Lead = LeadsTable['Row'];
 export interface LeadQueryParams {
   search?: string;
   status?: LeadStatus;
+  excludeStatus?: LeadStatus;
   telesales_id?: string;
   source?: string;
   startDate?: string;
@@ -39,6 +40,8 @@ export async function fetchAllLeads(params?: LeadQueryParams): Promise<Paginated
 
     if (params?.status) {
       query = query.eq('status', params.status);
+    } else if (params?.excludeStatus) {
+      query = query.neq('status', params.excludeStatus);
     }
 
     if (params?.telesales_id) {

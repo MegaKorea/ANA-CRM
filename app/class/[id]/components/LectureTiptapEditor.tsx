@@ -59,7 +59,6 @@ function getBlockValue(editor: {
   return 'paragraph';
 }
 
-/** Move caret into a paragraph after the image so typing won't replace the image. */
 function moveCursorAfterImageSelection(view: EditorView): boolean {
   const { state } = view;
   const { selection, schema, doc } = state;
@@ -132,11 +131,9 @@ export function LectureTiptapEditor({ value, onChange, onImageUploaded, disabled
         if (!(selection instanceof NodeSelection) || selection.node.type.name !== 'image') {
           return false;
         }
-        // Allow deleting the selected image.
         if (event.key === 'Backspace' || event.key === 'Delete') return false;
         if (!isTypingKey(event)) return false;
 
-        // Typing while image is selected would replace/delete it — move caret after first.
         moveCursorAfterImageSelection(view);
 
         if (event.key === 'Enter') {
@@ -222,7 +219,6 @@ export function LectureTiptapEditor({ value, onChange, onImageUploaded, disabled
         ...(align === 'left' || align === 'right' ? { offsetX: 0 } : {}),
       };
 
-      // Float needs leftover space for wrapping text — shrink wide images.
       if (align === 'left' || align === 'right') {
         const editorWidth = editor.view.dom.clientWidth || 640;
         const maxFloatW = Math.max(120, Math.floor(editorWidth * 0.42));
@@ -236,7 +232,6 @@ export function LectureTiptapEditor({ value, onChange, onImageUploaded, disabled
       }
 
       editor.chain().focus().updateAttributes('image', nextAttrs).run();
-      // Ensure caret is in a text paragraph after the image (not NodeSelection).
       moveCursorAfterImage(editor);
       return;
     }

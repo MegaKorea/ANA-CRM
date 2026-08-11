@@ -35,13 +35,11 @@ export async function GET(
       if (!quiz.is_published) {
         fail(QuizErrorCode.NOT_PUBLISHED, HttpStatusCode.FORBIDDEN);
       }
-      // One enrollment check + attempt fetch (no second auth round-trip).
       const [, attempt] = await Promise.all([
         assertClassAccess(quiz.class_id, user),
         getMyQuizAttempt(quizId, user.id),
       ]);
       const payload = isQuizAttemptCompleted(attempt) ? quiz : stripQuizAnswers(quiz);
-      // Bundle attempt so the take page avoids a second ~1.5s GET /attempts.
       return NextResponse.json(
         { quiz: payload, attempt: attempt ?? null },
         { status: HttpStatusCode.OK },
