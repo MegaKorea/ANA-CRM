@@ -211,7 +211,10 @@ async function computeTeamSalesReportRow(
 export async function getTeamSalesReportRows(
   startAt: string,
   endAt: string,
+  splitByDay = false,
 ): Promise<TeamSalesReportRow[]> {
+  // Single source of truth for "how many (VN calendar) days does this span"
+  // — also doubles as the per-day segments used below when splitByDay.
   const segments = splitIntoVnDaySegments(startAt, endAt);
 
   if (segments.length > MAX_REPORT_DAYS) {
@@ -224,7 +227,13 @@ export async function getTeamSalesReportRows(
 
   const rule = await resolveActiveClassificationRule();
 
-  return Promise.all(
-    segments.map((segment) => computeTeamSalesReportRow(segment.start, segment.end, rule)),
-  );
+  if (!splitByDay) {
+    // A single row covering the whole selected range.
+    return [await computeTeamSalesReportRow(startAt, endAt, rule)];
+  }
+
+  // One row per calendar day (VN timezone) — the first/last segment keep
+  // the exact startAt/endAt so a range like "17h ngày 10 → 10h ngày 11"
+  // still only produces 2 rows, not a padded full day on each end.
+  return Promise.all(segments.map((segment) => computeTeamSalesReportRow(segment.start, segment.end, rule)));
 }

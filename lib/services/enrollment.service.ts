@@ -127,7 +127,7 @@ export async function fetchAllEnrollments(params?: EnrollmentQueryParams): Promi
         lead_phone_number: lead?.phone_number ?? null,
         created_by_name: enrollment.created_by
           ? (userMap.get(enrollment.created_by) ?? SMAX_SUPPORTER_DIRECTORY[enrollment.created_by] ?? null)
-          : null,
+          : (enrollment.advisor_name ?? null),
       };
     });
 
@@ -194,6 +194,20 @@ export async function createEnrollment(input: CreateEnrollmentInput): Promise<En
         foreignKeyViolationErrorCode: EnrollmentErrorCode.BAD_REQUEST,
         defaultErrorCode: EnrollmentErrorCode.CREATE_FAILED,
       });
+    }
+
+    // Creating an enrollment IS the lead converting — without this, a lead
+    // enrolled straight from the accounting drawer never flips to CONVERTED
+    // and keeps showing as an untouched new lead everywhere else (Lead page,
+    // reports). Best-effort: the enrollment already exists, so this
+    // follow-up status flip failing shouldn't fail the whole create.
+    try {
+      await supabase
+        .from('leads')
+        .update({ status: LeadStatus.CONVERTED } as never)
+        .eq('id', input.lead_id);
+    } catch {
+      // best-effort — see comment above
     }
 
     return data as unknown as Enrollment;

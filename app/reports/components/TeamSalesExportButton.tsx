@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { App, Button, DatePicker, InputNumber, Modal, Space, Table, Typography, theme } from 'antd';
+import { App, Button, Checkbox, DatePicker, Input, InputNumber, Modal, Space, Table, Typography, theme } from 'antd';
 import { BarChartOutlined, TableOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import type { TeamSalesReportRow } from '@/lib/services/team-sales-report.service';
@@ -17,9 +17,10 @@ type Token = ReturnType<typeof theme.useToken>['token'];
 async function fetchTeamSalesReportRows(
   startAt: string,
   endAt: string,
+  splitByDay: boolean,
 ): Promise<TeamSalesReportRow[]> {
   const res = await fetch(
-    `/api/reports/team-sales-export?startAt=${encodeURIComponent(startAt)}&endAt=${encodeURIComponent(endAt)}`,
+    `/api/reports/team-sales-export?startAt=${encodeURIComponent(startAt)}&endAt=${encodeURIComponent(endAt)}&splitByDay=${splitByDay}`,
   );
   if (!res.ok) {
     const body = await res.json().catch(() => null);
@@ -48,16 +49,16 @@ function formatPeriodLabel(startAt: string, endAt: string): string {
 }
 
 const METRIC_COLUMNS = [
-  { key: 'dataNhan', title: 'Data nhận', width: 100, format: formatNumberVi },
-  { key: 'chamZalo', title: 'Chăm zalo', width: 100, format: formatNumberVi },
-  { key: 'tuongTacQuanTam', title: 'Tương tác/ quan tâm', width: 130, format: formatNumberVi },
-  { key: 'itTuongTac', title: 'Ít tương tác', width: 110, format: formatNumberVi },
-  { key: 'chuaTiepCan', title: 'Chưa tiếp cận', width: 110, format: formatNumberVi },
-  { key: 'racKqt', title: 'Rác/KQT', width: 100, format: formatNumberVi },
-  { key: 'slHvDen', title: 'SL HV đến', width: 100, format: formatNumberVi },
-  { key: 'slHvChot', title: 'SL HV chốt', width: 100, format: formatNumberVi },
-  { key: 'doanhThu', title: 'Doanh thu', width: 140, format: formatCurrencyVnd },
-  { key: 'congNo', title: 'Công nợ', width: 140, format: formatCurrencyVnd },
+  { key: 'dataNhan', title: 'Data nhận', width: 120, format: formatNumberVi },
+  { key: 'chamZalo', title: 'Chăm zalo', width: 120, format: formatNumberVi },
+  { key: 'tuongTacQuanTam', title: 'Tương tác/ quan tâm', width: 150, format: formatNumberVi },
+  { key: 'itTuongTac', title: 'Ít tương tác', width: 130, format: formatNumberVi },
+  { key: 'chuaTiepCan', title: 'Chưa tiếp cận', width: 130, format: formatNumberVi },
+  { key: 'racKqt', title: 'Rác/KQT', width: 120, format: formatNumberVi },
+  { key: 'slHvDen', title: 'SL HV đến', width: 120, format: formatNumberVi },
+  { key: 'slHvChot', title: 'SL HV chốt', width: 120, format: formatNumberVi },
+  { key: 'doanhThu', title: 'Doanh thu', width: 160, format: formatCurrencyVnd },
+  { key: 'congNo', title: 'Công nợ', width: 160, format: formatCurrencyVnd },
 ] as const satisfies {
   key: keyof TeamSalesReportRow;
   title: string;
@@ -104,12 +105,53 @@ function renderMetricValue(
   return format(value);
 }
 
-// Click a number to edit it right there — looks like plain text at rest (and
-// in a screenshot), no border/background hint. Local-only: never sent
-// anywhere, cleared when the report modal is closed.
+const DEFAULT_SPAN_STYLE: React.CSSProperties = { display: 'block', width: '100%', cursor: 'text' };
+
 interface EditableMetricCellProps {
+  displayValue: React.ReactNode;
+  editValue: string;
+  isEditing: boolean;
+  onStartEdit: () => void;
+  onChangeValue: (value: string) => void;
+  onStopEdit: () => void;
+  spanStyle?: React.CSSProperties;
+}
+
+function EditableMetricCell({
+  displayValue,
+  editValue,
+  isEditing,
+  onStartEdit,
+  onChangeValue,
+  onStopEdit,
+  spanStyle = DEFAULT_SPAN_STYLE,
+}: EditableMetricCellProps) {
+  if (isEditing) {
+    return (
+      <Input.TextArea
+        autoFocus
+        autoSize={{ minRows: 1, maxRows: 4 }}
+        variant="borderless"
+        value={editValue}
+        style={{ width: '100%', textAlign: 'center' }}
+        onChange={(e) => onChangeValue(e.target.value)}
+        onBlur={onStopEdit}
+      />
+    );
+  }
+
+  return (
+    <span onClick={onStartEdit} style={spanStyle}>
+      {displayValue}
+    </span>
+  );
+}
+
+// Doanh thu / Công nợ stay number-only and always keep their colored/"đ"
+// formatting — only the underlying number changes, never the styling.
+interface EditableNumericMetricCellProps {
   metricKey: MetricKey;
-  rawValue: number;
+  value: number;
   format: (val: number) => string;
   token: Token;
   isEditing: boolean;
@@ -118,16 +160,16 @@ interface EditableMetricCellProps {
   onStopEdit: () => void;
 }
 
-function EditableMetricCell({
+function EditableNumericMetricCell({
   metricKey,
-  rawValue,
+  value,
   format,
   token,
   isEditing,
   onStartEdit,
   onChangeValue,
   onStopEdit,
-}: EditableMetricCellProps) {
+}: EditableNumericMetricCellProps) {
   if (isEditing) {
     return (
       <InputNumber
@@ -136,9 +178,9 @@ function EditableMetricCell({
         variant="borderless"
         controls={false}
         min={0}
-        value={rawValue}
+        value={value}
         style={{ width: '100%', textAlign: 'center' }}
-        onChange={(value) => onChangeValue(value ?? 0)}
+        onChange={(v) => onChangeValue(v ?? 0)}
         onBlur={onStopEdit}
         onPressEnter={onStopEdit}
       />
@@ -147,18 +189,44 @@ function EditableMetricCell({
 
   return (
     <span onClick={onStartEdit} style={{ display: 'block', width: '100%', cursor: 'text' }}>
-      {renderMetricValue(metricKey, rawValue, format, token)}
+      {renderMetricValue(metricKey, value, format, token)}
     </span>
   );
 }
 
 interface CellEditControls {
-  overrides: Record<string, number>;
+  overrides: Record<string, string>;
   editingKey: string | null;
   onStartEdit: (key: string) => void;
   onStopEdit: () => void;
-  onChangeValue: (key: string, value: number) => void;
+  onChangeValue: (key: string, value: string) => void;
 }
+
+const NOTE_SPAN_STYLE: React.CSSProperties = {
+  display: 'block',
+  width: '100%',
+  minHeight: 22,
+  cursor: 'text',
+  whiteSpace: 'pre-wrap',
+  wordBreak: 'break-word',
+};
+
+function renderEditableTextCell(cellEdit: CellEditControls, cellKey: string, value: string) {
+  const rawValue = cellEdit.overrides[cellKey] ?? value;
+  return (
+    <EditableMetricCell
+      displayValue={rawValue}
+      editValue={rawValue}
+      isEditing={cellEdit.editingKey === cellKey}
+      onStartEdit={() => cellEdit.onStartEdit(cellKey)}
+      onChangeValue={(v) => cellEdit.onChangeValue(cellKey, v)}
+      onStopEdit={cellEdit.onStopEdit}
+      spanStyle={NOTE_SPAN_STYLE}
+    />
+  );
+}
+
+const NUMERIC_ONLY_METRIC_KEYS = new Set<MetricKey>(['doanhThu', 'congNo']);
 
 function renderEditableCell(
   cellEdit: CellEditControls,
@@ -168,13 +236,34 @@ function renderEditableCell(
   cellKey: string,
   value: number,
 ) {
+  const override = cellEdit.overrides[cellKey];
+  const hasOverride = override !== undefined;
+  const isEditing = cellEdit.editingKey === cellKey;
+
+  if (NUMERIC_ONLY_METRIC_KEYS.has(metricKey)) {
+    const numericValue = hasOverride ? Number(override) || 0 : value;
+    return (
+      <EditableNumericMetricCell
+        metricKey={metricKey}
+        value={numericValue}
+        format={format}
+        token={token}
+        isEditing={isEditing}
+        onStartEdit={() => cellEdit.onStartEdit(cellKey)}
+        onChangeValue={(v) => cellEdit.onChangeValue(cellKey, String(v))}
+        onStopEdit={cellEdit.onStopEdit}
+      />
+    );
+  }
+
+  const displayValue = hasOverride ? override : renderMetricValue(metricKey, value, format, token);
+  const editValue = hasOverride ? override : String(value);
+
   return (
     <EditableMetricCell
-      metricKey={metricKey}
-      rawValue={cellEdit.overrides[cellKey] ?? value}
-      format={format}
-      token={token}
-      isEditing={cellEdit.editingKey === cellKey}
+      displayValue={displayValue}
+      editValue={editValue}
+      isEditing={isEditing}
       onStartEdit={() => cellEdit.onStartEdit(cellKey)}
       onChangeValue={(v) => cellEdit.onChangeValue(cellKey, v)}
       onStopEdit={cellEdit.onStopEdit}
@@ -182,7 +271,11 @@ function renderEditableCell(
   );
 }
 
-function buildReportColumns(token: Token, cellEdit: CellEditControls) {
+function buildReportColumns(
+  token: Token,
+  cellEdit: CellEditControls,
+  textCellEdit: CellEditControls,
+) {
   return [
     {
       title: 'Ngày',
@@ -204,8 +297,10 @@ function buildReportColumns(token: Token, cellEdit: CellEditControls) {
       title: 'Ghi chú',
       dataIndex: 'ghiChu',
       key: 'ghiChu',
+      width: 240,
       align: 'center' as const,
-      ellipsis: true,
+      render: (value: string, row: TeamSalesReportRow) =>
+        renderEditableTextCell(textCellEdit, `${row.startAt}:ghiChu`, value),
     },
   ];
 }
@@ -221,17 +316,21 @@ export function TeamSalesExportButton() {
     dayjs().subtract(1, 'day').hour(17).minute(0),
     dayjs().hour(10).minute(0),
   ]);
+  const [splitByDay, setSplitByDay] = useState(false);
   const [rows, setRows] = useState<TeamSalesReportRow[] | null>(null);
-  // Local-only overrides for cells the user clicked to edit — never persisted,
-  // cleared whenever the report modal is closed.
-  const [cellOverrides, setCellOverrides] = useState<Record<string, number>>({});
+
+  const [cellOverrides, setCellOverrides] = useState<Record<string, string>>({});
   const [editingCellKey, setEditingCellKey] = useState<string | null>(null);
+  const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
+  const [editingTextKey, setEditingTextKey] = useState<string | null>(null);
 
   const resetAndClose = () => {
     setOpen(false);
     setRows(null);
     setCellOverrides({});
     setEditingCellKey(null);
+    setTextOverrides({});
+    setEditingTextKey(null);
   };
 
   const handleViewReport = async () => {
@@ -248,7 +347,7 @@ export function TeamSalesExportButton() {
     try {
       const startAt = range[0].toISOString();
       const endAt = range[1].toISOString();
-      setRows(await fetchTeamSalesReportRows(startAt, endAt));
+      setRows(await fetchTeamSalesReportRows(startAt, endAt, splitByDay));
     } catch (error) {
       message.error(error instanceof Error ? error.message : 'Lấy dữ liệu báo cáo thất bại');
     } finally {
@@ -266,7 +365,15 @@ export function TeamSalesExportButton() {
     onChangeValue: (key, value) => setCellOverrides((prev) => ({ ...prev, [key]: value })),
   };
 
-  const reportColumns = buildReportColumns(token, cellEdit);
+  const textCellEdit: CellEditControls = {
+    overrides: textOverrides,
+    editingKey: editingTextKey,
+    onStartEdit: (key) => setEditingTextKey(key),
+    onStopEdit: () => setEditingTextKey(null),
+    onChangeValue: (key, value) => setTextOverrides((prev) => ({ ...prev, [key]: value })),
+  };
+
+  const reportColumns = buildReportColumns(token, cellEdit, textCellEdit);
 
   return (
     <>
@@ -277,9 +384,10 @@ export function TeamSalesExportButton() {
       <Modal
         open={open}
         onCancel={resetAndClose}
-        width={rows ? '95vw' : 'min(92vw, 520px)'}
+        maskClosable={false}
+        width={rows ? '98vw' : 'min(92vw, 520px)'}
         centered
-        style={rows ? { maxWidth: 1680 } : undefined}
+        style={rows ? { maxWidth: 1900 } : undefined}
         styles={rows ? { body: { paddingTop: 4 } } : undefined}
         footer={
           rows
@@ -328,7 +436,7 @@ export function TeamSalesExportButton() {
               bordered
               size="middle"
               tableLayout="fixed"
-              scroll={{ x: 'max-content', y: 'calc(75vh - 220px)' }}
+              scroll={{ x: 'max-content' }}
               onRow={(_, index) =>
                 index !== undefined && index % 2 === 1
                   ? { style: { backgroundColor: token.colorFillQuaternary } }
@@ -360,7 +468,9 @@ export function TeamSalesExportButton() {
                             )}
                           </Table.Summary.Cell>
                         ))}
-                        <Table.Summary.Cell index={METRIC_COLUMNS.length + 1} />
+                        <Table.Summary.Cell index={METRIC_COLUMNS.length + 1} align="center">
+                          {renderEditableTextCell(textCellEdit, `${SUMMARY_ROW_KEY}:ghiChu`, '')}
+                        </Table.Summary.Cell>
                       </Table.Summary.Row>
                     )
                   : undefined
@@ -368,7 +478,7 @@ export function TeamSalesExportButton() {
             />
           </div>
         ) : (
-          <Space direction="vertical" style={{ width: '100%' }}>
+          <Space orientation="vertical" style={{ width: '100%' }}>
             <span>Khung giờ báo cáo</span>
             <RangePicker
               showTime={{ format: 'HH:mm' }}
@@ -377,6 +487,9 @@ export function TeamSalesExportButton() {
               onChange={(dates) => setRange(dates as [Dayjs | null, Dayjs | null] | null)}
               style={{ width: '100%' }}
             />
+            <Checkbox checked={splitByDay} onChange={(e) => setSplitByDay(e.target.checked)}>
+              Tách riêng từng ngày (mỗi ngày 1 dòng)
+            </Checkbox>
           </Space>
         )}
       </Modal>

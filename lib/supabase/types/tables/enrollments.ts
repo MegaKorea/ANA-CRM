@@ -19,6 +19,12 @@ export interface EnrollmentsTable {
     created_by: string | null;
     created_at: string;
     updated_at: string;
+    student_name: string | null;
+    phone: string | null;
+    course_name_raw: string | null;
+    course_name_normalized: string | null;
+    course_key: string | null;
+    advisor_name: string | null;
   };
   Insert: {
     id?: number;

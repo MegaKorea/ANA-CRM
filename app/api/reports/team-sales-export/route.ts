@@ -31,7 +31,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const rows = await getTeamSalesReportRows(startAt, endAt);
+    const splitByDay = request.nextUrl.searchParams.get('splitByDay') === 'true';
+    const rows = await getTeamSalesReportRows(startAt, endAt, splitByDay);
     return NextResponse.json({ rows }, { status: HttpStatusCode.OK });
   } catch (error) {
     return handleRouteError(error, LeadErrorCode.INTERNAL_SERVER_ERROR);

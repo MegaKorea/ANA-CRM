@@ -410,7 +410,7 @@ function AccountingPageContent() {
         title: 'Ghi chú',
         key: 'note',
         width: 180,
-        align: 'center' as const,
+        align: 'left' as const,
         ellipsis: true,
         render: (_: unknown, record: MainRow) =>
           record.rowType === 'lead' ? getLatestNoteContent(record.note) : record.note,
