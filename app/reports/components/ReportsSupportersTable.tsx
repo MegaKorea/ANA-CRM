@@ -158,7 +158,7 @@ export const ReportsSupportersTable = memo(function ReportsSupportersTable({
       <Alert
         type="error"
         showIcon
-        message={COPY.errorTitle}
+        title={COPY.errorTitle}
         description={errorMessage || COPY.errorFallback}
       />
     );

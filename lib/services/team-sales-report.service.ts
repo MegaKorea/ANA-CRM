@@ -1,12 +1,49 @@
 import { AttendanceStatus, HttpStatusCode, LeadErrorCode, LeadStatus } from '@/constants/enums';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { quotePostgrestValue, splitIntoVnDaySegments } from '@/lib/utils/vn-date';
+import { splitIntoVnDaySegments } from '@/lib/utils/vn-date';
 import type { NoteItem } from '@/lib/supabase/types/tables/leads';
 import { AppError } from '@/errors';
+import { getActiveLeadClassificationRule } from '@/lib/services/lead-classification-rule.service';
 
 const MAX_REPORT_DAYS = 62;
 
-const RECENT_INTERACTION_HOURS = 24;
+const FETCH_PAGE_SIZE = 1000;
+
+interface ActiveClassificationRule {
+  recentInteractionHours: number;
+  racKqtStatuses: LeadStatus[];
+}
+
+const DEFAULT_CLASSIFICATION_RULE: ActiveClassificationRule = {
+  recentInteractionHours: 24,
+  racKqtStatuses: [LeadStatus.REJECT, LeadStatus.NOT_INTERESTED],
+};
+
+async function resolveActiveClassificationRule(): Promise<ActiveClassificationRule> {
+  const activeRule = await getActiveLeadClassificationRule().catch(() => null);
+  if (!activeRule) return DEFAULT_CLASSIFICATION_RULE;
+
+  return {
+    recentInteractionHours: activeRule.recent_interaction_hours,
+    racKqtStatuses: activeRule.rac_kqt_statuses as LeadStatus[],
+  };
+}
+
+async function fetchAllRows<T>(
+  buildQuery: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+): Promise<T[]> {
+  const rows: T[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await buildQuery(from, from + FETCH_PAGE_SIZE - 1);
+    if (error) throw new Error(error.message);
+    const batch = data ?? [];
+    rows.push(...batch);
+    if (batch.length < FETCH_PAGE_SIZE) break;
+    from += FETCH_PAGE_SIZE;
+  }
+  return rows;
+}
 
 export interface TeamSalesReportRow {
   startAt: string;
@@ -46,8 +83,12 @@ type InteractionBucket =
   | 'itTuongTac'
   | null;
 
-function classifyLead(lead: ReportLeadRow, endAtMs: number): InteractionBucket {
-  if (lead.status === LeadStatus.REJECT || lead.status === LeadStatus.NOT_INTERESTED) {
+function classifyLead(
+  lead: ReportLeadRow,
+  endAtMs: number,
+  rule: ActiveClassificationRule,
+): InteractionBucket {
+  if (lead.status && rule.racKqtStatuses.includes(lead.status)) {
     return 'racKqt';
   }
   if (lead.status === LeadStatus.CONVERTED) {
@@ -64,60 +105,54 @@ function classifyLead(lead: ReportLeadRow, endAtMs: number): InteractionBucket {
   if (noteAt == null) return 'chuaTiepCan';
 
   const hoursSinceNote = (endAtMs - noteAt) / (60 * 60 * 1000);
-  return hoursSinceNote <= RECENT_INTERACTION_HOURS ? 'tuongTacQuanTam' : 'itTuongTac';
+  return hoursSinceNote <= rule.recentInteractionHours ? 'tuongTacQuanTam' : 'itTuongTac';
 }
 
 async function computeTeamSalesReportRow(
   startAt: string,
   endAt: string,
+  rule: ActiveClassificationRule,
 ): Promise<TeamSalesReportRow> {
   const supabase = createAdminClient();
-  const start = quotePostgrestValue(startAt);
-  const end = quotePostgrestValue(endAt);
   const endAtMs = new Date(endAt).getTime();
 
-  const [createdLeadsRes, arrivedLeadsRes, convertedLeadsRes, revenueTicketsRes] =
-    await Promise.all([
+  const [createdLeads, arrivedLeadsRes, convertedLeads, revenueTickets] = await Promise.all([
+    fetchAllRows<ReportLeadRow>((from, to) =>
       supabase
         .from('leads')
         .select('id, status, note')
         .gte('created_at', startAt)
-        .lte('created_at', endAt),
-      supabase
-        .from('lead_appointments')
-        .select('id', { count: 'exact', head: true })
-        .gte('appointment_date', startAt)
-        .lte('appointment_date', endAt)
-        .eq('attendance_status', AttendanceStatus.ARRIVED),
+        .lte('created_at', endAt)
+        .range(from, to),
+    ),
+    supabase
+      .from('lead_appointments')
+      .select('id', { count: 'exact', head: true })
+      .gte('appointment_date', startAt)
+      .lte('appointment_date', endAt)
+      .eq('attendance_status', AttendanceStatus.ARRIVED),
+
+    fetchAllRows<{ id: number; tuition_fee: number | null }>((from, to) =>
       supabase
         .from('leads')
         .select('id, tuition_fee')
         .eq('status', LeadStatus.CONVERTED)
-        .or(
-          [
-            `and(created_at.gte.${start},created_at.lte.${end})`,
-            `and(updated_at.gte.${start},updated_at.lte.${end})`,
-          ].join(','),
-        ),
+        .gte('updated_at', startAt)
+        .lte('updated_at', endAt)
+        .range(from, to),
+    ),
+    fetchAllRows<{ amount: number }>((from, to) =>
       supabase
         .from('payment_tickets')
         .select('amount')
         .eq('status', 'approved')
         .gte('payment_date', startAt)
-        .lte('payment_date', endAt),
-    ]);
+        .lte('payment_date', endAt)
+        .range(from, to),
+    ),
+  ]);
 
-  if (createdLeadsRes.error) throw createdLeadsRes.error;
   if (arrivedLeadsRes.error) throw arrivedLeadsRes.error;
-  if (convertedLeadsRes.error) throw convertedLeadsRes.error;
-  if (revenueTicketsRes.error) throw revenueTicketsRes.error;
-
-  const createdLeads = (createdLeadsRes.data ?? []) as unknown as ReportLeadRow[];
-  const convertedLeads = (convertedLeadsRes.data ?? []) as unknown as {
-    id: number;
-    tuition_fee: number | null;
-  }[];
-  const revenueTickets = (revenueTicketsRes.data ?? []) as unknown as { amount: number }[];
 
   const buckets = {
     chamZalo: 0,
@@ -127,7 +162,7 @@ async function computeTeamSalesReportRow(
     racKqt: 0,
   };
   for (const lead of createdLeads) {
-    const bucket = classifyLead(lead, endAtMs);
+    const bucket = classifyLead(lead, endAtMs, rule);
     if (bucket) buckets[bucket] += 1;
   }
 
@@ -136,18 +171,17 @@ async function computeTeamSalesReportRow(
   let congNo = 0;
   if (convertedLeads.length) {
     const leadIds = convertedLeads.map((lead) => lead.id);
-    const { data: allPayments, error: paymentsError } = await supabase
-      .from('payment_tickets')
-      .select('lead_id, amount')
-      .eq('status', 'approved')
-      .in('lead_id', leadIds);
-    if (paymentsError) throw paymentsError;
+    const allPayments = await fetchAllRows<{ lead_id: number; amount: number }>((from, to) =>
+      supabase
+        .from('payment_tickets')
+        .select('lead_id, amount')
+        .eq('status', 'approved')
+        .in('lead_id', leadIds)
+        .range(from, to),
+    );
 
     const paidByLead = new Map<number, number>();
-    for (const payment of (allPayments ?? []) as unknown as {
-      lead_id: number;
-      amount: number;
-    }[]) {
+    for (const payment of allPayments) {
       paidByLead.set(payment.lead_id, (paidByLead.get(payment.lead_id) ?? 0) + payment.amount);
     }
 
@@ -188,7 +222,9 @@ export async function getTeamSalesReportRows(
     );
   }
 
+  const rule = await resolveActiveClassificationRule();
+
   return Promise.all(
-    segments.map((segment) => computeTeamSalesReportRow(segment.start, segment.end)),
+    segments.map((segment) => computeTeamSalesReportRow(segment.start, segment.end, rule)),
   );
 }

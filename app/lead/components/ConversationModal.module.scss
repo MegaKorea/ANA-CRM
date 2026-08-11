@@ -1,4 +1,4 @@
-.modal {
+.modal:global(.ant-modal) {
   :global(.ant-modal-content) {
     padding: 0;
     overflow: hidden;
@@ -45,7 +45,7 @@
   color: var(--color-primary);
 }
 
-.mediaClickable {
+.mediaClickable:global(.ant-avatar) {
   cursor: zoom-in;
   transition: opacity 0.15s ease;
 
@@ -54,7 +54,7 @@
   }
 }
 
-.mediaPreviewModal {
+.mediaPreviewModal:global(.ant-modal) {
   :global(.ant-modal-content) {
     padding: 12px;
     background: var(--color-surface);

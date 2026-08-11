@@ -43,9 +43,9 @@ export const ReportsDailyTable = memo(function ReportsDailyTable({
     },
     { title: 'Tương Tác', dataIndex: 'fbMessages', key: 'fbMessages' },
     { title: 'Data', dataIndex: 'totalLeads', key: 'totalLeads' },
-    { title: 'Đăng ký', dataIndex: 'registeredLeads', key: 'registeredLeads' },
     { title: 'Lịch hẹn', dataIndex: 'totalAppointments', key: 'totalAppointments' },
     { title: 'Đến tư vấn', dataIndex: 'arrivedAppointments', key: 'arrivedAppointments' },
+    { title: 'Đăng ký', dataIndex: 'registeredLeads', key: 'registeredLeads' },
   ];
 
   const summaryRow = () => {
@@ -78,9 +78,9 @@ export const ReportsDailyTable = memo(function ReportsDailyTable({
         <Table.Summary.Cell index={0}>Tổng cộng</Table.Summary.Cell>
         <Table.Summary.Cell index={1}>{tFbMsgs}</Table.Summary.Cell>
         <Table.Summary.Cell index={2}>{tLeads}</Table.Summary.Cell>
-        <Table.Summary.Cell index={3}>{tRegLeads}</Table.Summary.Cell>
-        <Table.Summary.Cell index={4}>{tAppts}</Table.Summary.Cell>
-        <Table.Summary.Cell index={5}>{tArrAppts}</Table.Summary.Cell>
+        <Table.Summary.Cell index={3}>{tAppts}</Table.Summary.Cell>
+        <Table.Summary.Cell index={4}>{tArrAppts}</Table.Summary.Cell>
+        <Table.Summary.Cell index={5}>{tRegLeads}</Table.Summary.Cell>
       </Table.Summary.Row>
     );
   };

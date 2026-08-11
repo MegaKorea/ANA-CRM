@@ -21,7 +21,12 @@ import type { Enrollment } from '@/lib/services/enrollment.service';
 import { formatCurrencyVnd } from '@/lib/utils/numberFormat';
 import { getLatestNoteContent } from '@/lib/utils/notes';
 import { LeadStatus } from '@/constants/enums';
-import { PaymentMethodColor, PaymentMethodLabel } from './columns';
+import {
+  ENROLLMENT_CATEGORY_COLOR,
+  ENROLLMENT_CATEGORY_LABEL,
+  PaymentMethodColor,
+  PaymentMethodLabel,
+} from './columns';
 import { PaymentStatsCards } from './PaymentStatsCards';
 import { RejectTicketModal } from './RejectTicketModal';
 import { EnrollmentModal } from './EnrollmentModal';
@@ -31,6 +36,7 @@ import { MainRowCard, type MainRow } from './MainRowCard';
 import { useIsMobile } from '@/lib/hooks/use-mobile';
 
 const autoMaterializedLeadIds = new Set<number>();
+const EMPTY_ARRAY: readonly never[] = [];
 
 export default function AccountingPage() {
   return (
@@ -106,9 +112,9 @@ function AccountingPageContent() {
   const deleteEnrollment = useDeleteEnrollment();
   const ensureEnrollment = useEnsureEnrollmentForLead();
 
-  const tickets = ticketData?.data ?? [];
-  const enrollments = enrollmentData?.data ?? [];
-  const convertedLeads = convertedLeadData?.data ?? [];
+  const tickets = ticketData?.data ?? EMPTY_ARRAY;
+  const enrollments = enrollmentData?.data ?? EMPTY_ARRAY;
+  const convertedLeads = convertedLeadData?.data ?? EMPTY_ARRAY;
   const allEnrolledLeadIds = useMemo(
     () => new Set(enrolledLeadIdsData?.data ?? []),
     [enrolledLeadIdsData],
@@ -119,9 +125,6 @@ function AccountingPageContent() {
   );
   const pendingTickets = useMemo(() => tickets.filter((t) => t.status === 'pending'), [tickets]);
 
-  // Latest approved payment's method per enrollment — paid_amount is only
-  // ever driven by approved tickets, so "how was this collected" should
-  // reflect the same set, not a still-pending one.
   const latestPaymentMethodByEnrollmentId = useMemo(() => {
     const map = new Map<number, { method: string; date: string }>();
     tickets.forEach((t) => {
@@ -151,6 +154,7 @@ function AccountingPageContent() {
         const enrollmentDate = lead.appointment_date ?? lead.created_at ?? undefined;
         await ensureEnrollment.mutateAsync({
           lead_id: lead.id,
+          category: 'khóa học',
           course_id: courseId,
           enrollment_date: enrollmentDate,
           sales_month: dayjs(enrollmentDate).format('YYYY-MM'),
@@ -194,7 +198,7 @@ function AccountingPageContent() {
   );
 
   const courseName = useCallback(
-    (courseId: string) => courses?.find((c) => c.id === courseId)?.name ?? courseId,
+    (courseId: string | null) => (courseId ? (courses?.find((c) => c.id === courseId)?.name ?? courseId) : null),
     [courses]
   );
   const className = useCallback(
@@ -275,12 +279,14 @@ function AccountingPageContent() {
         title: 'STT',
         key: 'stt',
         width: 60,
+        align: 'center' as const,
         render: (_: unknown, __: MainRow, index: number) => (currentPage - 1) * pageSize + index + 1,
       },
       {
         title: 'Họ và tên',
         key: 'customer_name',
         width: 160,
+        align: 'center' as const,
         render: (_: unknown, record: MainRow) => {
           const name = record.rowType === 'lead' ? record.full_name : record.lead_full_name || `Lead #${record.lead_id}`;
           return (
@@ -294,20 +300,33 @@ function AccountingPageContent() {
         title: 'Số điện thoại',
         key: 'customer_phone',
         width: 140,
+        align: 'center' as const,
         render: (_: unknown, record: MainRow) => {
           const phone = record.rowType === 'lead' ? record.phone_number : record.lead_phone_number;
           return phone || '-';
         },
       },
       {
+        title: 'Danh mục',
+        key: 'category',
+        width: 110,
+        align: 'center' as const,
+        render: (_: unknown, record: MainRow) => {
+          const category = record.rowType === 'lead' ? 'khóa học' : record.category;
+          return <Tag color={ENROLLMENT_CATEGORY_COLOR[category]}>{ENROLLMENT_CATEGORY_LABEL[category]}</Tag>;
+        },
+      },
+      {
         title: 'Khóa học',
         key: 'course',
         width: 200,
+        align: 'center' as const,
         render: (_: unknown, record: MainRow) => {
           if (record.rowType === 'lead') {
             const leadCourseId = record.course_ids?.[0];
             return leadCourseId ? <span>{courseName(leadCourseId)}</span> : '-';
           }
+          if (record.category !== 'khóa học') return record.item_name || '-';
           const crs = courseName(record.course_id);
           const cls = className(record.class_id);
           return (
@@ -322,12 +341,14 @@ function AccountingPageContent() {
         title: 'Nguồn',
         key: 'source',
         width: 110,
+        align: 'center' as const,
         render: (_: unknown, record: MainRow) => record.source || '-',
       },
       {
         title: 'Học phí',
         key: 'tuition_fee',
         width: 140,
+        align: 'center' as const,
         render: (_: unknown, record: MainRow) => (
           <Typography.Text strong style={{ color: '#1890ff' }}>
             {formatCurrencyVnd(record.tuition_fee ?? 0)}
@@ -338,6 +359,7 @@ function AccountingPageContent() {
         title: 'Đã đóng',
         key: 'paid_amount',
         width: 130,
+        align: 'center' as const,
         render: (_: unknown, record: MainRow) =>
           formatCurrencyVnd(record.rowType === 'enrollment' ? record.paid_amount : 0),
       },
@@ -345,15 +367,27 @@ function AccountingPageContent() {
         title: 'Còn nợ',
         key: 'debt_amount',
         width: 130,
+        align: 'center' as const,
         render: (_: unknown, record: MainRow) => {
           const debt = record.rowType === 'enrollment' ? record.debt_amount : record.tuition_fee ?? 0;
           return <span style={{ color: debt > 0 ? '#cf1322' : undefined }}>{formatCurrencyVnd(debt)}</span>;
         },
       },
       {
+        title: 'Ngày',
+        key: 'date',
+        width: 120,
+        align: 'center' as const,
+        render: (_: unknown, record: MainRow) => {
+          const date = record.rowType === 'enrollment' ? record.enrollment_date : record.created_at;
+          return date ? dayjs(date).format('DD/MM/YYYY') : '';
+        },
+      },
+      {
         title: 'Phương thức',
         key: 'payment_method',
         width: 170,
+        align: 'center' as const,
         render: (_: unknown, record: MainRow) => {
           if (record.rowType !== 'enrollment') return '-';
           const latest = latestPaymentMethodByEnrollmentId.get(record.id);
@@ -366,24 +400,17 @@ function AccountingPageContent() {
         },
       },
       {
-        title: 'Ngày',
-        key: 'date',
-        width: 120,
-        render: (_: unknown, record: MainRow) => {
-          const date = record.rowType === 'enrollment' ? record.enrollment_date : record.created_at;
-          return date ? dayjs(date).format('DD/MM/YYYY') : '';
-        },
-      },
-      {
         title: 'Tư vấn viên',
         key: 'created_by_name',
         width: 140,
+        align: 'center' as const,
         render: (_: unknown, record: MainRow) => (record.rowType === 'enrollment' ? record.created_by_name : null),
       },
       {
         title: 'Ghi chú',
         key: 'note',
         width: 180,
+        align: 'center' as const,
         ellipsis: true,
         render: (_: unknown, record: MainRow) =>
           record.rowType === 'lead' ? getLatestNoteContent(record.note) : record.note,
@@ -502,7 +529,7 @@ function AccountingPageContent() {
   );
 
   return (
-    <div className="p-page">
+    <div>
       <Row justify="space-between" align="middle" className="mb-section">
         <Col>
           <Typography.Title level={2} style={{ margin: 0 }}>
@@ -526,7 +553,7 @@ function AccountingPageContent() {
               type="warning"
               showIcon
               banner
-              message={`${pendingTickets.length} phiếu thu đang chờ duyệt (không tính vào Đã đóng cho đến khi được duyệt)`}
+              title={`${pendingTickets.length} phiếu thu đang chờ duyệt (không tính vào Đã đóng cho đến khi được duyệt)`}
             />
           }
           styles={{ header: { border: 'none', padding: 0 }, body: { paddingTop: 12 } }}

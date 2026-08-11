@@ -397,7 +397,7 @@ function LeadPageContent() {
   );
 
   return (
-    <div className="p-page">
+    <div>
       <Row justify="space-between" align="middle" className="mb-section">
         <Col>
           <Typography.Title level={2} className="text-h2" style={{ margin: 0 }}>

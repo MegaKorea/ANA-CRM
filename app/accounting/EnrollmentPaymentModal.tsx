@@ -83,7 +83,7 @@ export function EnrollmentPaymentModal({ open, enrollment, onClose }: Enrollment
       {
         lead_id: enrollment.lead_id,
         enrollment_id: enrollment.id,
-        course_id: enrollment.course_id,
+        course_id: enrollment.course_id ?? undefined,
         amount: values.amount,
         payment_method: values.payment_method,
         recipient_account: values.recipient_account,

@@ -168,8 +168,10 @@ export async function createEnrollment(input: CreateEnrollmentInput): Promise<En
 
     const insertData: InsertTables<'enrollments'> = {
       lead_id: input.lead_id,
-      course_id: input.course_id,
+      category: input.category,
+      course_id: input.course_id ?? null,
       class_id: input.class_id ?? null,
+      item_name: input.item_name ?? null,
       enrollment_date: input.enrollment_date,
       sales_month: input.sales_month,
       source: input.source ?? null,

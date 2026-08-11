@@ -20,7 +20,6 @@ import { useRoles } from '@/lib/hooks/use-roles';
 import {
   UserPageGap,
   UserPageMargin,
-  UserPagePadding,
   UserPageText,
   getUserTableColumns,
 } from '@/app/admin/user/constants';
@@ -195,11 +194,7 @@ export default function UserPage() {
   );
 
   return (
-    <div
-      style={{
-        padding: UserPagePadding.CONTAINER,
-      }}
-    >
+    <div>
       <Row
         justify="space-between"
         align="middle"

@@ -4,9 +4,13 @@ import { useEffect, useMemo } from 'react';
 import { App, Modal, Form } from 'antd';
 import dayjs from 'dayjs';
 import type { Enrollment } from '@/lib/services/enrollment.service';
-import { PaymentMethod } from '@/constants/enums';
+import type { PaymentMethod } from '@/constants/enums';
 import { useUpdateEnrollment } from '@/lib/hooks/use-enrollments';
-import { usePaymentTicketsByLead, useCreatePaymentTicket, useUpdatePaymentTicket } from '@/lib/hooks/use-payment-tickets';
+import {
+  useCreatePaymentTicket,
+  usePaymentTicketsByLead,
+  useUpdatePaymentTicket,
+} from '@/lib/hooks/use-payment-tickets';
 import { EnrollmentFormFields } from './EnrollmentFormFields';
 import type { EnrollmentFormValues } from './enrollment-form-types';
 
@@ -23,15 +27,10 @@ export function EnrollmentModal({ open, leadName, enrollment, onClose }: Enrollm
   const { message } = App.useApp();
   const [form] = Form.useForm<EnrollmentFormValues>();
   const updateEnrollment = useUpdateEnrollment();
-  const createPaymentTicket = useCreatePaymentTicket();
   const updatePaymentTicket = useUpdatePaymentTicket();
+  const createPaymentTicket = useCreatePaymentTicket();
   const { data: leadTickets } = usePaymentTicketsByLead(enrollment?.lead_id);
 
-  // The deposit ticket created alongside this enrollment (if any) — the one
-  // whose payment_method/recipient_account this form edits. Prefer the
-  // marker note EnrollmentCreateDrawer stamps it with; older/edge-case data
-  // without that note falls back to the earliest ticket linked to this
-  // enrollment_id.
   const depositTicket = useMemo(() => {
     if (!enrollment || !leadTickets) return null;
     const linked = leadTickets.filter((t) => t.enrollment_id === enrollment.id);
@@ -48,13 +47,15 @@ export function EnrollmentModal({ open, leadName, enrollment, onClose }: Enrollm
     if (!open || !enrollment) return;
 
     form.setFieldsValue({
-      course_id: enrollment.course_id,
+      category: enrollment.category as EnrollmentFormValues['category'],
+      course_id: enrollment.course_id ?? undefined,
       class_id: enrollment.class_id ?? undefined,
+      item_name: enrollment.item_name ?? undefined,
       enrollment_date: dayjs(enrollment.enrollment_date),
       source: enrollment.source ?? undefined,
       expected_study_month: enrollment.expected_study_month ? dayjs(enrollment.expected_study_month) : undefined,
       tuition_fee: enrollment.tuition_fee,
-      deposit_amount: enrollment.deposit_amount,
+      deposit_amount: depositTicket?.amount ?? enrollment.deposit_amount,
       deposit_payment_method: depositTicket?.payment_method as PaymentMethod | undefined,
       deposit_recipient_account: depositTicket?.recipient_account ?? undefined,
       note: enrollment.note ?? undefined,
@@ -66,12 +67,16 @@ export function EnrollmentModal({ open, leadName, enrollment, onClose }: Enrollm
   const handleSubmit = async (values: EnrollmentFormValues) => {
     if (!enrollment) return;
 
+    const isCourseCategory = values.category === 'khóa học';
+
     try {
       await updateEnrollment.mutateAsync({
         id: enrollment.id,
         input: {
-          course_id: values.course_id,
-          class_id: values.class_id ?? null,
+          category: values.category,
+          course_id: isCourseCategory ? values.course_id : null,
+          class_id: isCourseCategory ? (values.class_id ?? null) : null,
+          item_name: isCourseCategory ? null : (values.item_name ?? null),
           enrollment_date: values.enrollment_date.toISOString(),
           source: values.source ?? null,
           expected_study_month: values.expected_study_month ? values.expected_study_month.toISOString() : null,
@@ -88,8 +93,8 @@ export function EnrollmentModal({ open, leadName, enrollment, onClose }: Enrollm
     }
 
     if (values.deposit_amount && values.deposit_amount > 0) {
-      try {
-        if (depositTicket) {
+      if (depositTicket) {
+        try {
           await updatePaymentTicket.mutateAsync({
             id: depositTicket.id,
             input: {
@@ -98,26 +103,30 @@ export function EnrollmentModal({ open, leadName, enrollment, onClose }: Enrollm
               recipient_account: values.deposit_recipient_account ?? null,
             },
           });
-        } else {
-          // No deposit ticket yet (e.g. deposit_amount was 0 at creation) —
-          // create one now instead of silently dropping the entered amount.
+        } catch {
+          message.warning('Đã cập nhật đăng ký nhưng cập nhật phiếu thu tiền cọc thất bại');
+          onClose();
+          return;
+        }
+      } else if (values.deposit_payment_method) {
+        try {
           await createPaymentTicket.mutateAsync({
             lead_id: enrollment.lead_id,
             enrollment_id: enrollment.id,
-            course_id: values.course_id,
+            course_id: isCourseCategory ? values.course_id : undefined,
             amount: values.deposit_amount,
-            payment_method: values.deposit_payment_method || PaymentMethod.CASH,
+            payment_method: values.deposit_payment_method,
             recipient_account: values.deposit_recipient_account,
             payment_date: values.enrollment_date.toISOString(),
-            note: DEPOSIT_TICKET_NOTE,
-            created_by: enrollment.created_by ?? undefined,
+            note: 'Bổ sung phiếu thu cho dữ liệu cũ',
+            created_by: values.created_by,
             status: 'approved',
           });
+        } catch {
+          message.warning('Đã cập nhật đăng ký nhưng tạo phiếu thu thất bại');
+          onClose();
+          return;
         }
-      } catch {
-        message.warning('Đã cập nhật đăng ký nhưng cập nhật phiếu thu tiền cọc thất bại');
-        onClose();
-        return;
       }
     }
 
@@ -129,12 +138,12 @@ export function EnrollmentModal({ open, leadName, enrollment, onClose }: Enrollm
     <Modal
       open={open}
       centered
-      title={`Sửa đăng ký khóa học — ${leadName || ''}`}
+      title={`Sửa đăng ký — ${leadName || ''}`}
       onCancel={onClose}
       onOk={() => form.submit()}
       okText="Lưu"
       cancelText="Hủy"
-      confirmLoading={updateEnrollment.isPending || createPaymentTicket.isPending || updatePaymentTicket.isPending}
+      confirmLoading={updateEnrollment.isPending || updatePaymentTicket.isPending || createPaymentTicket.isPending}
       width={560}
       destroyOnHidden
     >

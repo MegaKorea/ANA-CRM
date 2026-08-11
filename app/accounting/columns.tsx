@@ -12,6 +12,18 @@ export const PaymentMethodColor: Record<string, string> = {
   bank_company: 'geekblue',
 };
 
+export const ENROLLMENT_CATEGORY_LABEL: Record<string, string> = {
+  'khóa học': 'Khóa học',
+  'vật tư': 'Vật tư',
+  'chứng chỉ': 'Chứng chỉ',
+};
+
+export const ENROLLMENT_CATEGORY_COLOR: Record<string, string> = {
+  'khóa học': 'blue',
+  'vật tư': 'gold',
+  'chứng chỉ': 'purple',
+};
+
 export const TicketStatusConfig: Record<
   string,
   { color: string; label: string; icon: React.ReactNode }

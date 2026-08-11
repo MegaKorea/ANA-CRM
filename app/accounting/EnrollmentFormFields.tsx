@@ -15,6 +15,12 @@ const ENROLLMENT_SOURCE_OPTIONS = ['Hotline', 'Facebook', 'Zalo', 'Khác'].map((
   value,
 }));
 
+const ENROLLMENT_CATEGORY_OPTIONS = [
+  { label: 'Khóa học', value: 'khóa học' },
+  { label: 'Vật tư', value: 'vật tư' },
+  { label: 'Chứng chỉ', value: 'chứng chỉ' },
+];
+
 interface EnrollmentFormFieldsProps {
   form: FormInstance<EnrollmentFormValues>;
   columns?: 2 | 3;
@@ -48,6 +54,8 @@ export function EnrollmentFormFields({
   );
 
   const depositPaymentMethod = Form.useWatch('deposit_payment_method', form);
+  const category = Form.useWatch('category', form);
+  const isCourseCategory = !category || category === 'khóa học';
 
   const fieldSpan = columns === 3 ? 8 : 12;
 
@@ -55,26 +63,54 @@ export function EnrollmentFormFields({
     <Row gutter={[16, 0]}>
       <Col xs={24} sm={fieldSpan}>
         <Form.Item
-          name="course_id"
-          label="Khóa học"
-          rules={[{ required: true, message: 'Vui lòng chọn khóa học' }]}
+          name="category"
+          label="Danh mục"
+          rules={[{ required: true, message: 'Vui lòng chọn danh mục' }]}
         >
-          <Select
-            showSearch
-            placeholder="Chọn khóa học"
-            options={courseOptions}
-            filterOption={(input, option) =>
-              (option?.label as string).toLowerCase().includes(input.toLowerCase())
-            }
-          />
+          <Select options={ENROLLMENT_CATEGORY_OPTIONS} />
         </Form.Item>
       </Col>
 
-      <Col xs={24} sm={fieldSpan}>
-        <Form.Item name="class_id" label="Lớp (nếu đã xếp lớp)">
-          <Select allowClear placeholder="Chưa xếp lớp" options={classOptions} />
-        </Form.Item>
-      </Col>
+      {isCourseCategory && (
+        <>
+          <Col xs={24} sm={fieldSpan}>
+            <Form.Item
+              name="course_id"
+              label="Khóa học"
+              preserve={false}
+              rules={[{ required: true, message: 'Vui lòng chọn khóa học' }]}
+            >
+              <Select
+                showSearch
+                placeholder="Chọn khóa học"
+                options={courseOptions}
+                filterOption={(input, option) =>
+                  (option?.label as string).toLowerCase().includes(input.toLowerCase())
+                }
+              />
+            </Form.Item>
+          </Col>
+
+          <Col xs={24} sm={fieldSpan}>
+            <Form.Item name="class_id" label="Lớp (nếu đã xếp lớp)" preserve={false}>
+              <Select allowClear placeholder="Chưa xếp lớp" options={classOptions} />
+            </Form.Item>
+          </Col>
+        </>
+      )}
+
+      {!isCourseCategory && (
+        <Col xs={24} sm={fieldSpan}>
+          <Form.Item
+            name="item_name"
+            label={category === 'chứng chỉ' ? 'Tên chứng chỉ' : 'Tên vật tư'}
+            preserve={false}
+            rules={[{ required: true, message: 'Vui lòng nhập tên' }]}
+          >
+            <Input placeholder={category === 'chứng chỉ' ? 'Ví dụ: Chứng chỉ nghề Spa' : 'Ví dụ: Bộ dụng cụ nail'} />
+          </Form.Item>
+        </Col>
+      )}
 
       <Col xs={24} sm={fieldSpan}>
         <Form.Item

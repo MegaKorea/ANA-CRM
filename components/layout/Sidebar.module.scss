@@ -1,4 +1,4 @@
-.sider {
+.sider:global(.ant-layout-sider) {
   overflow-x: hidden;
   overflow-y: auto;
   height: 100vh;
@@ -33,7 +33,7 @@
   object-fit: contain;
 }
 
-.menu {
+.menu:global(.ant-menu) {
   border-right: 0;
   padding-top: 8px;
 }
