@@ -4,6 +4,10 @@
 }
 
 .tableWrapper {
+  :global(table) {
+    width: 100% !important;
+  }
+
   :global(.ant-table-thead > tr > th) {
     font-weight: 600;
     font-size: 12.5px;

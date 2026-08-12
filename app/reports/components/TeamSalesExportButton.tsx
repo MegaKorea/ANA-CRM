@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { App, Button, DatePicker, Input, Modal, Space, Table, Typography, theme } from 'antd';
+import { App, Button, DatePicker, Input, Modal, Space, Switch, Table, Typography, theme } from 'antd';
 import { BarChartOutlined, TableOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import type { TeamSalesReportRow } from '@/lib/services/team-sales-report.service';
@@ -17,9 +17,10 @@ type Token = ReturnType<typeof theme.useToken>['token'];
 async function fetchTeamSalesReportRows(
   startAt: string,
   endAt: string,
+  splitByDay: boolean,
 ): Promise<TeamSalesReportRow[]> {
   const res = await fetch(
-    `/api/reports/team-sales-export?startAt=${encodeURIComponent(startAt)}&endAt=${encodeURIComponent(endAt)}`,
+    `/api/reports/team-sales-export?startAt=${encodeURIComponent(startAt)}&endAt=${encodeURIComponent(endAt)}&splitByDay=${splitByDay}`,
   );
   if (!res.ok) {
     const body = await res.json().catch(() => null);
@@ -48,33 +49,38 @@ function formatPeriodLabel(startAt: string, endAt: string): string {
 }
 
 const METRIC_COLUMNS = [
-  { key: 'dataNhan', title: 'Data nhận', width: 120, format: formatNumberVi },
-  { key: 'chamZalo', title: 'Chăm zalo', width: 120, format: formatNumberVi },
-  { key: 'tuongTacQuanTam', title: 'Tương tác/ quan tâm', width: 150, format: formatNumberVi },
-  { key: 'itTuongTac', title: 'Ít tương tác', width: 130, format: formatNumberVi },
-  { key: 'chuaTiepCan', title: 'Chưa tiếp cận', width: 130, format: formatNumberVi },
-  { key: 'racKqt', title: 'Rác/KQT', width: 120, format: formatNumberVi },
-  { key: 'slHvDen', title: 'SL HV đến', width: 120, format: formatNumberVi },
-  { key: 'slHvChot', title: 'SL HV chốt', width: 120, format: formatNumberVi },
-  { key: 'doanhThu', title: 'Doanh thu', width: 160, format: formatCurrencyVnd },
-  { key: 'congNo', title: 'Công nợ', width: 160, format: formatCurrencyVnd },
+  { key: 'dataNhan', title: 'Data nhận', width: '7%', format: formatNumberVi },
+  { key: 'chamZalo', title: 'Chăm zalo', width: '7%', format: formatNumberVi },
+  { key: 'tuongTacQuanTam', title: 'Tương tác/ quan tâm', width: '8%', format: formatNumberVi },
+  { key: 'itTuongTac', title: 'Ít tương tác', width: '7%', format: formatNumberVi },
+  { key: 'chuaTiepCan', title: 'Chưa tiếp cận', width: '7%', format: formatNumberVi },
+  { key: 'racKqt', title: 'Rác/KQT', width: '7%', format: formatNumberVi },
+  { key: 'slHvDen', title: 'SL HV đến', width: '7%', format: formatNumberVi },
+  { key: 'slHvChot', title: 'SL HV chốt', width: '7%', format: formatNumberVi },
+  { key: 'doanhThu', title: 'Doanh thu', width: '9%', format: formatCurrencyVnd },
+  { key: 'congNo', title: 'Công nợ', width: '9%', format: formatCurrencyVnd },
 ] as const satisfies {
   key: keyof TeamSalesReportRow;
   title: string;
-  width: number;
+  width: string;
   format: (val: number) => string;
 }[];
 
 type MetricKey = (typeof METRIC_COLUMNS)[number]['key'];
 
-function sumRows(rows: TeamSalesReportRow[]): Record<MetricKey, number> {
+function sumRows(
+  rows: TeamSalesReportRow[],
+  cellOverrides: Record<string, string>,
+): Record<MetricKey, number> {
   const totals = Object.fromEntries(METRIC_COLUMNS.map(({ key }) => [key, 0])) as Record<
     MetricKey,
     number
   >;
   for (const row of rows) {
     for (const { key } of METRIC_COLUMNS) {
-      totals[key] += row[key];
+      const override = cellOverrides[`${row.startAt}:${key}`];
+      const parsed = override !== undefined ? Number(override) : NaN;
+      totals[key] += Number.isFinite(parsed) ? parsed : row[key];
     }
   }
   return totals;
@@ -108,6 +114,7 @@ interface EditableMetricCellProps {
   displayValue: React.ReactNode;
   editValue: string;
   isEditing: boolean;
+  allowNewLine: boolean;
   onStartEdit: () => void;
   onChangeValue: (value: string) => void;
   onStopEdit: () => void;
@@ -117,11 +124,25 @@ function EditableMetricCell({
   displayValue,
   editValue,
   isEditing,
+  allowNewLine,
   onStartEdit,
   onChangeValue,
   onStopEdit,
 }: EditableMetricCellProps) {
   if (isEditing) {
+    if (allowNewLine) {
+      return (
+        <Input.TextArea
+          autoFocus
+          autoSize={{ minRows: 1, maxRows: 4 }}
+          variant="borderless"
+          value={editValue}
+          style={{ width: '100%', textAlign: 'center' }}
+          onChange={(e) => onChangeValue(e.target.value)}
+          onBlur={onStopEdit}
+        />
+      );
+    }
     return (
       <Input
         autoFocus
@@ -137,7 +158,15 @@ function EditableMetricCell({
   }
 
   return (
-    <span onClick={onStartEdit} style={{ display: 'block', width: '100%', cursor: 'text' }}>
+    <span
+      onClick={onStartEdit}
+      style={{
+        display: 'block',
+        width: '100%',
+        cursor: 'text',
+        whiteSpace: allowNewLine ? 'pre-wrap' : undefined,
+      }}
+    >
       {displayValue}
     </span>
   );
@@ -196,7 +225,7 @@ function EditableTextCell({
         wordBreak: 'break-word',
       }}
     >
-      {rawValue || <span style={{ opacity: 0.35 }}>Nhập ghi chú...</span>}
+      {rawValue}
     </span>
   );
 }
@@ -213,6 +242,8 @@ function renderEditableTextCell(cellEdit: CellEditControls, cellKey: string, val
   );
 }
 
+const NUMERIC_ONLY_METRIC_KEYS: readonly MetricKey[] = ['doanhThu', 'congNo'];
+
 function renderEditableCell(
   cellEdit: CellEditControls,
   token: Token,
@@ -221,9 +252,14 @@ function renderEditableCell(
   cellKey: string,
   value: number,
 ) {
+  const isNumericOnly = NUMERIC_ONLY_METRIC_KEYS.includes(metricKey);
   const override = cellEdit.overrides[cellKey];
   const hasOverride = override !== undefined;
-  const displayValue = hasOverride ? override : renderMetricValue(metricKey, value, format, token);
+  const displayValue = hasOverride
+    ? isNumericOnly
+      ? renderMetricValue(metricKey, Number(override) || 0, format, token)
+      : override
+    : renderMetricValue(metricKey, value, format, token);
   const editValue = hasOverride ? override : String(value);
 
   return (
@@ -231,8 +267,11 @@ function renderEditableCell(
       displayValue={displayValue}
       editValue={editValue}
       isEditing={cellEdit.editingKey === cellKey}
+      allowNewLine={!isNumericOnly}
       onStartEdit={() => cellEdit.onStartEdit(cellKey)}
-      onChangeValue={(v) => cellEdit.onChangeValue(cellKey, v)}
+      onChangeValue={(v) =>
+        cellEdit.onChangeValue(cellKey, isNumericOnly ? v.replace(/\D/g, '') : v)
+      }
       onStopEdit={cellEdit.onStopEdit}
     />
   );
@@ -247,7 +286,7 @@ function buildReportColumns(
     {
       title: 'Ngày',
       key: 'period',
-      width: 220,
+      width: '12%',
       align: 'center' as const,
       render: (_: unknown, row: TeamSalesReportRow) => formatPeriodLabel(row.startAt, row.endAt),
     },
@@ -264,7 +303,7 @@ function buildReportColumns(
       title: 'Ghi chú',
       dataIndex: 'ghiChu',
       key: 'ghiChu',
-      width: 240,
+      width: '13%',
       align: 'center' as const,
       render: (value: string, row: TeamSalesReportRow) =>
         renderEditableTextCell(textCellEdit, `${row.startAt}:ghiChu`, value),
@@ -283,6 +322,7 @@ export function TeamSalesExportButton() {
     dayjs().subtract(1, 'day').hour(17).minute(0),
     dayjs().hour(10).minute(0),
   ]);
+  const [splitByDay, setSplitByDay] = useState(false);
   const [rows, setRows] = useState<TeamSalesReportRow[] | null>(null);
   const [cellOverrides, setCellOverrides] = useState<Record<string, string>>({});
   const [editingCellKey, setEditingCellKey] = useState<string | null>(null);
@@ -292,6 +332,7 @@ export function TeamSalesExportButton() {
   const resetAndClose = () => {
     setOpen(false);
     setRows(null);
+    setSplitByDay(false);
     setCellOverrides({});
     setEditingCellKey(null);
     setTextOverrides({});
@@ -312,7 +353,7 @@ export function TeamSalesExportButton() {
     try {
       const startAt = range[0].toISOString();
       const endAt = range[1].toISOString();
-      setRows(await fetchTeamSalesReportRows(startAt, endAt));
+      setRows(await fetchTeamSalesReportRows(startAt, endAt, splitByDay));
     } catch (error) {
       message.error(error instanceof Error ? error.message : 'Lấy dữ liệu báo cáo thất bại');
     } finally {
@@ -320,7 +361,7 @@ export function TeamSalesExportButton() {
     }
   };
 
-  const totals = rows && rows.length > 1 ? sumRows(rows) : null;
+  const totals = rows && rows.length > 1 ? sumRows(rows, cellOverrides) : null;
 
   const cellEdit: CellEditControls = {
     overrides: cellOverrides,
@@ -349,6 +390,7 @@ export function TeamSalesExportButton() {
       <Modal
         open={open}
         onCancel={resetAndClose}
+        maskClosable={false}
         width={rows ? '95vw' : 'min(92vw, 520px)'}
         centered
         style={rows ? { maxWidth: 1680 } : undefined}
@@ -400,7 +442,7 @@ export function TeamSalesExportButton() {
               bordered
               size="middle"
               tableLayout="fixed"
-              scroll={{ x: 'max-content', y: 'calc(75vh - 220px)' }}
+              scroll={{ y: 'calc(75vh - 220px)' }}
               onRow={(_, index) =>
                 index !== undefined && index % 2 === 1
                   ? { style: { backgroundColor: token.colorFillQuaternary } }
@@ -451,6 +493,10 @@ export function TeamSalesExportButton() {
               onChange={(dates) => setRange(dates as [Dayjs | null, Dayjs | null] | null)}
               style={{ width: '100%' }}
             />
+            <Space align="center" style={{ marginTop: 4 }}>
+              <Switch checked={splitByDay} onChange={setSplitByDay} size="small" />
+              <span>Xem theo từng ngày</span>
+            </Space>
           </Space>
         )}
       </Modal>

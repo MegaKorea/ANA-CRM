@@ -329,7 +329,7 @@ export function renderSmaxTagList(tags: SmaxTag[], tagStyle?: CSSProperties) {
     const tagName = tag.name || tag.alias;
     if (!tagName) return null;
     return (
-      <Tag key={tag.id || idx} color={getSmaxTagColor(tagName)} style={tagStyle}>
+      <Tag key={tag.id || idx} color={getSmaxTagColor(tagName)} variant="solid" style={tagStyle}>
         {tagName}
       </Tag>
     );
