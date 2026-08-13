@@ -5,6 +5,7 @@ import { App, Card, Space, Spin, Typography } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import dynamic from 'next/dynamic';
 import { DateFormat } from '@/constants/enums';
+import { useEnrollmentRevenue } from '@/lib/hooks/use-enrollments';
 import { useLeadStatistics } from '@/lib/hooks/use-lead-statistics';
 import { useLeadStatisticsSummary } from '@/lib/hooks/use-lead-statistics-summary';
 import { useSmaxTagStatistics } from '@/lib/hooks/use-smax-tag-statistics';
@@ -20,8 +21,8 @@ const cardFallback = (
   </Card>
 );
 
-const ReportsDailyTable = dynamic(
-  () => import('./components/ReportsDailyTable').then((m) => m.ReportsDailyTable),
+const ReportsConversionStats = dynamic(
+  () => import('./components/ReportsConversionStats').then((m) => m.ReportsConversionStats),
   { ssr: false, loading: () => cardFallback },
 );
 const ReportsCustomerTags = dynamic(
@@ -100,7 +101,13 @@ export default function ReportsPage() {
     }
   }, [isSupportersError, supportersError, message]);
 
-  const { chartData, funnel } = useLeadStatisticsSummary(data);
+  const { data: revenueData, isLoading: isRevenueLoading } = useEnrollmentRevenue(
+    startDate,
+    endDate,
+  );
+
+  const { funnel, totalLeads, totalAppointments, totalNurturing, fbTotalSpend } =
+    useLeadStatisticsSummary(data);
   const { funnel: previousFunnel } = useLeadStatisticsSummary(prevData);
 
   return (  
@@ -139,9 +146,20 @@ export default function ReportsPage() {
             previousFunnel={isPrevSuccess ? previousFunnel : null}
             loading={isLoading}
           />
+
+          <div style={{ marginTop: 16 }}>
+            <ReportsConversionStats
+              totalLeads={totalLeads}
+              totalAppointments={totalAppointments}
+              totalNurturing={totalNurturing}
+              revenue={revenueData?.totalPaid ?? 0}
+              fbSpend={fbTotalSpend}
+              loading={isLoading || isRevenueLoading}
+            />
+          </div>
         </Card>
 
-        <ReportsDailyTable chartData={chartData} isLoading={isLoading} />
+        {/* ponytail: Bảng thống kê theo ngày tạm ẩn — bỏ comment để bật lại */}
 
         <ReportsCustomerTags
           tags={tagData?.tags ?? []}

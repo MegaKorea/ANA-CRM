@@ -41,7 +41,9 @@ function bumpCreated(
   if (!lead.created_at) return;
   const day = toVnDate(lead.created_at);
   const row = dateMap.get(day);
-  if (row) row.totalLeads += 1;
+  if (!row) return;
+  row.totalLeads += 1;
+  if (lead.status === LeadStatus.NURTURING) row.nurturingLeads += 1;
 }
 
 function bumpRegistered(

@@ -2,6 +2,7 @@ export type LeadStatisticsChartRow = {
   date: string;
   totalLeads: number;
   registeredLeads: number;
+  nurturingLeads: number;
   totalAppointments: number;
   arrivedAppointments: number;
   fbSpend?: number;
@@ -31,6 +32,7 @@ export function emptyDayStats(date: string): LeadStatisticsChartRow {
     date,
     totalLeads: 0,
     registeredLeads: 0,
+    nurturingLeads: 0,
     totalAppointments: 0,
     arrivedAppointments: 0,
   };
