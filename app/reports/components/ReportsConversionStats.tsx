@@ -10,7 +10,7 @@ import {
 } from '@ant-design/icons';
 import { memo, type ReactNode } from 'react';
 import { formatCurrencyVnd } from '@/lib/utils/numberFormat';
-import styles from './ReportsOverviewCards.module.css';
+import styles from './ReportsConversionStats.module.css';
 
 const { Text } = Typography;
 
@@ -85,65 +85,50 @@ function buildStats({
   ];
 }
 
-function StatBody({ item }: { item: StatItem }) {
-  const { token } = theme.useToken();
-
-  return (
-    <div className={styles.mobileRow}>
-      <div className={styles.mobileIcon} style={{ background: item.color }}>
-        {item.icon}
-      </div>
-      <div className={styles.mobileMain}>
-        <div className={styles.mobileLabel} style={{ color: token.colorTextSecondary }}>
-          {item.label}
-        </div>
-        <div className={styles.mobileValue} style={{ color: token.colorText }}>
-          {item.valueLabel}
-        </div>
-        <Text type="secondary" style={{ fontSize: 11 }}>
-          {item.hint}
-        </Text>
-      </div>
-    </div>
-  );
-}
-
 export const ReportsConversionStats = memo(function ReportsConversionStats({
   loading,
   ...values
 }: Props) {
   const { token } = theme.useToken();
-  const items = buildStats(values);
 
-  const card = (item: StatItem) => (
-    <Card
-      size="small"
-      className={styles.mobileCard}
-      style={{ borderColor: token.colorBorderSecondary, height: '100%' }}
-    >
-      <StatBody item={item} />
-    </Card>
-  );
+  if (loading) {
+    return (
+      <div className={styles.grid}>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} className={styles.skeleton} />
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <>
-      <div className={styles.mobile}>
-        {loading
-          ? [0, 1, 2, 3, 4].map((i) => <div key={i} className={styles.skeleton} />)
-          : items.map((item) => <div key={item.key}>{card(item)}</div>)}
-      </div>
-
-      <div className={styles.desktop}>
-        <div className={styles.desktopGrid}>
-          {loading
-            ? [0, 1, 2, 3, 4].map((i) => <div key={i} className={styles.skeleton} />)
-            : items.map((item) => (
-                <div key={item.key} className={styles.desktopCardWrap}>
-                  {card(item)}
-                </div>
-              ))}
-        </div>
-      </div>
-    </>
+    <div className={styles.grid}>
+      {buildStats(values).map((item) => (
+        <Card
+          key={item.key}
+          size="small"
+          className={styles.card}
+          style={{ borderColor: token.colorBorderSecondary }}
+        >
+          <div className={styles.head}>
+            <Text type="secondary" className={styles.label}>
+              {item.label}
+            </Text>
+            <div
+              className={styles.icon}
+              style={{ background: `${item.color}1f`, color: item.color }}
+            >
+              {item.icon}
+            </div>
+          </div>
+          <div className={styles.value} style={{ color: token.colorText }}>
+            {item.valueLabel}
+          </div>
+          <Text type="secondary" className={styles.hint}>
+            {item.hint}
+          </Text>
+        </Card>
+      ))}
+    </div>
   );
 });

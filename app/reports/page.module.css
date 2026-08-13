@@ -100,17 +100,6 @@
     width: 50%;
   }
 
-  .splitRow {
-    flex-direction: row;
-    align-items: stretch;
-  }
-
-  .halfCol {
-    flex: 1 1 50%;
-    width: 50%;
-    align-self: stretch;
-  }
-
   .overviewCard :global(.ant-card-body) {
     padding: 24px;
   }
@@ -121,5 +110,19 @@
 
   .sectionTitleDesktop {
     display: block;
+  }
+}
+
+/* 3 cột chỉ từ lg trở lên — dưới đó xếp dọc cho dễ đọc. */
+@media (min-width: 992px) {
+  .splitRow {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .halfCol {
+    flex: 1 1 0;
+    width: auto;
+    align-self: stretch;
   }
 }

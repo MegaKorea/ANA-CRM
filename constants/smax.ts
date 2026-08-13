@@ -15,6 +15,7 @@ export const SmaxApiPath = {
   STATISTICS: '/smax/statistics',
   TAGS: '/smax/tags',
   SUPPORTERS: '/smax/supporters',
+  MESSAGING_PERFORMANCE: '/smax/messaging-performance',
 } as const;
 
 export const SmaxQueryKey = {
@@ -22,6 +23,7 @@ export const SmaxQueryKey = {
   STATISTICS: 'smax-statistics',
   TAGS: 'smax-tags',
   SUPPORTERS: 'smax-supporters',
+  MESSAGING_PERFORMANCE: 'smax-messaging-performance',
 } as const;
 
 export const SmaxCustomerStatType = {

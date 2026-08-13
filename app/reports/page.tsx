@@ -21,6 +21,13 @@ const cardFallback = (
   </Card>
 );
 
+const ReportsMessagingPerformance = dynamic(
+  () =>
+    import('./components/ReportsMessagingPerformance').then(
+      (m) => m.ReportsMessagingPerformance,
+    ),
+  { ssr: false, loading: () => cardFallback },
+);
 const ReportsConversionStats = dynamic(
   () => import('./components/ReportsConversionStats').then((m) => m.ReportsConversionStats),
   { ssr: false, loading: () => cardFallback },
@@ -146,32 +153,28 @@ export default function ReportsPage() {
             previousFunnel={isPrevSuccess ? previousFunnel : null}
             loading={isLoading}
           />
-
-          <div style={{ marginTop: 16 }}>
-            <ReportsConversionStats
-              totalLeads={totalLeads}
-              totalAppointments={totalAppointments}
-              totalNurturing={totalNurturing}
-              revenue={revenueData?.totalPaid ?? 0}
-              fbSpend={fbTotalSpend}
-              loading={isLoading || isRevenueLoading}
-            />
-          </div>
         </Card>
+
+        <ReportsConversionStats
+          totalLeads={totalLeads}
+          totalAppointments={totalAppointments}
+          totalNurturing={totalNurturing}
+          revenue={revenueData?.totalPaid ?? 0}
+          fbSpend={fbTotalSpend}
+          loading={isLoading || isRevenueLoading}
+        />
 
         {/* ponytail: Bảng thống kê theo ngày tạm ẩn — bỏ comment để bật lại */}
 
-        <ReportsCustomerTags
-          tags={tagData?.tags ?? []}
-          totalNet={tagData?.totalNet ?? 0}
-          startDate={startDate}
-          endDate={endDate}
-          isLoading={isTagsLoading}
-          isError={isTagsError}
-          errorMessage={(tagsError as Error | undefined)?.message}
-        />
-
         <div className={styles.splitRow}>
+          <div className={styles.halfCol}>
+            <ReportsMessagingPerformance
+              startDate={startDate}
+              endDate={endDate}
+              prevStartDate={prevRange.startDate}
+              prevEndDate={prevRange.endDate}
+            />
+          </div>
           <div className={styles.halfCol}>
             <ReportsUpcomingAppointments />
           </div>
@@ -184,6 +187,16 @@ export default function ReportsPage() {
             />
           </div>
         </div>
+
+        <ReportsCustomerTags
+          tags={tagData?.tags ?? []}
+          totalNet={tagData?.totalNet ?? 0}
+          startDate={startDate}
+          endDate={endDate}
+          isLoading={isTagsLoading}
+          isError={isTagsError}
+          errorMessage={(tagsError as Error | undefined)?.message}
+        />
       </Space>
     </div>
   );
