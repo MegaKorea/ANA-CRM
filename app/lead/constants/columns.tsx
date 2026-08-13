@@ -264,7 +264,11 @@ export const getLeadTableColumns = ({
         if (!tags || tags.length === 0) {
           return null;
         }
-        return <Space size={[0, 4]} wrap>{renderSmaxTagList(tags)}</Space>;
+        return (
+          <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, overflowX: 'auto' }}>
+            {renderSmaxTagList(tags, { margin: 0, flexShrink: 0 })}
+          </div>
+        );
       },
     },
     {
