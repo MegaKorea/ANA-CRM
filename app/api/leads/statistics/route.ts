@@ -29,6 +29,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const { data: leads, error } = await supabase
       .from('leads')
       .select(LEAD_STAT_SELECT)
+      .eq('is_imported', false)
       .or(
         [
           `and(created_at.gte.${rangeStart},created_at.lte.${rangeEnd})`,
