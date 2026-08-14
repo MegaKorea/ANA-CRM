@@ -5,6 +5,7 @@ import { AttendanceStatus, LeadSource, LeadStatus } from '@/constants/enums';
 import type { LocationValue } from '@/components/common/LocationSelect';
 import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
 import { isSafeHttpUrl } from '@/lib/utils/openInNewTab';
+import { formatSmaxTagLabel } from '@/lib/smax/tag-labels';
 import type { Lead } from '@/lib/services/lead.service';
 
 const ZALO_CHAT_URL_BASE =
@@ -200,6 +201,11 @@ const SMAX_FACEBOOK_ID_KEYS = ['gid', 'fb_id', 'facebook_id', 'psid', 'uid'];
 
 const SMAX_SCAN_MAX_DEPTH = 3;
 
+function toFacebookProfileUrl(rawId: string): string | undefined {
+  const trimmed = rawId.trim();
+  return /^\d{5,}$/.test(trimmed) ? `${FACEBOOK_PROFILE_URL_BASE}${trimmed}` : undefined;
+}
+
 function isFacebookProfileUrl(value: unknown): value is string {
   if (typeof value !== 'string' || !isSafeHttpUrl(value)) {
     return false;
@@ -224,9 +230,19 @@ export function getSmaxFacebookUrl(smaxLog: unknown): string | undefined {
     return undefined;
   }
 
+  const facebook = (smaxLog as Record<string, unknown>).facebook;
+  const directId =
+    facebook && typeof facebook === 'object'
+      ? (facebook as Record<string, unknown>).id
+      : undefined;
+  if (typeof directId === 'string') {
+    const directUrl = toFacebookProfileUrl(directId);
+    if (directUrl) return directUrl;
+  }
+
   const threadUrl = getSmaxThreadUrl(smaxLog);
   const queue: { node: object; depth: number }[] = [{ node: smaxLog, depth: 0 }];
-  let facebookId: string | undefined;
+  let facebookUrl: string | undefined;
 
   while (queue.length > 0) {
     const { node, depth } = queue.shift() as { node: object; depth: number };
@@ -236,11 +252,9 @@ export function getSmaxFacebookUrl(smaxLog: unknown): string | undefined {
         return value.trim();
       }
 
-      if (!facebookId && SMAX_FACEBOOK_ID_KEYS.includes(key.toLowerCase())) {
-        const rawId = typeof value === 'number' ? String(value) : String(value ?? '').trim();
-        if (/^\d{5,}$/.test(rawId)) {
-          facebookId = rawId;
-        }
+      if (!facebookUrl && SMAX_FACEBOOK_ID_KEYS.includes(key.toLowerCase())) {
+        const rawId = typeof value === 'number' ? String(value) : String(value ?? '');
+        facebookUrl = toFacebookProfileUrl(rawId);
       }
 
       if (value && typeof value === 'object' && depth < SMAX_SCAN_MAX_DEPTH) {
@@ -249,7 +263,7 @@ export function getSmaxFacebookUrl(smaxLog: unknown): string | undefined {
     }
   }
 
-  return facebookId ? `${FACEBOOK_PROFILE_URL_BASE}${facebookId}` : undefined;
+  return facebookUrl;
 }
 
 export function getLeadFacebookUrl(lead: Lead): string | undefined {
@@ -327,11 +341,12 @@ export function getSmaxTagColor(tagName: string): string {
 
 export function renderSmaxTagList(tags: SmaxTag[], tagStyle?: CSSProperties) {
   return tags.map((tag, idx) => {
-    const tagName = tag.name || tag.alias;
-    if (!tagName) return null;
+    const rawName = tag.name || tag.alias;
+    if (!rawName) return null;
+    const label = formatSmaxTagLabel(rawName);
     return (
-      <Tag key={tag.id || idx} color={getSmaxTagColor(tagName)} variant="solid" style={tagStyle}>
-        {tagName}
+      <Tag key={tag.id || idx} color={getSmaxTagColor(label)} variant="solid" style={tagStyle}>
+        {label}
       </Tag>
     );
   });

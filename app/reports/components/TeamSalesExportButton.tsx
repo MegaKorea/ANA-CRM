@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { App, Button, DatePicker, Input, Modal, Space, Switch, Table, Typography, theme } from 'antd';
-import { BarChartOutlined, TableOutlined } from '@ant-design/icons';
+import { App, Button, DatePicker, Input, Modal, Space, Switch, Typography, theme } from 'antd';
+import { TableOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
-import type { TeamSalesReportRow } from '@/lib/services/team-sales-report.service';
+import type { TeamSalesNoteEntry, TeamSalesReportRow } from '@/lib/services/team-sales-report.service';
 import { formatCurrencyVnd, formatNumberVi } from '@/lib/utils/numberFormat';
 import { VN_TIMEZONE } from '@/lib/utils/vn-date';
 import styles from './TeamSalesExportButton.module.scss';
@@ -49,20 +49,19 @@ function formatPeriodLabel(startAt: string, endAt: string): string {
 }
 
 const METRIC_COLUMNS = [
-  { key: 'dataNhan', title: 'Data nhận', width: '7%', format: formatNumberVi },
-  { key: 'chamZalo', title: 'Chăm zalo', width: '7%', format: formatNumberVi },
-  { key: 'tuongTacQuanTam', title: 'Tương tác/ quan tâm', width: '8%', format: formatNumberVi },
-  { key: 'itTuongTac', title: 'Ít tương tác', width: '7%', format: formatNumberVi },
-  { key: 'chuaTiepCan', title: 'Chưa tiếp cận', width: '7%', format: formatNumberVi },
-  { key: 'racKqt', title: 'Rác/KQT', width: '7%', format: formatNumberVi },
-  { key: 'slHvDen', title: 'SL HV đến', width: '7%', format: formatNumberVi },
-  { key: 'slHvChot', title: 'SL HV chốt', width: '7%', format: formatNumberVi },
-  { key: 'doanhThu', title: 'Doanh thu', width: '9%', format: formatCurrencyVnd },
-  { key: 'congNo', title: 'Công nợ', width: '9%', format: formatCurrencyVnd },
+  { key: 'dataNhan', title: 'Data nhận', format: formatNumberVi },
+  { key: 'chamZalo', title: 'Chăm zalo', format: formatNumberVi },
+  { key: 'tuongTacQuanTam', title: 'Tương tác/QT', format: formatNumberVi },
+  { key: 'itTuongTac', title: 'Ít tương tác', format: formatNumberVi },
+  { key: 'chuaTiepCan', title: 'Chưa tiếp cận', format: formatNumberVi },
+  { key: 'racKqt', title: 'Rác/KQT', format: formatNumberVi },
+  { key: 'slHvDen', title: 'SL HV đến', format: formatNumberVi },
+  { key: 'slHvChot', title: 'SL HV chốt', format: formatNumberVi },
+  { key: 'doanhThu', title: 'Doanh thu', format: formatCurrencyVnd },
+  { key: 'congNo', title: 'Công nợ', format: formatCurrencyVnd },
 ] as const satisfies {
   key: keyof TeamSalesReportRow;
   title: string;
-  width: string;
   format: (val: number) => string;
 }[];
 
@@ -93,14 +92,14 @@ function renderMetricValue(
   token: Token,
 ) {
   if (key === 'doanhThu') {
-    return <Text style={{ color: token.colorSuccess, fontWeight: 600 }}>{format(value)}</Text>;
+    return <Text style={{ color: token.colorSuccess, fontWeight: 700 }}>{format(value)}</Text>;
   }
   if (key === 'congNo') {
     return (
       <Text
         style={{
           color: value > 0 ? token.colorError : token.colorTextTertiary,
-          fontWeight: value > 0 ? 600 : 400,
+          fontWeight: 700,
         }}
       >
         {format(value)}
@@ -180,68 +179,6 @@ interface CellEditControls {
   onChangeValue: (key: string, value: string) => void;
 }
 
-interface EditableTextCellProps {
-  rawValue: string;
-  isEditing: boolean;
-  onStartEdit: () => void;
-  onChangeValue: (value: string) => void;
-  onStopEdit: () => void;
-}
-
-function EditableTextCell({
-  rawValue,
-  isEditing,
-  onStartEdit,
-  onChangeValue,
-  onStopEdit,
-}: EditableTextCellProps) {
-  if (isEditing) {
-    return (
-      <Input.TextArea
-        autoFocus
-        autoSize={{ minRows: 1, maxRows: 4 }}
-        variant="borderless"
-        value={rawValue}
-        style={{ width: '100%', textAlign: 'center' }}
-        onChange={(e) => onChangeValue(e.target.value)}
-        onBlur={onStopEdit}
-        onPressEnter={(e) => {
-          e.preventDefault();
-          onStopEdit();
-        }}
-      />
-    );
-  }
-
-  return (
-    <span
-      onClick={onStartEdit}
-      style={{
-        display: 'block',
-        width: '100%',
-        minHeight: 22,
-        cursor: 'text',
-        whiteSpace: 'pre-wrap',
-        wordBreak: 'break-word',
-      }}
-    >
-      {rawValue}
-    </span>
-  );
-}
-
-function renderEditableTextCell(cellEdit: CellEditControls, cellKey: string, value: string) {
-  return (
-    <EditableTextCell
-      rawValue={cellEdit.overrides[cellKey] ?? value}
-      isEditing={cellEdit.editingKey === cellKey}
-      onStartEdit={() => cellEdit.onStartEdit(cellKey)}
-      onChangeValue={(v) => cellEdit.onChangeValue(cellKey, v)}
-      onStopEdit={cellEdit.onStopEdit}
-    />
-  );
-}
-
 const NUMERIC_ONLY_METRIC_KEYS: readonly MetricKey[] = ['doanhThu', 'congNo'];
 
 function renderEditableCell(
@@ -277,41 +214,79 @@ function renderEditableCell(
   );
 }
 
-function buildReportColumns(
-  token: Token,
-  cellEdit: CellEditControls,
-  textCellEdit: CellEditControls,
-) {
-  return [
-    {
-      title: 'Ngày',
-      key: 'period',
-      width: '12%',
-      align: 'center' as const,
-      render: (_: unknown, row: TeamSalesReportRow) => formatPeriodLabel(row.startAt, row.endAt),
-    },
-    ...METRIC_COLUMNS.map(({ key, title, width, format }) => ({
-      title,
-      dataIndex: key,
-      key,
-      width,
-      align: 'center' as const,
-      render: (value: number, row: TeamSalesReportRow) =>
-        renderEditableCell(cellEdit, token, key, format, `${row.startAt}:${key}`, value),
-    })),
-    {
-      title: 'Ghi chú',
-      dataIndex: 'ghiChu',
-      key: 'ghiChu',
-      width: '13%',
-      align: 'center' as const,
-      render: (value: string, row: TeamSalesReportRow) =>
-        renderEditableTextCell(textCellEdit, `${row.startAt}:ghiChu`, value),
-    },
-  ];
+const SUMMARY_ROW_KEY = '__summary__';
+
+interface ReportPeriodSectionProps {
+  heading?: React.ReactNode;
+  highlight?: boolean;
+  values: Record<MetricKey, number>;
+  cellKeyPrefix: string;
+  cellEdit: CellEditControls;
+  token: Token;
+  notes?: TeamSalesNoteEntry[];
 }
 
-const SUMMARY_ROW_KEY = '__summary__';
+function ReportPeriodSection({
+  heading,
+  highlight,
+  values,
+  cellKeyPrefix,
+  cellEdit,
+  token,
+  notes,
+}: ReportPeriodSectionProps) {
+  return (
+    <div
+      className={`${styles.periodBlock} ${highlight ? styles.periodBlockHighlight : ''}`}
+      style={{ borderColor: highlight ? token.colorText : token.colorBorderSecondary }}
+    >
+      {heading ? (
+        <div
+          className={styles.periodSubHeader}
+          style={{ borderColor: token.colorText, color: token.colorText }}
+        >
+          {heading}
+        </div>
+      ) : null}
+
+      <div
+        className={styles.metricStrip}
+        style={{ borderColor: token.colorBorderSecondary, background: token.colorBgContainer }}
+      >
+        {METRIC_COLUMNS.map(({ key, title, format }) => (
+          <div key={key} className={styles.metricCell} style={{ borderColor: token.colorBorderSecondary }}>
+            <div className={styles.metricLabel} style={{ color: token.colorTextSecondary }}>
+              {title}
+            </div>
+            <div className={styles.metricValue}>
+              {renderEditableCell(cellEdit, token, key, format, `${cellKeyPrefix}:${key}`, values[key])}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {notes ? (
+        <div className={styles.notesSection}>
+          <div className={styles.notesTitle} style={{ borderColor: token.colorBorderSecondary }}>
+            Ghi chú
+          </div>
+          {notes.length ? (
+            <div className={styles.notesGrid}>
+              {notes.map((entry, index) => (
+                <div key={`${cellKeyPrefix}-${index}`} className={styles.noteItem}>
+                  <span className={styles.noteHeading}>{entry.leadName}:</span>{' '}
+                  <span style={{ color: token.colorTextSecondary }}>{entry.content}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Text type="secondary">Không có ghi chú nào trong khung giờ này.</Text>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function TeamSalesExportButton() {
   const { message } = App.useApp();
@@ -326,8 +301,6 @@ export function TeamSalesExportButton() {
   const [rows, setRows] = useState<TeamSalesReportRow[] | null>(null);
   const [cellOverrides, setCellOverrides] = useState<Record<string, string>>({});
   const [editingCellKey, setEditingCellKey] = useState<string | null>(null);
-  const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
-  const [editingTextKey, setEditingTextKey] = useState<string | null>(null);
 
   const resetAndClose = () => {
     setOpen(false);
@@ -335,8 +308,6 @@ export function TeamSalesExportButton() {
     setSplitByDay(false);
     setCellOverrides({});
     setEditingCellKey(null);
-    setTextOverrides({});
-    setEditingTextKey(null);
   };
 
   const handleViewReport = async () => {
@@ -371,16 +342,6 @@ export function TeamSalesExportButton() {
     onChangeValue: (key, value) => setCellOverrides((prev) => ({ ...prev, [key]: value })),
   };
 
-  const textCellEdit: CellEditControls = {
-    overrides: textOverrides,
-    editingKey: editingTextKey,
-    onStartEdit: (key) => setEditingTextKey(key),
-    onStopEdit: () => setEditingTextKey(null),
-    onChangeValue: (key, value) => setTextOverrides((prev) => ({ ...prev, [key]: value })),
-  };
-
-  const reportColumns = buildReportColumns(token, cellEdit, textCellEdit);
-
   return (
     <>
       <Button type="primary" icon={<TableOutlined />} onClick={() => setOpen(true)}>
@@ -391,10 +352,9 @@ export function TeamSalesExportButton() {
         open={open}
         onCancel={resetAndClose}
         maskClosable={false}
-        width={rows ? '95vw' : 'min(92vw, 520px)'}
+        width={rows ? '98vw' : 'min(92vw, 520px)'}
         centered
-        style={rows ? { maxWidth: 1680 } : undefined}
-        styles={rows ? { body: { paddingTop: 4 } } : undefined}
+        styles={rows ? { body: { padding: 0 } } : undefined}
         footer={
           rows
             ? [
@@ -416,72 +376,42 @@ export function TeamSalesExportButton() {
         }
       >
         {rows ? (
-          <div>
-            <div className={styles.headerRow}>
-              <BarChartOutlined style={{ color: token.colorPrimary, fontSize: 18 }} />
+          <div className={styles.reportShell}>
+            <div className={styles.reportHeader} style={{ borderColor: token.colorBorderSecondary }}>
               <Title level={5} className={styles.reportTitle} style={{ margin: 0 }}>
-                BÁO CÁO KẾT QUẢ LÀM VIỆC TEAM SALES
+                Báo cáo kết quả làm việc Team Sales
               </Title>
-            </div>
-            {rows.length ? (
-              <div
-                className={styles.periodBadge}
-                style={{ background: token.colorPrimaryBg, color: token.colorPrimary }}
-              >
-                <Text style={{ color: token.colorPrimary }}>
+              {rows.length ? (
+                <Text type="secondary" className={styles.periodSubtitle}>
                   {formatPeriodLabel(rows[0].startAt, rows[rows.length - 1].endAt)}
                 </Text>
-              </div>
-            ) : null}
-            <Table
-              className={styles.tableWrapper}
-              columns={reportColumns}
-              dataSource={rows}
-              rowKey={(row) => row.startAt}
-              pagination={false}
-              bordered
-              size="middle"
-              tableLayout="fixed"
-              scroll={{ y: 'calc(75vh - 220px)' }}
-              onRow={(_, index) =>
-                index !== undefined && index % 2 === 1
-                  ? { style: { backgroundColor: token.colorFillQuaternary } }
-                  : {}
-              }
-              summary={
-                totals
-                  ? () => (
-                      <Table.Summary.Row
-                        style={{
-                          backgroundColor: token.colorPrimaryBg,
-                          borderTop: `2px solid ${token.colorPrimary}`,
-                        }}
-                      >
-                        <Table.Summary.Cell index={0} align="center">
-                          <Text strong style={{ color: token.colorPrimary }}>
-                            Tổng
-                          </Text>
-                        </Table.Summary.Cell>
-                        {METRIC_COLUMNS.map(({ key, format }, index) => (
-                          <Table.Summary.Cell key={key} index={index + 1} align="center">
-                            {renderEditableCell(
-                              cellEdit,
-                              token,
-                              key,
-                              format,
-                              `${SUMMARY_ROW_KEY}:${key}`,
-                              totals[key],
-                            )}
-                          </Table.Summary.Cell>
-                        ))}
-                        <Table.Summary.Cell index={METRIC_COLUMNS.length + 1} align="center">
-                          {renderEditableTextCell(textCellEdit, `${SUMMARY_ROW_KEY}:ghiChu`, '')}
-                        </Table.Summary.Cell>
-                      </Table.Summary.Row>
-                    )
-                  : undefined
-              }
-            />
+              ) : null}
+            </div>
+
+            <div className={styles.reportScroll}>
+              {rows.map((row) => (
+                <ReportPeriodSection
+                  key={row.startAt}
+                  heading={rows.length > 1 ? formatPeriodLabel(row.startAt, row.endAt) : null}
+                  values={row}
+                  cellKeyPrefix={row.startAt}
+                  cellEdit={cellEdit}
+                  token={token}
+                  notes={row.ghiChu}
+                />
+              ))}
+
+              {totals ? (
+                <ReportPeriodSection
+                  heading="TỔNG CỘNG"
+                  highlight
+                  values={totals}
+                  cellKeyPrefix={SUMMARY_ROW_KEY}
+                  cellEdit={cellEdit}
+                  token={token}
+                />
+              ) : null}
+            </div>
           </div>
         ) : (
           <Space orientation="vertical" style={{ width: '100%' }}>
