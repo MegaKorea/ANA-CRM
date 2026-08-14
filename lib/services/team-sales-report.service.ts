@@ -100,6 +100,9 @@ function classifyLead(
   if (lead.status === LeadStatus.NURTURING) {
     return 'chamZalo';
   }
+  if (lead.status === LeadStatus.LOW_INTERACTION) {
+    return 'itTuongTac';
+  }
 
   const noteAt = lastNoteAt(lead.note);
   if (noteAt == null) return 'chuaTiepCan';

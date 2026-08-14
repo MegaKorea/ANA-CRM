@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { App, Button, Col, Row, Typography, Space, Spin, Tag, Popconfirm, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { PlusOutlined, BookOutlined } from '@ant-design/icons';
+import { PlusOutlined, BookOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useCourses, useDeleteCourse } from '@/lib/hooks/use-courses';
 import type { Course } from '@/lib/services/course.service';
 import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
@@ -133,12 +133,16 @@ export default function CoursePage() {
       {
         title: 'Hành động',
         key: 'action',
+        align: 'center' as const,
         fixed: 'right',
         render: (_, record) => (
           <Space size="middle">
-            <Button type="link" onClick={() => handleOpenUpdateModal(record)} style={{ padding: 0 }}>
-              Chỉnh sửa
-            </Button>
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleOpenUpdateModal(record)}
+            />
             <Popconfirm
               title="Xóa khóa học"
               description="Bạn có chắc chắn muốn xóa khóa học này không?"
@@ -146,9 +150,7 @@ export default function CoursePage() {
               okText="Xóa"
               cancelText="Hủy"
             >
-              <Button type="link" danger style={{ padding: 0 }}>
-                Xóa
-              </Button>
+              <Button type="text" danger size="small" icon={<DeleteOutlined />} />
             </Popconfirm>
           </Space>
         ),

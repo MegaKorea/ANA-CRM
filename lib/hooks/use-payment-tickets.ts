@@ -125,17 +125,3 @@ export function usePaymentSummary(leadId: number | undefined) {
   });
 }
 
-export function usePaymentCounts(leadIds: number[]) {
-  const key = leadIds.slice().sort().join(',');
-  return useQuery<Record<string, number>>({
-    queryKey: ['payment-counts', key],
-    queryFn: () =>
-      api.get<Record<string, number>>('/payment-tickets/counts', {
-        params: { lead_ids: key },
-      }),
-    enabled: leadIds.length > 0,
-    staleTime: 30 * 1000,
-    placeholderData: (prev) => prev,
-  });
-}
-

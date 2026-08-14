@@ -7,8 +7,6 @@ import {
   PictureOutlined,
   MessageOutlined,
   FacebookOutlined,
-  DollarOutlined,
-  HistoryOutlined,
   CalendarOutlined,
 } from '@ant-design/icons';
 import { SiZalo } from 'react-icons/si';
@@ -60,12 +58,6 @@ export type HandleOpenImagesModal = (lead: Lead) => void;
 
 export type HandleOpenConversationModal = (lead: Lead) => void;
 
-export type HandleOpenPaymentTicketModal = (lead: Lead) => void;
-
-export type HandleOpenPaymentHistoryModal = (lead: Lead) => void;
-
-export type PaymentCountsMap = Record<string, number>;
-
 export const getLeadTableColumns = ({
   handleOpenModal,
   handleDelete,
@@ -76,10 +68,7 @@ export const getLeadTableColumns = ({
   handleOpenAttendanceModal,
   handleOpenAppointmentModal,
   handleOpenConversationModal,
-  handleOpenPaymentTicketModal,
-  handleOpenPaymentHistoryModal,
   courses,
-  paymentCounts,
 }: {
   handleOpenModal: HandleOpenLeadModal;
   handleDelete: HandleDeleteLead;
@@ -90,10 +79,7 @@ export const getLeadTableColumns = ({
   handleOpenAttendanceModal: HandleOpenAttendanceModal;
   handleOpenAppointmentModal: HandleOpenAppointmentModal;
   handleOpenConversationModal: HandleOpenConversationModal;
-  handleOpenPaymentTicketModal: HandleOpenPaymentTicketModal;
-  handleOpenPaymentHistoryModal: HandleOpenPaymentHistoryModal;
   courses?: Course[] | null;
-  paymentCounts?: PaymentCountsMap;
 }): ColumnsType<Lead> => [
     {
       title: LeadPageText.COLUMN_ID,
@@ -116,6 +102,7 @@ export const getLeadTableColumns = ({
       title: LeadPageText.COLUMN_PHONE_NUMBER,
       dataIndex: 'phone_number',
       key: 'phone_number',
+      align: 'center' as const,
     },
     {
       title: LeadPageText.COLUMN_NOTE,
@@ -220,6 +207,7 @@ export const getLeadTableColumns = ({
       title: LeadPageText.COLUMN_DATE_OF_BIRTH,
       dataIndex: 'date_of_birth',
       key: 'date_of_birth',
+      align: 'center' as const,
       render: (date: string | null) => (date ? date : null),
     },
     {
@@ -237,14 +225,17 @@ export const getLeadTableColumns = ({
       title: LeadPageText.COLUMN_STATUS,
       dataIndex: 'status',
       key: 'status',
+      align: 'center' as const,
       render: (status: string | null) => {
         if (!status) {
           return null;
         }
         return (
-          <Tag color={getLeadStatusColor(status)}>
-            {LeadStatusLabel[status as keyof typeof LeadStatusLabel] ?? status}
-          </Tag>
+          <div style={{ textAlign: 'left' }}>
+            <Tag color={getLeadStatusColor(status)} style={{ marginInlineEnd: 0 }}>
+              {LeadStatusLabel[status as keyof typeof LeadStatusLabel] ?? status}
+            </Tag>
+          </div>
         );
       },
     },
@@ -293,6 +284,7 @@ export const getLeadTableColumns = ({
       title: LeadPageText.COLUMN_SOURCE,
       dataIndex: 'source',
       key: 'source',
+      align: 'center' as const,
       render: (source: string | null) => {
         if (!source) {
           return null;
@@ -321,37 +313,6 @@ export const getLeadTableColumns = ({
       width: 140,
       render: (value: number | null) =>
         value ? formatNumberVi(value) + ' đ' : null,
-    },
-    {
-      title: 'Thanh toán',
-      key: 'payment',
-      align: 'center' as const,
-      width: 120,
-      render: (_: unknown, record: Lead) => {
-        const paidCount = paymentCounts?.[String(record.id)] ?? 0;
-        return (
-          <Space>
-            <Tooltip title="Tạo phiếu thu">
-              <Button
-                size="small"
-                type="primary"
-                icon={<DollarOutlined />}
-                onClick={() => handleOpenPaymentTicketModal(record)}
-              />
-            </Tooltip>
-            <Tooltip title={paidCount > 0 ? `Đã nộp ${paidCount} lần` : 'Lịch sử thanh toán'}>
-              <Badge count={paidCount} size="small" offset={[-2, 0]}>
-                <Button
-                  size="small"
-                  icon={<HistoryOutlined />}
-                  onClick={() => handleOpenPaymentHistoryModal(record)}
-                  style={paidCount > 0 ? { borderColor: '#52c41a', color: '#52c41a' } : undefined}
-                />
-              </Badge>
-            </Tooltip>
-          </Space>
-        );
-      },
     },
     {
       title: LeadPageText.COLUMN_APPOINTMENT_DATE,
