@@ -53,7 +53,7 @@
 
 .card {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-columns: 34px minmax(0, 1fr);
   align-items: start;
   gap: 8px;
   min-width: 0;
@@ -77,22 +77,26 @@
 
 .channel,
 .channelPlaceholder {
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
   margin-top: 2px;
 }
 
-.channelFb {
-  background: #1877f2;
+.channel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.18);
 }
 
-.channelZalo {
-  background: #0068ff;
+.channelImg {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  border-radius: 50%;
 }
 
 .info {

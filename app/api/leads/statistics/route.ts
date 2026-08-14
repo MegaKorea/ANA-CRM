@@ -5,7 +5,7 @@ import {
   requireReportsAccess,
 } from '@/lib/api/reports-access';
 import { aggregateLeadStatistics } from '@/lib/lead-statistics/aggregate-daily';
-import type { LeadStatLeadRow } from '@/lib/lead-statistics/types';
+import type { ImportedEnrollmentRow, LeadStatLeadRow } from '@/lib/lead-statistics/types';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { handleRouteError } from '@/lib/utils/route-handler';
 import {
@@ -40,10 +40,30 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     if (error) throw error;
 
+    // Imported leads' created_at is just the import timestamp — count their
+    // conversion by real enrollment_date instead (see aggregateLeadStatistics).
+    const { data: importedLeads, error: importedLeadsError } = await supabase
+      .from('leads')
+      .select('id')
+      .eq('is_imported', true);
+    if (importedLeadsError) throw importedLeadsError;
+
+    const importedLeadIds = ((importedLeads ?? []) as { id: number }[]).map((lead) => lead.id);
+    let importedEnrollments: ImportedEnrollmentRow[] = [];
+    if (importedLeadIds.length > 0) {
+      const { data: enrollments, error: enrollmentsError } = await supabase
+        .from('enrollments')
+        .select('lead_id, enrollment_date')
+        .in('lead_id', importedLeadIds);
+      if (enrollmentsError) throw enrollmentsError;
+      importedEnrollments = (enrollments ?? []) as ImportedEnrollmentRow[];
+    }
+
     const body = aggregateLeadStatistics(
       startDate,
       endDate,
       (leads ?? []) as LeadStatLeadRow[],
+      importedEnrollments,
     );
 
     return NextResponse.json(body, { status: HttpStatusCode.OK });

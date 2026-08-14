@@ -306,6 +306,7 @@ export const LEAD_STATUS_COLORS: Record<LeadStatus, string> = {
   [LeadStatus.NURTURING]: 'orange',
   [LeadStatus.CONVERTED]: 'green',
   [LeadStatus.REJECT]: 'red',
+  [LeadStatus.LOW_INTERACTION]: 'gold',
   [LeadStatus.OTHER]: 'default',
 };
 

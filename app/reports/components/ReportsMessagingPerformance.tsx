@@ -6,7 +6,8 @@ import {
   ArrowUpOutlined,
   MessageOutlined,
 } from '@ant-design/icons';
-import { SiZalo, SiMessenger, SiInstagram } from 'react-icons/si';
+import { SiInstagram } from 'react-icons/si';
+import Image from 'next/image';
 import { memo, type ReactNode } from 'react';
 import { percentChange } from '@/lib/utils/lead-funnel';
 import { useSmaxMessagingPerformance } from '@/lib/hooks/use-smax-messaging-performance';
@@ -15,13 +16,15 @@ import styles from './ReportsMessagingPerformance.module.css';
 
 const { Title, Text } = Typography;
 
-const PLATFORM_STYLE: Record<string, { color: string; icon: ReactNode }> = {
-  messenger: { color: '#EC008C', icon: <SiMessenger /> },
-  zalo: { color: '#14b8a6', icon: <SiZalo /> },
-  instagram: { color: '#8b5cf6', icon: <SiInstagram /> },
+type PlatformStyle = { color: string; icon?: ReactNode; imgSrc?: string };
+
+const PLATFORM_STYLE: Record<string, PlatformStyle> = {
+  messenger: { color: '#EC4899', imgSrc: '/Messenger.svg.webp' },
+  zalo: { color: '#0068FF', imgSrc: '/zalo.jpg' },
+  instagram: { color: '#E4405F', icon: <SiInstagram /> },
 };
 
-const FALLBACK_STYLE = { color: '#64748b', icon: <MessageOutlined /> };
+const FALLBACK_STYLE: PlatformStyle = { color: '#64748b', icon: <MessageOutlined /> };
 const DONUT_SIZE = 132;
 const DONUT_RADIUS = 48;
 const DONUT_STROKE = 22;
@@ -34,7 +37,6 @@ type Props = {
   prevEndDate: string;
 };
 
-/** "2 phút 48 giây" — matches the SMAX dashboard wording. */
 function formatReplyTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return '—';
   const total = Math.round(seconds);
@@ -109,7 +111,6 @@ function PlatformDonut({ platforms }: { platforms: SmaxPlatformPerformance[] }) 
 
   const center = DONUT_SIZE / 2;
 
-  // ponytail: O(n²) prefix sum — n is the number of platforms (2-3).
   const segments = platforms.map((platform, index) => ({
     platform,
     share: platform.messages / total,
@@ -244,24 +245,36 @@ export const ReportsMessagingPerformance = memo(function ReportsMessagingPerform
 
         <div className={styles.platformRow}>
           <div className={styles.platformList}>
-            {data.platforms.map((platform) => (
-              <div key={platform.key} className={styles.platform}>
-                <span
-                  className={styles.platformIcon}
-                  style={{ background: styleFor(platform.key).color }}
-                >
-                  {styleFor(platform.key).icon}
-                </span>
-                <div className={styles.platformMain}>
-                  <div className={styles.platformValue}>
-                    {platform.messages.toLocaleString('vi-VN')} tin nhắn
+            {data.platforms.map((platform) => {
+              const style = styleFor(platform.key);
+              return (
+                <div key={platform.key} className={styles.platform}>
+                  {style.imgSrc ? (
+                    <span className={styles.platformIcon}>
+                      <Image
+                        src={style.imgSrc}
+                        alt={platform.label}
+                        width={26}
+                        height={26}
+                        className={styles.platformImg}
+                      />
+                    </span>
+                  ) : (
+                    <span className={styles.platformIcon} style={{ background: style.color }}>
+                      {style.icon}
+                    </span>
+                  )}
+                  <div className={styles.platformMain}>
+                    <div className={styles.platformValue}>
+                      {platform.messages.toLocaleString('vi-VN')} tin nhắn
+                    </div>
+                    <Text type="secondary" className={styles.platformSub}>
+                      TB trả lời {formatReplyTime(platform.avgReplyTimeSec)}
+                    </Text>
                   </div>
-                  <Text type="secondary" className={styles.platformSub}>
-                    TB trả lời {formatReplyTime(platform.avgReplyTimeSec)}
-                  </Text>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <PlatformDonut platforms={data.platforms} />
         </div>

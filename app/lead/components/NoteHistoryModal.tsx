@@ -34,8 +34,8 @@ export function NoteHistoryModal({ open, lead, onClose }: NoteHistoryModalProps)
         <div style={{ maxHeight: 400, overflowY: 'auto', padding: '16px 0' }}>
           <Timeline
             items={sortedNotes.map((note, index) => ({
-              dot: <ClockCircleOutlined style={{ fontSize: 16 }} />,
-              children: (
+              icon: <ClockCircleOutlined style={{ fontSize: 16 }} />,
+              content: (
                 <div key={index}>
                   <div style={{ marginBottom: 4 }}>
                     <Tag color="blue" style={{ fontSize: 12 }}>
