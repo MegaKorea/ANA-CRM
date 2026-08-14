@@ -39,6 +39,10 @@ const autoMaterializedLeadIds = new Set<number>();
 const EMPTY_ARRAY: readonly never[] = [];
 const COURSE_CELL_STYLE = { textAlign: 'left', maxWidth: 192 } as const;
 
+function mainRowDate(record: MainRow): string | null {
+  return record.rowType === 'enrollment' ? record.enrollment_date : record.created_at;
+}
+
 export default function AccountingPage() {
   return (
     <Suspense fallback={null}>
@@ -174,10 +178,9 @@ function AccountingPageContent() {
   const mainRows: MainRow[] = useMemo(() => {
     const enrollmentRows: MainRow[] = enrollments.map((e) => ({ rowType: 'enrollment', ...e }));
     const leadRows: MainRow[] = pendingConvertedLeads.map((l) => ({ rowType: 'lead', ...l }));
-    return [...enrollmentRows, ...leadRows].sort((a, b) => {
-      const dateOf = (r: MainRow) => (r.rowType === 'enrollment' ? r.enrollment_date : r.created_at);
-      return dayjs(dateOf(b) ?? undefined).valueOf() - dayjs(dateOf(a) ?? undefined).valueOf();
-    });
+    return [...enrollmentRows, ...leadRows].sort(
+      (a, b) => dayjs(mainRowDate(b) ?? undefined).valueOf() - dayjs(mainRowDate(a) ?? undefined).valueOf(),
+    );
   }, [enrollments, pendingConvertedLeads]);
 
   const pagedMainRows = useMemo(() => {
@@ -387,7 +390,7 @@ function AccountingPageContent() {
         width: 120,
         align: 'center' as const,
         render: (_: unknown, record: MainRow) => {
-          const date = record.rowType === 'enrollment' ? record.enrollment_date : record.created_at;
+          const date = mainRowDate(record);
           return date ? dayjs(date).format('DD/MM/YYYY') : '';
         },
       },

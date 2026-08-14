@@ -193,17 +193,20 @@ export function getSmaxThreadUrl(smaxLog: unknown): string | undefined {
   return typeof url === 'string' && isSafeHttpUrl(url) ? url : undefined;
 }
 
-const FACEBOOK_PROFILE_URL_BASE = 'https://www.facebook.com/';
-
 const FACEBOOK_PROFILE_HOSTS = ['facebook.com', 'fb.com', 'm.me', 'messenger.com'];
-
-const SMAX_FACEBOOK_ID_KEYS = ['gid', 'fb_id', 'facebook_id', 'psid', 'uid'];
 
 const SMAX_SCAN_MAX_DEPTH = 3;
 
-function toFacebookProfileUrl(rawId: string): string | undefined {
-  const trimmed = rawId.trim();
-  return /^\d{5,}$/.test(trimmed) ? `${FACEBOOK_PROFILE_URL_BASE}${trimmed}` : undefined;
+// Smax's `facebook.id` is a Messenger PSID (page-scoped id), not the customer's
+// public profile id — it cannot be turned into a facebook.com/{id} link. Only
+// `facebook.conversation_link` (a same-origin path into the page's own FB inbox)
+// is a link we can actually build and trust.
+function toAbsoluteFacebookUrl(path: string): string | undefined {
+  const trimmed = path.trim();
+  if (!trimmed) return undefined;
+  return /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://www.facebook.com${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
 }
 
 function isFacebookProfileUrl(value: unknown): value is string {
@@ -230,31 +233,15 @@ export function getSmaxFacebookUrl(smaxLog: unknown): string | undefined {
     return undefined;
   }
 
-  const facebook = (smaxLog as Record<string, unknown>).facebook;
-  const directId =
-    facebook && typeof facebook === 'object'
-      ? (facebook as Record<string, unknown>).id
-      : undefined;
-  if (typeof directId === 'string') {
-    const directUrl = toFacebookProfileUrl(directId);
-    if (directUrl) return directUrl;
-  }
-
   const threadUrl = getSmaxThreadUrl(smaxLog);
   const queue: { node: object; depth: number }[] = [{ node: smaxLog, depth: 0 }];
-  let facebookUrl: string | undefined;
 
   while (queue.length > 0) {
     const { node, depth } = queue.shift() as { node: object; depth: number };
 
-    for (const [key, value] of Object.entries(node)) {
+    for (const value of Object.values(node)) {
       if (isFacebookProfileUrl(value) && value.trim() !== threadUrl) {
         return value.trim();
-      }
-
-      if (!facebookUrl && SMAX_FACEBOOK_ID_KEYS.includes(key.toLowerCase())) {
-        const rawId = typeof value === 'number' ? String(value) : String(value ?? '');
-        facebookUrl = toFacebookProfileUrl(rawId);
       }
 
       if (value && typeof value === 'object' && depth < SMAX_SCAN_MAX_DEPTH) {
@@ -263,7 +250,13 @@ export function getSmaxFacebookUrl(smaxLog: unknown): string | undefined {
     }
   }
 
-  return facebookUrl;
+  const facebook = (smaxLog as Record<string, unknown>).facebook;
+  const conversationLink =
+    facebook && typeof facebook === 'object'
+      ? (facebook as Record<string, unknown>).conversation_link
+      : undefined;
+
+  return typeof conversationLink === 'string' ? toAbsoluteFacebookUrl(conversationLink) : undefined;
 }
 
 export function getLeadFacebookUrl(lead: Lead): string | undefined {
