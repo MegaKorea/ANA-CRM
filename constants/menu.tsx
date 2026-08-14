@@ -54,7 +54,7 @@ export const menuItems: AppMenuItem[] = [
     key: '/accounting',
     icon: <DollarOutlined />,
     label: 'KẾ TOÁN',
-    roles: ['ADMIN', 'ACCOUNTANT'],
+    roles: ['ADMIN', 'ACCOUNTANT', 'TELESALES'],
   },
   {
     key: '/reports',
