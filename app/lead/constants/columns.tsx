@@ -1,15 +1,14 @@
 import { Button, Popconfirm, Space, Tooltip, Badge, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import Image from 'next/image';
 import { HiOutlinePencilAlt, HiOutlineTrash, HiOutlineInformationCircle } from 'react-icons/hi';
 import {
   PlusOutlined,
   InfoCircleOutlined,
   PictureOutlined,
-  MessageOutlined,
-  FacebookOutlined,
   CalendarOutlined,
 } from '@ant-design/icons';
-import { SiZalo } from 'react-icons/si';
+import { BsChatDotsFill } from 'react-icons/bs';
 import { hasSmaxConversation } from '@/lib/smax/parse-smax-log';
 import type { Lead } from '@/lib/services/lead.service';
 import { AttendanceStatus, DateLocale } from '@/constants/enums';
@@ -35,11 +34,47 @@ import {
   formatLocationValueV2,
   getLeadFacebookUrl,
   getLeadStatusColor,
-  getSmaxTags,
-  renderSmaxTagList,
   getZaloChatUrl,
 } from '@/app/lead/constants/lead-helpers';
 
+
+const CHANNEL_BADGE_SIZE = 18;
+
+function ChannelBadgeIcon({
+  active,
+  imgSrc,
+  alt,
+  icon,
+  bgColor,
+}: {
+  active: boolean;
+} & (
+  | { imgSrc: string; alt: string; icon?: never; bgColor?: never }
+  | { icon: React.ReactNode; bgColor: string; imgSrc?: never; alt?: never }
+)) {
+  return (
+    <span
+      style={{
+        position: 'relative',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: CHANNEL_BADGE_SIZE,
+        height: CHANNEL_BADGE_SIZE,
+        borderRadius: '50%',
+        overflow: 'hidden',
+        background: imgSrc ? '#fff' : bgColor,
+        filter: active ? undefined : 'grayscale(1) opacity(0.4)',
+      }}
+    >
+      {imgSrc ? (
+        <Image src={imgSrc} alt={alt} fill sizes={`${CHANNEL_BADGE_SIZE}px`} style={{ objectFit: 'cover' }} />
+      ) : (
+        icon
+      )}
+    </span>
+  );
+}
 
 export type HandleOpenAttendanceModal = (lead: Lead) => void;
 export type HandleOpenAppointmentModal = (lead: Lead) => void;
@@ -150,9 +185,9 @@ export const getLeadTableColumns = ({
             <Button
               size="small"
               type="text"
-              icon={<FacebookOutlined style={{ fontSize: 16, color: facebookUrl ? '#1877f2' : undefined }} />}
               disabled={!facebookUrl}
               onClick={() => openInNewTab(facebookUrl)}
+              icon={<ChannelBadgeIcon imgSrc="/fb.png" alt="Facebook" active={!!facebookUrl} />}
             />
           </Tooltip>
         );
@@ -171,9 +206,9 @@ export const getLeadTableColumns = ({
             <Button
               size="small"
               type="text"
-              icon={<SiZalo size={16} color={zaloChatUrl ? '#0068ff' : undefined} />}
               disabled={!zaloChatUrl}
               onClick={() => openInNewTab(zaloChatUrl)}
+              icon={<ChannelBadgeIcon imgSrc="/zalo.jpg" alt="Zalo" active={!!zaloChatUrl} />}
             />
           </Tooltip>
         );
@@ -191,13 +226,15 @@ export const getLeadTableColumns = ({
             <Button
               size="small"
               type="text"
-              icon={
-                <MessageOutlined
-                  style={{ fontSize: 16, color: canOpenChat ? '#52c41a' : undefined }}
-                />
-              }
               disabled={!canOpenChat}
               onClick={() => canOpenChat && handleOpenConversationModal(record)}
+              icon={
+                <ChannelBadgeIcon
+                  icon={<BsChatDotsFill size={9} color="#fff" />}
+                  bgColor="#52c41a"
+                  active={canOpenChat}
+                />
+              }
             />
           </Tooltip>
         );
@@ -246,22 +283,23 @@ export const getLeadTableColumns = ({
       width: 140,
       render: (_: unknown, record: Lead) => <LeadRate lead={record} />,
     },
-    {
-      title: 'Thẻ Smax',
-      key: 'smax_tags',
-      width: 180,
-      render: (_: unknown, record: Lead) => {
-        const tags = getSmaxTags(record.smax_log);
-        if (!tags || tags.length === 0) {
-          return null;
-        }
-        return (
-          <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, overflowX: 'auto' }}>
-            {renderSmaxTagList(tags, { margin: 0, flexShrink: 0 })}
-          </div>
-        );
-      },
-    },
+    // tạm ẩn cột "Thẻ Smax"
+    // {
+    //   title: 'Thẻ Smax',
+    //   key: 'smax_tags',
+    //   width: 180,
+    //   render: (_: unknown, record: Lead) => {
+    //     const tags = getSmaxTags(record.smax_log);
+    //     if (!tags || tags.length === 0) {
+    //       return null;
+    //     }
+    //     return (
+    //       <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, overflowX: 'auto' }}>
+    //         {renderSmaxTagList(tags, { margin: 0, flexShrink: 0 })}
+    //       </div>
+    //     );
+    //   },
+    // },
     {
       title: LeadPageText.COURSE_IDS_LABEL,
       dataIndex: 'course_ids',
