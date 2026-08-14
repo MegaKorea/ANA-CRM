@@ -18,21 +18,6 @@
   font-size: 13px;
 }
 
-.overviewCard :global(.ant-card-body) {
-  padding: 12px;
-}
-
-.sectionTitleMobile {
-  display: block;
-  margin-bottom: 12px;
-}
-
-.sectionTitleDesktop {
-  display: none;
-  margin-top: 0 !important;
-  margin-bottom: 16px !important;
-}
-
 .filtersWrap {
   width: 100%;
   min-width: 0;
@@ -98,18 +83,6 @@
 
   .halfRow {
     width: 50%;
-  }
-
-  .overviewCard :global(.ant-card-body) {
-    padding: 24px;
-  }
-
-  .sectionTitleMobile {
-    display: none;
-  }
-
-  .sectionTitleDesktop {
-    display: block;
   }
 }
 

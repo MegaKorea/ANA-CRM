@@ -125,7 +125,7 @@ export default function ReportsPage() {
             Báo cáo
           </Title>
           <Text type="secondary" className={styles.headerSub}>
-            Dashboard chuyển đổi Data
+            Tổng quan chuyển đổi
           </Text>
         </div>
         <div className={styles.filtersWrap}>
@@ -141,19 +141,11 @@ export default function ReportsPage() {
       </header>
 
       <Space orientation="vertical" size={16} style={{ width: '100%' }}>
-        <Card className={styles.overviewCard} style={{ borderRadius: 12, overflow: 'hidden' }}>
-          <Title level={5} className={styles.sectionTitleMobile} style={{ margin: 0, fontSize: 15 }}>
-            Tổng quan chuyển đổi
-          </Title>
-          <Title level={5} className={styles.sectionTitleDesktop}>
-            Tổng quan chuyển đổi
-          </Title>
-          <ReportsOverviewCards
-            funnel={funnel}
-            previousFunnel={isPrevSuccess ? previousFunnel : null}
-            loading={isLoading}
-          />
-        </Card>
+        <ReportsOverviewCards
+          funnel={funnel}
+          previousFunnel={isPrevSuccess ? previousFunnel : null}
+          loading={isLoading}
+        />
 
         <ReportsConversionStats
           totalLeads={totalLeads}
