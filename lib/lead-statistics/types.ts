@@ -27,6 +27,12 @@ export type LeadStatLeadRow = {
   attendance_status: string | null;
 };
 
+/** Enrollment of an imported lead — dated by its real enrollment_date, since the lead's own created_at is just the import timestamp. */
+export type ImportedEnrollmentRow = {
+  lead_id: number;
+  enrollment_date: string | null;
+};
+
 export function emptyDayStats(date: string): LeadStatisticsChartRow {
   return {
     date,

@@ -45,6 +45,11 @@ async function fetchAllRows<T>(
   return rows;
 }
 
+export interface TeamSalesNoteEntry {
+  leadName: string;
+  content: string;
+}
+
 export interface TeamSalesReportRow {
   startAt: string;
   endAt: string;
@@ -58,13 +63,14 @@ export interface TeamSalesReportRow {
   slHvChot: number;
   doanhThu: number;
   congNo: number;
-  ghiChu: string;
+  ghiChu: TeamSalesNoteEntry[];
 }
 
 interface ReportLeadRow {
   id: number;
   status: LeadStatus | null;
   note: NoteItem[] | null;
+  pid_zalo: string | null;
 }
 
 function lastNoteAt(note: NoteItem[] | null): number | null {
@@ -73,6 +79,53 @@ function lastNoteAt(note: NoteItem[] | null): number | null {
     .map((item) => new Date(item.created_at).getTime())
     .filter((time) => !Number.isNaN(time));
   return timestamps.length ? Math.max(...timestamps) : null;
+}
+
+interface LeadNoteEntry {
+  leadId: number;
+  leadName: string;
+  content: string;
+  at: number;
+}
+
+async function fetchAllLeadNotes(): Promise<LeadNoteEntry[]> {
+  const supabase = createAdminClient();
+  const leadNotes = await fetchAllRows<{ id: number; full_name: string; note: NoteItem[] | null }>(
+    (from, to) =>
+      supabase.from('leads').select('id, full_name, note').not('note', 'is', null).range(from, to),
+  );
+
+  const entries: LeadNoteEntry[] = [];
+  for (const lead of leadNotes) {
+    for (const item of lead.note ?? []) {
+      const at = new Date(item.created_at).getTime();
+      if (Number.isNaN(at)) continue;
+      entries.push({ leadId: lead.id, leadName: lead.full_name, content: item.content, at });
+    }
+  }
+  return entries;
+}
+
+function collectNotesInRange(
+  entries: LeadNoteEntry[],
+  startAt: string,
+  endAt: string,
+): TeamSalesNoteEntry[] {
+  const startMs = new Date(startAt).getTime();
+  const endMs = new Date(endAt).getTime();
+
+  const latestByLead = new Map<number, LeadNoteEntry>();
+  for (const entry of entries) {
+    if (entry.at < startMs || entry.at > endMs) continue;
+    const existing = latestByLead.get(entry.leadId);
+    if (!existing || entry.at > existing.at) {
+      latestByLead.set(entry.leadId, entry);
+    }
+  }
+
+  return Array.from(latestByLead.values())
+    .sort((a, b) => a.at - b.at)
+    .map((entry) => ({ leadName: entry.leadName, content: entry.content }));
 }
 
 type InteractionBucket =
@@ -94,11 +147,14 @@ function classifyLead(
   if (lead.status === LeadStatus.CONVERTED) {
     return null;
   }
+  if (lead.pid_zalo) {
+    return 'chamZalo';
+  }
   if (lead.status === LeadStatus.NOT_CONTACTED) {
     return 'chuaTiepCan';
   }
-  if (lead.status === LeadStatus.NURTURING) {
-    return 'chamZalo';
+  if (lead.status === LeadStatus.LOW_INTERACTION) {
+    return 'itTuongTac';
   }
 
   const noteAt = lastNoteAt(lead.note);
@@ -112,6 +168,7 @@ async function computeTeamSalesReportRow(
   startAt: string,
   endAt: string,
   rule: ActiveClassificationRule,
+  noteEntries: LeadNoteEntry[],
 ): Promise<TeamSalesReportRow> {
   const supabase = createAdminClient();
   const endAtMs = new Date(endAt).getTime();
@@ -120,7 +177,7 @@ async function computeTeamSalesReportRow(
     fetchAllRows<ReportLeadRow>((from, to) =>
       supabase
         .from('leads')
-        .select('id, status, note')
+        .select('id, status, note, pid_zalo')
         .gte('created_at', startAt)
         .lte('created_at', endAt)
         .range(from, to),
@@ -204,7 +261,7 @@ async function computeTeamSalesReportRow(
     slHvChot: convertedLeads.length,
     doanhThu,
     congNo,
-    ghiChu: '',
+    ghiChu: collectNotesInRange(noteEntries, startAt, endAt),
   };
 }
 
@@ -213,8 +270,6 @@ export async function getTeamSalesReportRows(
   endAt: string,
   splitByDay = false,
 ): Promise<TeamSalesReportRow[]> {
-  // Single source of truth for "how many (VN calendar) days does this span"
-  // — also doubles as the per-day segments used below when splitByDay.
   const segments = splitIntoVnDaySegments(startAt, endAt);
 
   if (segments.length > MAX_REPORT_DAYS) {
@@ -226,14 +281,13 @@ export async function getTeamSalesReportRows(
   }
 
   const rule = await resolveActiveClassificationRule();
+  const noteEntries = await fetchAllLeadNotes();
 
   if (!splitByDay) {
-    // A single row covering the whole selected range.
-    return [await computeTeamSalesReportRow(startAt, endAt, rule)];
+    return [await computeTeamSalesReportRow(startAt, endAt, rule, noteEntries)];
   }
 
-  // One row per calendar day (VN timezone) — the first/last segment keep
-  // the exact startAt/endAt so a range like "17h ngày 10 → 10h ngày 11"
-  // still only produces 2 rows, not a padded full day on each end.
-  return Promise.all(segments.map((segment) => computeTeamSalesReportRow(segment.start, segment.end, rule)));
+  return Promise.all(
+    segments.map((segment) => computeTeamSalesReportRow(segment.start, segment.end, rule, noteEntries)),
+  );
 }

@@ -1,73 +1,130 @@
-.tableWrapper:global(.ant-table-wrapper) {
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.tableWrapper {
-  :global(table) {
-    width: 100% !important;
-  }
-
-  :global(.ant-table-thead > tr > th) {
-    font-weight: 600;
-    font-size: 12.5px;
-    letter-spacing: 0.2px;
-  }
-
-  :global(.ant-table-tbody > tr > td) {
-    font-variant-numeric: tabular-nums;
-  }
-
-  :global(.ant-table-summary) {
-    font-variant-numeric: tabular-nums;
-  }
-
-  :global(.ant-table-summary > tr > td) {
-    font-weight: 700;
-  }
+.reportShell {
+  display: flex;
+  flex-direction: column;
+  height: 78vh;
 
   @media (max-width: 575.98px) {
-    :global(.ant-table-thead > tr > th) {
-      font-size: 11px;
-      padding: 8px 6px !important;
-    }
-
-    :global(.ant-table-tbody > tr > td),
-    :global(.ant-table-summary > tr > td) {
-      font-size: 12px;
-      padding: 6px !important;
-    }
+    height: 85vh;
   }
 }
 
-.headerRow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 4px;
+.reportHeader {
+  flex-shrink: 0;
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid;
+  text-align: center;
+}
+
+.reportScroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 16px 24px 24px;
 }
 
 .reportTitle:global(.ant-typography) {
+  font-weight: 600;
+
   @media (max-width: 575.98px) {
     font-size: 15px;
   }
 }
 
-.periodBadge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: fit-content;
-  margin: 0 auto 16px;
-  padding: 4px 14px;
-  border-radius: 999px;
+.periodSubtitle:global(.ant-typography) {
+  display: block;
+  margin-top: 2px;
   font-size: 13px;
+}
 
-  @media (max-width: 575.98px) {
-    font-size: 11.5px;
-    padding: 3px 10px;
-    margin-bottom: 12px;
+.periodBlock {
+  border: 1px solid;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
   }
+
+  @media print {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+.periodBlockHighlight {
+  border-width: 2px;
+}
+
+.periodSubHeader {
+  font-weight: 600;
+  font-size: 13px;
+  padding-bottom: 8px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid;
+}
+
+.metricStrip {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid;
+  border-radius: 6px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.metricCell {
+  flex: 1 1 0;
+  min-width: 100px;
+  padding: 10px 8px;
+  text-align: center;
+  border-right: 1px solid;
+
+  &:last-child {
+    border-right: none;
+  }
+}
+
+.metricLabel {
+  font-size: 11px;
+  line-height: 1.3;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.metricValue {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.notesSection {
+  padding-top: 2px;
+}
+
+.notesTitle {
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid;
+}
+
+.notesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px 24px;
+}
+
+.noteItem {
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.noteHeading {
+  font-weight: 600;
 }

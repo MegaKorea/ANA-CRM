@@ -1,11 +1,10 @@
 'use client';
 
 import { Alert, Card, Empty, Pagination, Skeleton, Typography } from 'antd';
-import { FacebookOutlined } from '@ant-design/icons';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { memo, useMemo, useState, type ReactNode } from 'react';
-import { SiZalo } from 'react-icons/si';
 import dayjs from 'dayjs';
 import type {
   UpcomingAppointment,
@@ -35,17 +34,16 @@ function formatDayLabel(isoDate: string, today: string, tomorrow: string): strin
 function ChannelIcon({ channel }: { channel: UpcomingAppointmentChannel }) {
   if (!channel) return <span className={styles.channelPlaceholder} aria-hidden />;
 
-  if (channel === 'zalo') {
-    return (
-      <span className={`${styles.channel} ${styles.channelZalo}`} aria-label="Zalo">
-        <SiZalo size={14} color="#fff" />
-      </span>
-    );
-  }
-
+  const isZalo = channel === 'zalo';
   return (
-    <span className={`${styles.channel} ${styles.channelFb}`} aria-label="Facebook">
-      <FacebookOutlined style={{ fontSize: 12, color: '#fff' }} />
+    <span className={styles.channel}>
+      <Image
+        src={isZalo ? '/zalo.jpg' : '/fb.png'}
+        alt={isZalo ? 'Zalo' : 'Facebook'}
+        width={20}
+        height={20}
+        className={styles.channelImg}
+      />
     </span>
   );
 }

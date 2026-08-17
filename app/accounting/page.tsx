@@ -37,6 +37,11 @@ import { useIsMobile } from '@/lib/hooks/use-mobile';
 
 const autoMaterializedLeadIds = new Set<number>();
 const EMPTY_ARRAY: readonly never[] = [];
+const COURSE_CELL_STYLE = { textAlign: 'left', maxWidth: 192 } as const;
+
+function mainRowDate(record: MainRow): string | null {
+  return record.rowType === 'enrollment' ? record.enrollment_date : record.created_at;
+}
 
 export default function AccountingPage() {
   return (
@@ -173,10 +178,9 @@ function AccountingPageContent() {
   const mainRows: MainRow[] = useMemo(() => {
     const enrollmentRows: MainRow[] = enrollments.map((e) => ({ rowType: 'enrollment', ...e }));
     const leadRows: MainRow[] = pendingConvertedLeads.map((l) => ({ rowType: 'lead', ...l }));
-    return [...enrollmentRows, ...leadRows].sort((a, b) => {
-      const dateOf = (r: MainRow) => (r.rowType === 'enrollment' ? r.enrollment_date : r.created_at);
-      return dayjs(dateOf(b) ?? undefined).valueOf() - dayjs(dateOf(a) ?? undefined).valueOf();
-    });
+    return [...enrollmentRows, ...leadRows].sort(
+      (a, b) => dayjs(mainRowDate(b) ?? undefined).valueOf() - dayjs(mainRowDate(a) ?? undefined).valueOf(),
+    );
   }, [enrollments, pendingConvertedLeads]);
 
   const pagedMainRows = useMemo(() => {
@@ -285,12 +289,11 @@ function AccountingPageContent() {
       {
         title: 'Họ và tên',
         key: 'customer_name',
-        width: 160,
-        align: 'center' as const,
+        align: 'left' as const,
         render: (_: unknown, record: MainRow) => {
           const name = record.rowType === 'lead' ? record.full_name : record.lead_full_name || `Lead #${record.lead_id}`;
           return (
-            <Typography.Text strong style={{ fontSize: 13 }} ellipsis={{ tooltip: name }}>
+            <Typography.Text strong style={{ fontSize: 13, whiteSpace: 'nowrap' }}>
               {name}
             </Typography.Text>
           );
@@ -324,16 +327,24 @@ function AccountingPageContent() {
         render: (_: unknown, record: MainRow) => {
           if (record.rowType === 'lead') {
             const leadCourseId = record.course_ids?.[0];
-            return leadCourseId ? <span>{courseName(leadCourseId)}</span> : '-';
+            return (
+              <div style={COURSE_CELL_STYLE}>
+                {leadCourseId ? <span>{courseName(leadCourseId)}</span> : '-'}
+              </div>
+            );
           }
-          if (record.category !== 'khóa học') return record.item_name || '-';
+          if (record.category !== 'khóa học') {
+            return <div style={COURSE_CELL_STYLE}>{record.item_name || '-'}</div>;
+          }
           const crs = courseName(record.course_id);
           const cls = className(record.class_id);
           return (
-            <Space orientation="vertical" size={2}>
-              <span>{crs}</span>
-              {cls && cls !== crs && <Tag>{cls}</Tag>}
-            </Space>
+            <div style={COURSE_CELL_STYLE}>
+              <Space orientation="vertical" size={2}>
+                <span>{crs}</span>
+                {cls && cls !== crs && <Tag>{cls}</Tag>}
+              </Space>
+            </div>
           );
         },
       },
@@ -379,7 +390,7 @@ function AccountingPageContent() {
         width: 120,
         align: 'center' as const,
         render: (_: unknown, record: MainRow) => {
-          const date = record.rowType === 'enrollment' ? record.enrollment_date : record.created_at;
+          const date = mainRowDate(record);
           return date ? dayjs(date).format('DD/MM/YYYY') : '';
         },
       },
@@ -411,9 +422,14 @@ function AccountingPageContent() {
         key: 'note',
         width: 180,
         align: 'left' as const,
-        ellipsis: true,
-        render: (_: unknown, record: MainRow) =>
-          record.rowType === 'lead' ? getLatestNoteContent(record.note) : record.note,
+        render: (_: unknown, record: MainRow) => {
+          const note = record.rowType === 'lead' ? getLatestNoteContent(record.note) : record.note;
+          return (
+            <Typography.Text ellipsis={{ tooltip: note }} style={{ maxWidth: 172, display: 'block' }}>
+              {note}
+            </Typography.Text>
+          );
+        },
       },
       {
         title: 'Thao tác',

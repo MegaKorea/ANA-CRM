@@ -8,6 +8,7 @@ export const LeadStatusLabel = {
   [LeadStatus.INTERESTED]: 'QUAN TÂM',
   [LeadStatus.NOT_INTERESTED]: 'KHÔNG QUAN TÂM',
   [LeadStatus.NURTURING]: 'ĐANG CHĂM SÓC',
+  [LeadStatus.LOW_INTERACTION]: 'ÍT TƯƠNG TÁC',
   [LeadStatus.OTHER]: 'KHÁC',
 } as const;
 
