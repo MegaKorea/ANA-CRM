@@ -263,6 +263,22 @@ function ReportPeriodSection({
             </div>
           </div>
         ))}
+        <div className={styles.metricCell} style={{ borderColor: token.colorBorderSecondary }}>
+          <div className={styles.metricLabel} style={{ color: token.colorTextSecondary }}>
+            Note
+          </div>
+          <div className={styles.metricValue}>
+            <EditableMetricCell
+              displayValue={cellEdit.overrides[`${cellKeyPrefix}:note`] || '—'}
+              editValue={cellEdit.overrides[`${cellKeyPrefix}:note`] ?? ''}
+              isEditing={cellEdit.editingKey === `${cellKeyPrefix}:note`}
+              allowNewLine
+              onStartEdit={() => cellEdit.onStartEdit(`${cellKeyPrefix}:note`)}
+              onChangeValue={(v) => cellEdit.onChangeValue(`${cellKeyPrefix}:note`, v)}
+              onStopEdit={cellEdit.onStopEdit}
+            />
+          </div>
+        </div>
       </div>
 
       {notes ? (
