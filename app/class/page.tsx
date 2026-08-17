@@ -233,7 +233,7 @@ export default function ClassPage() {
   }
 
   return (
-    <div className={`p-page ${styles.pageContainer}`}>
+    <div className={styles.pageContainer}>
       <Row justify="space-between" align="middle" className="mb-section">
         <Col>
           <Title level={2} className={`text-h2 ${styles.pageTitle}`}>

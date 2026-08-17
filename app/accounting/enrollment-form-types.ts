@@ -1,9 +1,12 @@
 import type { Dayjs } from 'dayjs';
 import type { PaymentMethod } from '@/constants/enums';
+import type { EnrollmentCategory } from '@/lib/validators/enrollment.validator';
 
 export interface EnrollmentFormValues {
-  course_id: string;
+  category: EnrollmentCategory;
+  course_id?: string;
   class_id?: string;
+  item_name?: string;
   enrollment_date: Dayjs;
   source?: string;
   expected_study_month?: Dayjs;

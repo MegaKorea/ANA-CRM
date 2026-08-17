@@ -1,19 +1,10 @@
 .pageContainer {
-  padding: 0.75rem;
   // Single scroll owner: Layout .content — nested overflow causes dual scrollbars.
   height: auto;
   min-height: 0;
   overflow: visible;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
-
-  @media (min-width: 640px) {
-    padding: 1rem;
-  }
-
-  @media (min-width: 768px) {
-    padding: 2rem;
-  }
 }
 
 .loadingContainer,
@@ -138,7 +129,7 @@
   }
 }
 
-.statusTag {
+.statusTag:global(.ant-tag) {
   margin: 0;
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
@@ -165,7 +156,7 @@
   }
 }
 
-.cardContainer {
+.cardContainer:global(.ant-card) {
   box-shadow: var(--shadow-xs);
   border-radius: var(--radius-md);
 
@@ -174,7 +165,7 @@
   }
 }
 
-.tabsContainer {
+.tabsContainer:global(.ant-tabs) {
   @media (min-width: 640px) {
     :global(.ant-tabs-nav-list .ant-tabs-tab) {
       font-size: 16px;

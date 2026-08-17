@@ -507,21 +507,13 @@
 }
 
 .channel {
+  position: relative;
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  overflow: hidden;
   flex-shrink: 0;
-}
-
-.channelFb {
-  background: #1877f2;
-}
-
-.channelZalo {
-  background: #0068ff;
+  background: #fff;
 }
 
 .monthWrap {

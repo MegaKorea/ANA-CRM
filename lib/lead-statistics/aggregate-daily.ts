@@ -5,6 +5,7 @@ import {
 } from '@/lib/utils/vn-date';
 import {
   emptyDayStats,
+  type ImportedEnrollmentRow,
   type LeadStatLeadRow,
   type LeadStatisticsApiResponse,
   type LeadStatisticsChartRow,
@@ -14,6 +15,7 @@ export function aggregateLeadStatistics(
   startDate: string,
   endDate: string,
   leads: LeadStatLeadRow[],
+  importedEnrollments: ImportedEnrollmentRow[] = [],
 ): LeadStatisticsApiResponse {
   const dateMap = new Map<string, LeadStatisticsChartRow>();
   for (const date of eachDateInclusive(startDate, endDate)) {
@@ -28,6 +30,8 @@ export function aggregateLeadStatistics(
     bumpAppointment(dateMap, lead);
   }
 
+  bumpImportedRegistrations(dateMap, registeredIds, importedEnrollments);
+
   return {
     summary: { registeredTotal: registeredIds.size },
     chartData: Array.from(dateMap.values()),
@@ -41,7 +45,9 @@ function bumpCreated(
   if (!lead.created_at) return;
   const day = toVnDate(lead.created_at);
   const row = dateMap.get(day);
-  if (row) row.totalLeads += 1;
+  if (!row) return;
+  row.totalLeads += 1;
+  if (lead.status === LeadStatus.NURTURING) row.nurturingLeads += 1;
 }
 
 function bumpRegistered(
@@ -79,5 +85,34 @@ function bumpAppointment(
   row.totalAppointments += 1;
   if (lead.attendance_status === AttendanceStatus.ARRIVED) {
     row.arrivedAppointments += 1;
+  }
+}
+
+/**
+ * Imported leads' created_at is just the import timestamp, not a real date, so
+ * they're excluded from the main leads query. Their conversion is still real
+ * though — count it on the lead's earliest enrollment_date instead.
+ */
+function bumpImportedRegistrations(
+  dateMap: Map<string, LeadStatisticsChartRow>,
+  registeredIds: Set<number>,
+  rows: ImportedEnrollmentRow[],
+): void {
+  const earliestByLead = new Map<number, string>();
+  for (const row of rows) {
+    if (!row.enrollment_date) continue;
+    const existing = earliestByLead.get(row.lead_id);
+    if (!existing || row.enrollment_date < existing) {
+      earliestByLead.set(row.lead_id, row.enrollment_date);
+    }
+  }
+
+  for (const [leadId, enrollmentDate] of earliestByLead) {
+    if (registeredIds.has(leadId)) continue;
+    const day = toVnDate(enrollmentDate);
+    const bucket = dateMap.get(day);
+    if (!bucket) continue;
+    bucket.registeredLeads += 1;
+    registeredIds.add(leadId);
   }
 }

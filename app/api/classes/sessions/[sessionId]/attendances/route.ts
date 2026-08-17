@@ -3,7 +3,6 @@ import { getSessionAttendances, bulkUpsertAttendances } from '@/lib/services/cla
 import { validateBulkAttendanceInput } from '@/lib/validators/class_session.validator';
 import { HttpStatusCode } from '@/constants/enums';
 
-// GET /api/classes/sessions/[sessionId]/attendances — List all attendances for a session
 export async function GET(
     _request: NextRequest,
     { params }: { params: Promise<{ sessionId: string }> }
@@ -17,7 +16,6 @@ export async function GET(
     }
 }
 
-// POST /api/classes/sessions/[sessionId]/attendances — Bulk upsert attendances
 export async function POST(
     request: NextRequest,
     { params }: { params: Promise<{ sessionId: string }> }

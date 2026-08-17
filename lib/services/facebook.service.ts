@@ -24,7 +24,7 @@ const AD_ACCOUNT_IDS = [
     "act_1175215059809297",
 ]
 
-const access_token = process.env.NEXT_PUBLIC_FB_ACCESS_TOKEN
+const access_token = process.env.FB_TOKEN
 
 const baseUrl = "https://graph.facebook.com/v25.0"
 
@@ -35,7 +35,7 @@ export async function fetchInsights({
 
 
     if (!access_token) {
-        return { data: null, error: "FB_ACCESS_TOKEN chưa được cấu hình trong Environment Variables." }
+        return { data: null, error: "FB_TOKEN chưa được cấu hình trong Environment Variables." }
     }
 
     const date = `time_range={"since":"${startDate}","until":"${endDate}"}`

@@ -1,0 +1,130 @@
+.reportShell {
+  display: flex;
+  flex-direction: column;
+  height: 78vh;
+
+  @media (max-width: 575.98px) {
+    height: 85vh;
+  }
+}
+
+.reportHeader {
+  flex-shrink: 0;
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid;
+  text-align: center;
+}
+
+.reportScroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 16px 24px 24px;
+}
+
+.reportTitle:global(.ant-typography) {
+  font-weight: 600;
+
+  @media (max-width: 575.98px) {
+    font-size: 15px;
+  }
+}
+
+.periodSubtitle:global(.ant-typography) {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+.periodBlock {
+  border: 1px solid;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  @media print {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+.periodBlockHighlight {
+  border-width: 2px;
+}
+
+.periodSubHeader {
+  font-weight: 600;
+  font-size: 13px;
+  padding-bottom: 8px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid;
+}
+
+.metricStrip {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid;
+  border-radius: 6px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.metricCell {
+  flex: 1 1 0;
+  min-width: 100px;
+  padding: 10px 8px;
+  text-align: center;
+  border-right: 1px solid;
+
+  &:last-child {
+    border-right: none;
+  }
+}
+
+.metricLabel {
+  font-size: 11px;
+  line-height: 1.3;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.metricValue {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.notesSection {
+  padding-top: 2px;
+}
+
+.notesTitle {
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid;
+}
+
+.notesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px 24px;
+}
+
+.noteItem {
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.noteHeading {
+  font-weight: 600;
+}

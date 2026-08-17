@@ -3,10 +3,6 @@ import type { ColumnsType } from 'antd/es/table';
 import type { Role } from '@/lib/services/role.service';
 import { HiOutlinePencilAlt, HiOutlineTrash } from 'react-icons/hi';
 
-export enum RolePagePadding {
-  CONTAINER = 24,
-}
-
 export enum RolePageMargin {
   HEADER_BOTTOM = 16,
 }

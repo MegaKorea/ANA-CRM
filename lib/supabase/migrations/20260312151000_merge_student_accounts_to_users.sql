@@ -1,12 +1,9 @@
--- Update users table
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS lead_id INTEGER REFERENCES public.leads(id) ON DELETE SET NULL;
 
--- Ensure STU role exists
 INSERT INTO public.roles (name, code, description) 
 VALUES ('Student', 'STU', 'Học viên')
 ON CONFLICT (code) DO NOTHING;
 
--- Update trigger
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -47,7 +44,6 @@ BEGIN
 END;
 $$;
 
--- Migrate existing student_accounts to users (if not yet migrated)
 INSERT INTO public.users (id, full_name, phone, email, role_id, lead_id)
 SELECT 
   sa.auth_id, 
@@ -64,5 +60,4 @@ ON CONFLICT (id) DO UPDATE SET
   email = COALESCE(users.email, EXCLUDED.email),
   lead_id = EXCLUDED.lead_id;
 
--- Drop table
 DROP TABLE IF EXISTS public.student_accounts CASCADE;

@@ -40,6 +40,8 @@ export interface LeadsTable {
     rate: number;
     /** Raw customer object returned by Smax when the lead was captured via an embedded Smax form. */
     smax_log: Record<string, unknown> | null;
+    /** True for leads bulk-inserted by a data import/fix rather than created organically; excluded from period-based lead/report stats. */
+    is_imported: boolean;
     created_at: string | null;
     updated_at: string | null;
   };
@@ -72,6 +74,7 @@ export interface LeadsTable {
     tuition_fee?: number | null;
     rate?: number;
     smax_log?: Record<string, unknown> | null;
+    is_imported?: boolean;
     created_at?: string | null;
     updated_at?: string | null;
   };
@@ -104,6 +107,7 @@ export interface LeadsTable {
     tuition_fee?: number | null;
     rate?: number;
     smax_log?: Record<string, unknown> | null;
+    is_imported?: boolean;
     created_at?: string | null;
     updated_at?: string | null;
   };

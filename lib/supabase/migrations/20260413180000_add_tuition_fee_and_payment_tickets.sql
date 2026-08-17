@@ -1,19 +1,15 @@
--- 1. Add tuition_fee to leads
 ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS tuition_fee bigint DEFAULT 0;
 
--- 2. Create payment_type enum
 DO $$ BEGIN
   CREATE TYPE payment_type AS ENUM ('cash', 'bank_transfer', 'momo', 'other');
 EXCEPTION WHEN duplicate_object THEN null;
 END $$;
 
--- 3. Create ticket_status enum
 DO $$ BEGIN
   CREATE TYPE ticket_status AS ENUM ('pending', 'approved', 'rejected');
 EXCEPTION WHEN duplicate_object THEN null;
 END $$;
 
--- 4. Create payment_tickets table
 CREATE TABLE IF NOT EXISTS public.payment_tickets (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   lead_id bigint NOT NULL REFERENCES public.leads(id) ON DELETE CASCADE,
@@ -31,13 +27,11 @@ CREATE TABLE IF NOT EXISTS public.payment_tickets (
   updated_at timestamptz DEFAULT now()
 );
 
--- 5. Indexes
 CREATE INDEX IF NOT EXISTS idx_payment_tickets_lead_id ON public.payment_tickets(lead_id);
 CREATE INDEX IF NOT EXISTS idx_payment_tickets_status ON public.payment_tickets(status);
 CREATE INDEX IF NOT EXISTS idx_payment_tickets_payment_date ON public.payment_tickets(payment_date);
 CREATE INDEX IF NOT EXISTS idx_payment_tickets_created_by ON public.payment_tickets(created_by);
 
--- 6. RLS
 ALTER TABLE public.payment_tickets ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view all payment_tickets"

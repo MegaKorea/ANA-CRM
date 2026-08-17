@@ -1,0 +1,171 @@
+.body {
+  padding: 12px;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.header {
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.title {
+  margin: 0 !important;
+  font-size: 15px !important;
+}
+
+.hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.metricLabel {
+  font-size: 11px;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metricValue {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metricTrend {
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.metricFoot {
+  font-size: 10px;
+}
+
+.sectionLabel {
+  display: block;
+  margin: 16px 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.platformRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
+}
+
+.platformList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1 1 160px;
+  max-width: 220px;
+  min-width: 0;
+}
+
+.platform {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.platformIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 19px;
+  flex-shrink: 0;
+  background: #fff;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.18);
+}
+
+.platformImg {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
+.platformMain {
+  min-width: 0;
+}
+
+.platformValue {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+
+.platformSub {
+  font-size: 10px;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.donut {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+@media (min-width: 768px) {
+  .body {
+    padding: 16px 20px;
+  }
+
+  .title {
+    font-size: 16px !important;
+  }
+}

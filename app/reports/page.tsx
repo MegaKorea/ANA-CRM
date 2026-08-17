@@ -5,6 +5,7 @@ import { App, Card, Space, Spin, Typography } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import dynamic from 'next/dynamic';
 import { DateFormat } from '@/constants/enums';
+import { useEnrollmentRevenue } from '@/lib/hooks/use-enrollments';
 import { useLeadStatistics } from '@/lib/hooks/use-lead-statistics';
 import { useLeadStatisticsSummary } from '@/lib/hooks/use-lead-statistics-summary';
 import { useSmaxTagStatistics } from '@/lib/hooks/use-smax-tag-statistics';
@@ -20,8 +21,15 @@ const cardFallback = (
   </Card>
 );
 
-const ReportsDailyTable = dynamic(
-  () => import('./components/ReportsDailyTable').then((m) => m.ReportsDailyTable),
+const ReportsMessagingPerformance = dynamic(
+  () =>
+    import('./components/ReportsMessagingPerformance').then(
+      (m) => m.ReportsMessagingPerformance,
+    ),
+  { ssr: false, loading: () => cardFallback },
+);
+const ReportsConversionStats = dynamic(
+  () => import('./components/ReportsConversionStats').then((m) => m.ReportsConversionStats),
   { ssr: false, loading: () => cardFallback },
 );
 const ReportsCustomerTags = dynamic(
@@ -100,7 +108,13 @@ export default function ReportsPage() {
     }
   }, [isSupportersError, supportersError, message]);
 
-  const { chartData, funnel } = useLeadStatisticsSummary(data);
+  const { data: revenueData, isLoading: isRevenueLoading } = useEnrollmentRevenue(
+    startDate,
+    endDate,
+  );
+
+  const { funnel, totalLeads, totalAppointments, totalNurturing, fbTotalSpend } =
+    useLeadStatisticsSummary(data);
   const { funnel: previousFunnel } = useLeadStatisticsSummary(prevData);
 
   return (  
@@ -111,7 +125,7 @@ export default function ReportsPage() {
             Báo cáo
           </Title>
           <Text type="secondary" className={styles.headerSub}>
-            Dashboard chuyển đổi Data
+            Tổng quan chuyển đổi
           </Text>
         </div>
         <div className={styles.filtersWrap}>
@@ -127,33 +141,32 @@ export default function ReportsPage() {
       </header>
 
       <Space orientation="vertical" size={16} style={{ width: '100%' }}>
-        <Card className={styles.overviewCard} style={{ borderRadius: 12, overflow: 'hidden' }}>
-          <Title level={5} className={styles.sectionTitleMobile} style={{ margin: 0, fontSize: 15 }}>
-            Tổng quan chuyển đổi
-          </Title>
-          <Title level={5} className={styles.sectionTitleDesktop}>
-            Tổng quan chuyển đổi
-          </Title>
-          <ReportsOverviewCards
-            funnel={funnel}
-            previousFunnel={isPrevSuccess ? previousFunnel : null}
-            loading={isLoading}
-          />
-        </Card>
-
-        <ReportsDailyTable chartData={chartData} isLoading={isLoading} />
-
-        <ReportsCustomerTags
-          tags={tagData?.tags ?? []}
-          totalNet={tagData?.totalNet ?? 0}
-          startDate={startDate}
-          endDate={endDate}
-          isLoading={isTagsLoading}
-          isError={isTagsError}
-          errorMessage={(tagsError as Error | undefined)?.message}
+        <ReportsOverviewCards
+          funnel={funnel}
+          previousFunnel={isPrevSuccess ? previousFunnel : null}
+          loading={isLoading}
         />
 
+        <ReportsConversionStats
+          totalLeads={totalLeads}
+          totalAppointments={totalAppointments}
+          totalNurturing={totalNurturing}
+          revenue={revenueData?.totalPaid ?? 0}
+          fbSpend={fbTotalSpend}
+          loading={isLoading || isRevenueLoading}
+        />
+
+        {/* ponytail: Bảng thống kê theo ngày tạm ẩn — bỏ comment để bật lại */}
+
         <div className={styles.splitRow}>
+          <div className={styles.halfCol}>
+            <ReportsMessagingPerformance
+              startDate={startDate}
+              endDate={endDate}
+              prevStartDate={prevRange.startDate}
+              prevEndDate={prevRange.endDate}
+            />
+          </div>
           <div className={styles.halfCol}>
             <ReportsUpcomingAppointments />
           </div>
@@ -166,6 +179,16 @@ export default function ReportsPage() {
             />
           </div>
         </div>
+
+        <ReportsCustomerTags
+          tags={tagData?.tags ?? []}
+          totalNet={tagData?.totalNet ?? 0}
+          startDate={startDate}
+          endDate={endDate}
+          isLoading={isTagsLoading}
+          isError={isTagsError}
+          errorMessage={(tagsError as Error | undefined)?.message}
+        />
       </Space>
     </div>
   );

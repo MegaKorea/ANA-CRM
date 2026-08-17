@@ -111,7 +111,6 @@ export function mapSmaxTagStatistics(
   const tags: SmaxTagTotal[] = ranked
     .toSorted(compareRanked)
     .slice(0, top)
-    .map(({ listAdd: _listAdd, ...tag }) => tag);
-
+    .map(({ name, add, curAdd, remove, net }) => ({ name, add, curAdd, remove, net }));
   return { tags, totalNet };
 }

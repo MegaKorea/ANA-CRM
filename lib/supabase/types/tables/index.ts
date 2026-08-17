@@ -11,6 +11,7 @@ import { EnrollmentsTable } from './enrollments';
 import { PushSubscriptionsTable } from './push_subscriptions';
 import { QuizzesTable, QuizAttemptsTable } from './quizzes';
 import { UserNotificationsTable } from './user_notifications';
+import { LeadClassificationRulesTable } from './lead_classification_rules';
 
 export interface TablesMap {
   roles: RolesTable;
@@ -27,4 +28,5 @@ export interface TablesMap {
   quizzes: QuizzesTable;
   quiz_attempts: QuizAttemptsTable;
   user_notifications: UserNotificationsTable;
+  lead_classification_rules: LeadClassificationRulesTable;
 }

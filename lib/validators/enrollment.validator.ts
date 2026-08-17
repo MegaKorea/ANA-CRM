@@ -1,10 +1,17 @@
 import { AppError } from '@/errors';
 import { EnrollmentErrorCode, HttpStatusCode, ValidationPattern } from '@/constants/enums';
 
+export const ENROLLMENT_CATEGORIES = ['khóa học', 'vật tư', 'chứng chỉ'] as const;
+export type EnrollmentCategory = (typeof ENROLLMENT_CATEGORIES)[number];
+
+const DEFAULT_ENROLLMENT_CATEGORY: EnrollmentCategory = 'khóa học';
+
 export interface CreateEnrollmentInput {
   lead_id: number;
-  course_id: string;
+  category: EnrollmentCategory;
+  course_id?: string;
   class_id?: string;
+  item_name?: string;
   enrollment_date?: string;
   sales_month: string;
   source?: string;
@@ -17,8 +24,10 @@ export interface CreateEnrollmentInput {
 }
 
 export interface UpdateEnrollmentInput {
-  course_id?: string;
+  category?: EnrollmentCategory;
+  course_id?: string | null;
   class_id?: string | null;
+  item_name?: string | null;
   enrollment_date?: string;
   sales_month?: string;
   source?: string | null;
@@ -87,6 +96,28 @@ function validateOptionalStringField(value: unknown): string | undefined {
   return trimmedValue || undefined;
 }
 
+function validateCategoryField(value: unknown): EnrollmentCategory {
+  if (typeof value !== 'string' || !ENROLLMENT_CATEGORIES.includes(value as EnrollmentCategory)) {
+    throw new AppError(
+      EnrollmentErrorCode.BAD_REQUEST,
+      HttpStatusCode.BAD_REQUEST,
+      `category phải là một trong: ${ENROLLMENT_CATEGORIES.join(', ')}`,
+    );
+  }
+  return value as EnrollmentCategory;
+}
+
+function validateRequiredItemNameField(value: unknown): string {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new AppError(
+      EnrollmentErrorCode.BAD_REQUEST,
+      HttpStatusCode.BAD_REQUEST,
+      'item_name không được để trống khi category không phải khóa học',
+    );
+  }
+  return value.trim();
+}
+
 function validateOptionalDateField(value: unknown): string | undefined {
   if (value === undefined || value === null || value === '') {
     return undefined;
@@ -145,13 +176,18 @@ export function validateCreateEnrollmentInput(input: unknown): CreateEnrollmentI
     throw new AppError(EnrollmentErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
   }
 
-  const courseId = validateRequiredUuidField(data.course_id);
+  const category = validateCategoryField(data.category ?? DEFAULT_ENROLLMENT_CATEGORY);
+  const isCourse = category === DEFAULT_ENROLLMENT_CATEGORY;
+  const courseId = isCourse ? validateRequiredUuidField(data.course_id) : undefined;
+  const itemName = isCourse ? undefined : validateRequiredItemNameField(data.item_name);
   const enrollmentDate = validateOptionalDateField(data.enrollment_date);
 
   return {
     lead_id: leadId,
+    category,
     course_id: courseId,
-    class_id: validateOptionalUuidField(data.class_id),
+    class_id: isCourse ? validateOptionalUuidField(data.class_id) : undefined,
+    item_name: itemName,
     enrollment_date: enrollmentDate,
     sales_month: deriveSalesMonth(validateSalesMonthField(data.sales_month), enrollmentDate),
     source: validateOptionalStringField(data.source),
@@ -172,11 +208,20 @@ export function validateUpdateEnrollmentInput(input: unknown): UpdateEnrollmentI
   const data = input as Record<string, unknown>;
   const result: UpdateEnrollmentInput = {};
 
-  const courseId = validateOptionalUuidField(data.course_id);
-  if (courseId !== undefined) result.course_id = courseId;
+  if (data.category !== undefined) {
+    result.category = validateCategoryField(data.category);
+  }
+
+  if (data.course_id !== undefined) {
+    result.course_id = data.course_id === null ? null : validateRequiredUuidField(data.course_id);
+  }
 
   if (data.class_id !== undefined) {
     result.class_id = data.class_id === null ? null : validateRequiredUuidField(data.class_id);
+  }
+
+  if (data.item_name !== undefined) {
+    result.item_name = data.item_name === null ? null : validateOptionalStringField(data.item_name) ?? null;
   }
 
   const enrollmentDate = validateOptionalDateField(data.enrollment_date);

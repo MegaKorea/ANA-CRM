@@ -132,3 +132,16 @@ export function mapSmaxSupporterStatistics(input: {
 
   return { rows };
 }
+
+/** Average reply time across supporters, ignoring those with no recorded reply. */
+export function averageSmaxReplyTimeSec(timeReplyPayload: unknown): number {
+  const root = asRecord(timeReplyPayload);
+  const data = asRecord(root?.data) ?? root;
+  const rows = readReplyTimes(data?.reply_time ?? data?.replyTime).filter(
+    (row) => row.averageSec > 0,
+  );
+  if (rows.length === 0) return 0;
+  // ponytail: unweighted mean — weighting by conversation count needs an extra
+  // SMAX call per platform; add it if the numbers drift from the SMAX dashboard.
+  return rows.reduce((sum, row) => sum + row.averageSec, 0) / rows.length;
+}

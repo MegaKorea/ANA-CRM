@@ -18,7 +18,6 @@ function errorResponse(error: unknown) {
     return NextResponse.json({ error: message }, { status: HttpStatusCode.INTERNAL_SERVER_ERROR });
 }
 
-// GET /api/classes/[id]/sessions — List all sessions for a class
 export async function GET(
     _request: NextRequest,
     { params }: { params: Promise<{ id: string }> },
@@ -31,7 +30,6 @@ export async function GET(
 
         const sessions = await getClassSessions(id, {
             viewerUserId: viewer.kind === 'student' ? viewer.userId : null,
-            // Students must not receive live QR tokens (scan-only attendance).
             redactQr: viewer.kind === 'student',
             viewerRole: user.roleCode,
         });
@@ -47,7 +45,6 @@ export async function GET(
     }
 }
 
-// POST /api/classes/[id]/sessions — Auto-generate sessions for a class
 export async function POST(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> },

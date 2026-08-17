@@ -7,12 +7,13 @@ import type { Enrollment } from '@/lib/services/enrollment.service';
 import type { Lead } from '@/lib/services/lead.service';
 import { formatCurrencyVnd } from '@/lib/utils/numberFormat';
 import { getLatestNoteContent } from '@/lib/utils/notes';
+import { ENROLLMENT_CATEGORY_COLOR, ENROLLMENT_CATEGORY_LABEL } from './columns';
 
 export type MainRow = ({ rowType: 'enrollment' } & Enrollment) | ({ rowType: 'lead' } & Lead);
 
 interface MainRowCardProps {
   record: MainRow;
-  courseName: (courseId: string) => string;
+  courseName: (courseId: string | null) => string | null;
   className: (classId: string | null) => string | null;
   onPay: (enrollment: Enrollment) => void;
   onEdit: (enrollment: Enrollment) => void;
@@ -23,8 +24,17 @@ export function MainRowCard({ record, courseName, className, onPay, onEdit, onDe
   const name = record.rowType === 'lead' ? record.full_name : record.lead_full_name || `Lead #${record.lead_id}`;
   const phone = record.rowType === 'lead' ? record.phone_number : record.lead_phone_number;
   const leadCourseId = record.rowType === 'lead' ? record.course_ids?.[0] : undefined;
-  const course = record.rowType === 'lead' ? (leadCourseId ? courseName(leadCourseId) : null) : courseName(record.course_id);
-  const cls = record.rowType === 'enrollment' ? className(record.class_id) : null;
+  const category = record.rowType === 'lead' ? 'khóa học' : record.category;
+  const isCourseCategory = category === 'khóa học';
+  const course =
+    record.rowType === 'lead'
+      ? leadCourseId
+        ? courseName(leadCourseId)
+        : null
+      : isCourseCategory
+        ? courseName(record.course_id)
+        : null;
+  const cls = record.rowType === 'enrollment' && isCourseCategory ? className(record.class_id) : null;
   const fee = record.tuition_fee ?? 0;
   const paid = record.rowType === 'enrollment' ? record.paid_amount : 0;
   const debt = record.rowType === 'enrollment' ? record.debt_amount : (record.tuition_fee ?? 0);
@@ -46,20 +56,25 @@ export function MainRowCard({ record, courseName, className, onPay, onEdit, onDe
               </Typography.Text>
             )}
           </Col>
-          {record.rowType === 'lead' && (
-            <Tag color="geekblue" style={{ marginLeft: 8, flexShrink: 0 }}>
-              Chờ tạo đăng ký
-            </Tag>
-          )}
+          <Space style={{ marginLeft: 8, flexShrink: 0 }}>
+            <Tag color={ENROLLMENT_CATEGORY_COLOR[category]}>{ENROLLMENT_CATEGORY_LABEL[category]}</Tag>
+            {record.rowType === 'lead' && <Tag color="geekblue">Chờ tạo đăng ký</Tag>}
+          </Space>
         </Row>
 
-        {course && (
-          <Space size={4} wrap>
-            <Typography.Text style={{ fontSize: 12 }}>{course}</Typography.Text>
-            {cls && cls !== course && (
-              <Tag style={{ fontSize: 11 }}>{cls}</Tag>
-            )}
-          </Space>
+        {record.rowType === 'enrollment' && !isCourseCategory ? (
+          record.item_name && (
+            <Space size={4} wrap>
+              <Typography.Text style={{ fontSize: 12 }}>{record.item_name}</Typography.Text>
+            </Space>
+          )
+        ) : (
+          course && (
+            <Space size={4} wrap>
+              <Typography.Text style={{ fontSize: 12 }}>{course}</Typography.Text>
+              {cls && cls !== course && <Tag style={{ fontSize: 11 }}>{cls}</Tag>}
+            </Space>
+          )
         )}
 
         <Row gutter={8}>

@@ -111,8 +111,7 @@ export function ScheduleDayCell({
         ) : null}
         {/* Desktop: badges move down next to the session label (calDayBody) so
             they don't fight the absolutely-positioned attendance icon for the
-            same top-right corner. Mobile has no such collision (attendance
-            renders as its own full-width row there), so keep them up top. */}
+            same top-right corner.*/}
         {isMobile && hasNewContent ? (
           <NewContentBadges hasNewLecture={hasNewLecture} hasNewQuiz={hasNewQuiz} />
         ) : !showAttendance && row && (isMobile || row.status !== 'today') ? (

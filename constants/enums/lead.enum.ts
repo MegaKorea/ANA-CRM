@@ -16,12 +16,13 @@ export enum LeadErrorCode {
 
 export enum LeadStatus {
   NEW = 'new',
-  CONVERTED = 'converted',
   NOT_CONTACTED = 'not_contacted',
-  REJECT = 'reject',
   INTERESTED = 'interested',
-  NOT_INTERESTED = 'not_interested',
   NURTURING = 'nurturing',
+  LOW_INTERACTION = 'low_interaction',
+  NOT_INTERESTED = 'not_interested',
+  REJECT = 'reject',
+  CONVERTED = 'converted',
   OTHER = 'other',
 }
 

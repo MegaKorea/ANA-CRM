@@ -54,9 +54,7 @@
   --body-size: var(--font-size-sm);
   --body-small-size: var(--font-size-xs);
 
-  /* Margins / Paddings / Layout */
-  --page-margin: var(--spacing-4);
-  --page-padding: var(--spacing-4);
+  /* Spacing / Layout */
   --section-spacing: var(--spacing-6);
   --component-spacing: var(--spacing-4);
   --element-spacing: var(--spacing-1);
@@ -77,8 +75,6 @@
     --body-size: var(--font-size-base);
 
     /* Layout Overrides */
-    --page-margin: var(--spacing-6);
-    --page-padding: var(--spacing-6);
     --section-spacing: var(--spacing-8);
     --component-spacing: var(--spacing-5);
     --element-spacing: var(--spacing-3);
@@ -93,8 +89,6 @@
     --h3-size: var(--font-size-xl);
 
     /* Layout Overrides */
-    --page-margin: var(--spacing-8);
-    --page-padding: var(--spacing-8);
     --section-spacing: var(--spacing-10);
     --component-spacing: var(--spacing-6);
   }
@@ -142,20 +136,6 @@ html {
 }
 
 /* Spacing Classes - Margin */
-.m-page {
-  margin: var(--page-margin);
-}
-
-.mx-page {
-  margin-left: var(--page-margin);
-  margin-right: var(--page-margin);
-}
-
-.my-page {
-  margin-top: var(--page-margin);
-  margin-bottom: var(--page-margin);
-}
-
 .mb-section {
   margin-bottom: var(--section-spacing);
 }
@@ -166,19 +146,4 @@ html {
 
 .mb-element {
   margin-bottom: var(--element-spacing);
-}
-
-/* Spacing Classes - Padding */
-.p-page {
-  padding: var(--page-padding);
-}
-
-.px-page {
-  padding-left: var(--page-padding);
-  padding-right: var(--page-padding);
-}
-
-.py-page {
-  padding-top: var(--page-padding);
-  padding-bottom: var(--page-padding);
 }

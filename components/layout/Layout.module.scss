@@ -1,4 +1,4 @@
-.layout {
+.layout:global(.ant-layout) {
   position: fixed;
   inset: 0;
   height: 100vh;
@@ -26,10 +26,10 @@
   }
 }
 
-.content {
+.content:global(.ant-layout-content) {
   flex: 1 1 auto;
   min-height: 0;
-  padding: var(--space-6);
+  padding: var(--space-10);
   background: var(--bg-app);
   overflow-x: hidden;
   overflow-y: auto;
@@ -37,7 +37,7 @@
   overscroll-behavior-y: contain;
 
   @media (max-width: 767px) {
-    padding: var(--space-3);
+    padding: var(--space-5);
     touch-action: pan-y;
   }
 }

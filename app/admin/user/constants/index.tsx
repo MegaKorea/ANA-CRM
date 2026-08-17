@@ -8,10 +8,6 @@ import defaultAvatar from '@/app/assets/avatar/avt.webp';
 
 type RoleRow = RolesTable['Row'];
 
-export enum UserPagePadding {
-  CONTAINER = 24,
-}
-
 export enum UserPageMargin {
   HEADER_BOTTOM = 16,
 }

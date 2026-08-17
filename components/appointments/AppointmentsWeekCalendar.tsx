@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  LeftOutlined,
-  RightOutlined,
-  FacebookOutlined,
-} from '@ant-design/icons';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons';
 import {
   Alert,
   Button,
@@ -16,6 +12,7 @@ import {
   type CalendarProps,
 } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
+import Image from 'next/image';
 import {
   memo,
   useCallback,
@@ -25,7 +22,6 @@ import {
   type CSSProperties,
   type ReactNode,
 } from 'react';
-import { SiZalo } from 'react-icons/si';
 import type {
   UpcomingAppointment,
   UpcomingAppointmentChannel,
@@ -333,21 +329,15 @@ function ChannelDot({
 }): ReactNode {
   if (channel === 'zalo') {
     return (
-      <span
-        className={`${styles.channel} ${styles.channelZalo}`}
-        aria-label="Zalo"
-      >
-        <SiZalo size={10} color="#fff" />
+      <span className={styles.channel} aria-label="Zalo">
+        <Image src="/zalo.jpg" alt="Zalo" fill sizes="16px" style={{ objectFit: 'cover' }} />
       </span>
     );
   }
   if (channel === 'facebook') {
     return (
-      <span
-        className={`${styles.channel} ${styles.channelFb}`}
-        aria-label="Facebook"
-      >
-        <FacebookOutlined style={{ fontSize: 9, color: '#fff' }} />
+      <span className={styles.channel} aria-label="Facebook">
+        <Image src="/fb.png" alt="Facebook" fill sizes="16px" style={{ objectFit: 'cover' }} />
       </span>
     );
   }

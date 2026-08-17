@@ -5,7 +5,12 @@ import {
   findDuplicateLead,
   updateLeadById,
 } from '@/lib/services/lead.service';
-import { validateLeadFormInput, validateLeadId } from '@/lib/validators/lead.validator';
+import {
+  validateLeadFormInput,
+  validateLeadId,
+  type LeadFormInput,
+} from '@/lib/validators/lead.validator';
+import type { NoteItem } from '@/lib/supabase/types/tables/leads';
 import { HttpStatusCode, LeadErrorCode, LeadSource, LeadStatus } from '@/constants/enums';
 import { handleRouteError } from '@/lib/utils/route-handler';
 import { fail } from '@/errors';
@@ -30,6 +35,31 @@ function leadMatchesSubmittedIdentity(
   );
 }
 
+async function applyLeadUpdate(
+  leadId: number,
+  existing: { note: NoteItem[] | null },
+  input: LeadFormInput,
+): Promise<NextResponse> {
+  const mergedNote = input.note
+    ? [...(Array.isArray(existing.note) ? existing.note : []), ...input.note]
+    : undefined;
+
+  const lead = await updateLeadById(leadId, {
+    full_name: input.full_name,
+    phone_number: input.phone_number,
+    smax_log: input.smax_log,
+    source: LeadSource.FACEBOOK,
+    ...(input.date_of_birth ? { date_of_birth: input.date_of_birth } : {}),
+    ...(input.status ? { status: input.status } : {}),
+    ...(mergedNote ? { note: mergedNote } : {}),
+  });
+
+  return NextResponse.json(
+    { success: true, id: lead.id, updated: true },
+    { status: HttpStatusCode.OK }
+  );
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body = await request.json();
@@ -49,28 +79,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         );
       }
 
-      const mergedNote = input.note
-        ? [...(existing.note ?? []), ...input.note]
-        : undefined;
-
-      const lead = await updateLeadById(leadId, {
-        full_name: input.full_name,
-        phone_number: input.phone_number,
-        smax_log: input.smax_log,
-        source: LeadSource.FACEBOOK,
-        ...(input.date_of_birth ? { date_of_birth: input.date_of_birth } : {}),
-        ...(input.status ? { status: input.status } : {}),
-        ...(mergedNote ? { note: mergedNote } : {}),
-      });
-
-      return NextResponse.json(
-        { success: true, id: lead.id, updated: true },
-        { status: HttpStatusCode.OK }
-      );
+      return applyLeadUpdate(leadId, existing, input);
     }
 
     const duplicate = await findDuplicateLead(input.full_name, input.phone_number);
     if (duplicate) {
+      // Same phone number = same person, so update straight away. Returning 409 here made
+      // the client bounce the submit back as a second "Cập nhật" click, which silently
+      // dropped the note the user had just typed. Only a name-only match still needs
+      // confirming, since that would overwrite a different person's phone number.
+      if (normalizePhone(duplicate.phone_number) === normalizePhone(input.phone_number)) {
+        return applyLeadUpdate(duplicate.id, duplicate, input);
+      }
+
       return NextResponse.json(
         {
           success: false,

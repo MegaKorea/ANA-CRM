@@ -1,4 +1,4 @@
-.modal {
+.modal:global(.ant-modal) {
   :global(.ant-modal-content) {
     border-radius: var(--radius-xl);
     overflow: hidden;

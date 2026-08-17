@@ -139,75 +139,70 @@ export function QuizTakeModal({
   const submittingRef = useRef(false);
   const startingRef = useRef(false);
   const draftTimerRef = useRef<number | null>(null);
-  const hydratedAttemptIdRef = useRef<string | null>(null);
   const draftSaveFailedRef = useRef(false);
   const timeoutRetryCountRef = useRef(0);
   const timeoutFailNotifiedRef = useRef(false);
+  const [resetTrackedFor, setResetTrackedFor] = useState({ open, readOnly });
+  const [hydratedKey, setHydratedKey] = useState<string | null>(null);
 
   useEffect(() => {
     answersRef.current = answers;
   }, [answers]);
 
-  /* eslint-disable react-hooks/set-state-in-effect -- tears down the in-progress
-     attempt (state + timers + refs) when the modal closes or flips to read-only;
-     this genuinely synchronizes local state to the `open`/`readOnly` props changing,
-     not something derivable at render time. */
+  // Timer/flag cleanup on close is a genuine side effect.
   useEffect(() => {
-    if (!open) {
+    if (open) return;
+    submittingRef.current = false;
+    startingRef.current = false;
+    draftSaveFailedRef.current = false;
+    timeoutRetryCountRef.current = 0;
+    timeoutFailNotifiedRef.current = false;
+    if (draftTimerRef.current !== null) {
+      window.clearTimeout(draftTimerRef.current);
+      draftTimerRef.current = null;
+    }
+  }, [open]);
+
+  // Resetting local answer/result state when the modal closes (or flips
+  // read-only) is a pure reaction to props, not a side effect — adjust it
+  // during render so it applies in the same pass instead of an extra one.
+  // See https://react.dev/learn/you-might-not-need-an-effect
+  if (resetTrackedFor.open !== open || resetTrackedFor.readOnly !== readOnly) {
+    setResetTrackedFor({ open, readOnly });
+    if (!open || readOnly) {
       setAnswers({});
       setResult(null);
       setRemainingSeconds(null);
-      submittingRef.current = false;
-      startingRef.current = false;
-      hydratedAttemptIdRef.current = null;
-      draftSaveFailedRef.current = false;
-      timeoutRetryCountRef.current = 0;
-      timeoutFailNotifiedRef.current = false;
-      if (draftTimerRef.current !== null) {
-        window.clearTimeout(draftTimerRef.current);
-        draftTimerRef.current = null;
-      }
-      return;
+      setHydratedKey(null);
     }
-    if (readOnly) {
-      setResult(null);
-      setAnswers({});
-      setRemainingSeconds(null);
-    }
-  }, [open, readOnly]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+  }
 
   const startAttemptMutate = startAttempt.mutateAsync;
   const onCloseEvent = useEffectEvent(onClose);
 
-  /* eslint-disable react-hooks/set-state-in-effect -- hydrates local answer/timer
-     state from the server-fetched attempt (and starts a new attempt via mutation
-     when none exists yet); genuinely syncing to async external data, not derivable
-     at render time. */
-  useEffect(() => {
-    if (!open || readOnly || attemptLoading || !quizId || !sessionId) return;
-    if (!quizContentReady) return;
-
-    if (isQuizAttemptCompleted(attempt)) {
-      setResult(attempt!);
-      setAnswers(attempt!.user_answers ?? {});
-      setRemainingSeconds(null);
-      hydratedAttemptIdRef.current = attempt!.id;
-      return;
-    }
-
-    if (isQuizAttemptInProgress(attempt)) {
-      if (hydratedAttemptIdRef.current !== attempt!.id) {
-        setAnswers(attempt!.user_answers ?? {});
-        hydratedAttemptIdRef.current = attempt!.id;
+  // Hydrating local state from a freshly-loaded attempt is likewise a pure
+  // sync from the query result — same reasoning as the reset above. Keyed on
+  // attempt id+status so it runs once per attempt, not on every re-render.
+  if (open && !readOnly && quizContentReady && !attemptLoading && attempt) {
+    const key = `${attempt.id}:${attempt.status}`;
+    if (key !== hydratedKey) {
+      setHydratedKey(key);
+      if (isQuizAttemptCompleted(attempt)) {
+        setResult(attempt);
+        setAnswers(attempt.user_answers ?? {});
+        setRemainingSeconds(null);
+      } else if (isQuizAttemptInProgress(attempt)) {
+        setAnswers(attempt.user_answers ?? {});
+        setResult(null);
+        setRemainingSeconds(
+          getQuizAttemptRemainingSeconds(attempt.started_at, quiz?.duration_minutes ?? 0),
+        );
       }
-      setResult(null);
-      setRemainingSeconds(
-        getQuizAttemptRemainingSeconds(attempt!.started_at, quiz?.duration_minutes ?? 0),
-      );
-      return;
     }
+  }
 
+  useEffect(() => {
+    if (!open || readOnly || attemptLoading || !quizId || !sessionId || !quizContentReady) return;
     if (attempt || startingRef.current) return;
 
     startingRef.current = true;
@@ -227,11 +222,9 @@ export function QuizTakeModal({
     quizId,
     sessionId,
     quizContentReady,
-    quiz?.duration_minutes,
     startAttemptMutate,
     message,
   ]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   const persistDraft = useCallback(
     async (nextAnswers: Record<string, string[]>) => {

@@ -23,7 +23,6 @@ import { useIsMobile } from '@/lib/hooks/use-mobile';
 import dynamic from 'next/dynamic';
 import { LeadFilters } from '@/app/lead/components/LeadFilters';
 import { LeadMobileCard } from '@/app/lead/components/LeadMobileCard';
-import { usePaymentCounts } from '@/lib/hooks/use-payment-tickets';
 import { hasSmaxConversation } from '@/lib/smax/parse-smax-log';
 
 const LeadModal = dynamic(
@@ -59,16 +58,6 @@ const AppointmentModal = dynamic(
 
 const ConversationModal = dynamic(
   () => import('@/app/lead/components/ConversationModal'),
-  { ssr: false },
-);
-
-const PaymentTicketModal = dynamic(
-  () => import('@/app/lead/components/PaymentTicketModal').then((m) => m.PaymentTicketModal),
-  { ssr: false },
-);
-
-const PaymentHistoryModal = dynamic(
-  () => import('@/app/lead/components/PaymentHistoryModal').then((m) => m.PaymentHistoryModal),
   { ssr: false },
 );
 
@@ -111,8 +100,6 @@ function LeadPageContent() {
   const attendanceModal = useLeadModal();
   const appointmentModal = useLeadModal();
   const conversationModal = useLeadModal();
-  const paymentTicketModal = useLeadModal();
-  const paymentHistoryModal = useLeadModal();
 
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchInputKey, setSearchInputKey] = useState(0);
@@ -184,6 +171,7 @@ function LeadPageContent() {
   const { data, isLoading, isFetching, refetch } = useLeads({
     search: searchKeyword || undefined,
     status: statusFilter,
+    excludeStatus: statusFilter ? undefined : LeadStatus.CONVERTED,
     source: sourceFilter,
     course_id: courseFilter,
     startDate: createdAtRange?.[0] ? createdAtRange[0].format(DateFormat.ISO_DATE) : undefined,
@@ -211,9 +199,6 @@ function LeadPageContent() {
     return () => window.clearTimeout(timer);
   }, [focusAppointmentLeadId, leads, isLoading]);
 
-  // Batch-fetch payment counts for visible leads
-  const leadIds = useMemo(() => leads.map((l) => l.id), [leads]);
-  const { data: paymentCounts } = usePaymentCounts(leadIds);
   const createLeadMutation = useCreateLead();
   const updateLeadMutation = useUpdateLead();
   const deleteLeadMutation = useDeleteLead();
@@ -359,10 +344,7 @@ function LeadPageContent() {
         handleOpenAttendanceModal: attendanceModal.openModal,
         handleOpenAppointmentModal: appointmentModal.openModal,
         handleOpenConversationModal: conversationModal.openModal,
-        handleOpenPaymentTicketModal: paymentTicketModal.openModal,
-        handleOpenPaymentHistoryModal: paymentHistoryModal.openModal,
         courses,
-        paymentCounts: paymentCounts ?? {},
       }).map((col: any) => ({
         ...col,
         onCell: () =>
@@ -380,10 +362,7 @@ function LeadPageContent() {
       attendanceModal.openModal,
       appointmentModal.openModal,
       conversationModal.openModal,
-      paymentTicketModal.openModal,
-      paymentHistoryModal.openModal,
       courses,
-      paymentCounts,
     ],
   );
 
@@ -397,7 +376,7 @@ function LeadPageContent() {
   );
 
   return (
-    <div className="p-page">
+    <div>
       <Row justify="space-between" align="middle" className="mb-section">
         <Col>
           <Typography.Title level={2} className="text-h2" style={{ margin: 0 }}>
@@ -558,18 +537,6 @@ function LeadPageContent() {
           onCancel={conversationModal.closeModal}
         />
       )}
-
-      <PaymentTicketModal
-        open={paymentTicketModal.open}
-        lead={paymentTicketModal.lead}
-        onClose={paymentTicketModal.closeModal}
-      />
-
-      <PaymentHistoryModal
-        open={paymentHistoryModal.open}
-        lead={paymentHistoryModal.lead}
-        onClose={paymentHistoryModal.closeModal}
-      />
     </div>
   );
 }

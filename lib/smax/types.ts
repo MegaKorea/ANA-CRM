@@ -130,3 +130,23 @@ export interface SmaxSupporterStatisticsApiResponse {
   rows: SmaxSupporterRow[];
   source: 'smax';
 }
+
+export interface SmaxPlatformPerformance {
+  key: string;
+  label: string;
+  messages: number;
+  data: number;
+  avgReplyTimeSec: number;
+}
+
+export interface SmaxMessagingPerformance {
+  totalMessages: number;
+  totalData: number;
+  avgReplyTimeSec: number;
+  platforms: SmaxPlatformPerformance[];
+}
+
+export interface SmaxMessagingPerformanceApiResponse
+  extends SmaxMessagingPerformance {
+  source: 'smax';
+}

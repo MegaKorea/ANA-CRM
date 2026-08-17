@@ -1,4 +1,4 @@
-.footer {
+.footer:global(.ant-layout-footer) {
   text-align: center;
   background: var(--color-bg-layout);
   padding: 16px 50px;

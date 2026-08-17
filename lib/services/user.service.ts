@@ -36,7 +36,7 @@ export async function fetchAllUsers(params?: UserQueryParams): Promise<User[]> {
       if (role) {
         query = query.eq('role_id', (role as any).id);
       } else {
-        return []; // If role not found, return empty array
+        return []; 
       }
     }
 
@@ -249,7 +249,6 @@ export async function createStudentAccountIfNotExists(
   try {
     const supabase = createAdminClient();
 
-    // Check if user with this phone already exists in our table
     const { data: existingUser } = await supabase
       .from('users')
       .select('id, lead_id')
@@ -267,7 +266,6 @@ export async function createStudentAccountIfNotExists(
       return;
     }
 
-    // Get STU role id
     const { data: role } = await supabase
       .from('roles')
       .select('id')
@@ -282,7 +280,6 @@ export async function createStudentAccountIfNotExists(
     const defaultEmail = email || `${phone}@student.ana.edu.vn`;
     const defaultPassword = phone;
 
-    // Check if auth user with email exists
     const { data: authUsersResponse, error: authListError } = await supabase.auth.admin.listUsers();
 
     if (authListError) {
@@ -293,7 +290,6 @@ export async function createStudentAccountIfNotExists(
     const existingAuthUser = authUsersResponse.users.find(u => u.email === defaultEmail);
 
     if (existingAuthUser) {
-      // If auth user exists but not in our users table, we should still insert the user record
       const insertData: InsertTables<'users'> = {
         id: existingAuthUser.id,
         email: defaultEmail,
@@ -314,7 +310,6 @@ export async function createStudentAccountIfNotExists(
       return;
     }
 
-    // Create auth user
     const { data: authUser, error: authError } =
       await supabase.auth.admin.createUser({
         email: defaultEmail,

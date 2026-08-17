@@ -14,11 +14,15 @@ import {
 } from '@/constants/smax';
 import { mapSmaxMessagesPayload } from '@/lib/smax/map-messages';
 import { mapSmaxCustomerStatistics } from '@/lib/smax/map-statistics';
-import { mapSmaxSupporterStatistics } from '@/lib/smax/map-supporters';
+import {
+  averageSmaxReplyTimeSec,
+  mapSmaxSupporterStatistics,
+} from '@/lib/smax/map-supporters';
 import { mapSmaxTagStatistics } from '@/lib/smax/map-tags';
 import { withFbPrefix } from '@/lib/smax/utils';
 import type {
   SmaxConversationResult,
+  SmaxMessagingPerformance,
   SmaxCustomerStatistics,
   SmaxCustomerStatisticsRequest,
   SmaxSupporterStatistics,
@@ -346,4 +350,55 @@ export async function fetchSmaxSupporterStatistics(
   ]);
 
   return mapSmaxSupporterStatistics({ message, conversation, timeReply, biz });
+}
+
+const SMAX_PLATFORMS = [
+  { key: 'messenger', label: 'Messenger', prefix: /^fb/i },
+  { key: 'zalo', label: 'Zalo', prefix: /^zl/i },
+  { key: 'instagram', label: 'Instagram', prefix: /^ig/i },
+] as const;
+
+export async function fetchSmaxMessagingPerformance(
+  params: FetchSmaxCustomerStatisticsParams,
+): Promise<SmaxMessagingPerformance> {
+  const allowedPids = resolveAllowedPagePids(params.pagePids);
+
+  const groups = SMAX_PLATFORMS.map((meta) => ({
+    meta,
+    pids: allowedPids.filter((pid) => meta.prefix.test(pid)),
+  })).filter((group) => group.pids.length > 0);
+
+  const platforms = await Promise.all(
+    groups.map(async ({ meta, pids }) => {
+      const [stats, timeReply] = await Promise.all([
+        fetchSmaxCustomerStatistics({ ...params, pagePids: pids }),
+        fetchSmaxSupportersByType(
+          { ...params, pagePids: pids },
+          SmaxSupporterStatType.TIME_REPLY,
+        ),
+      ]);
+
+      return {
+        key: meta.key,
+        label: meta.label,
+        messages: stats.messages,
+        data: stats.data,
+        avgReplyTimeSec: averageSmaxReplyTimeSec(timeReply),
+      };
+    }),
+  );
+
+  const totalMessages = platforms.reduce((sum, p) => sum + p.messages, 0);
+  const totalData = platforms.reduce((sum, p) => sum + p.data, 0);
+  const weightedReply = platforms.reduce(
+    (sum, p) => sum + p.avgReplyTimeSec * p.messages,
+    0,
+  );
+
+  return {
+    totalMessages,
+    totalData,
+    avgReplyTimeSec: totalMessages > 0 ? weightedReply / totalMessages : 0,
+    platforms: platforms.toSorted((a, b) => b.messages - a.messages),
+  };
 }
