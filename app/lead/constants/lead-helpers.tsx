@@ -204,9 +204,10 @@ const SMAX_SCAN_MAX_DEPTH = 3;
 function toAbsoluteFacebookUrl(path: string): string | undefined {
   const trimmed = path.trim();
   if (!trimmed) return undefined;
-  return /^https?:\/\//i.test(trimmed)
+  const absolute = /^https?:\/\//i.test(trimmed)
     ? trimmed
     : `https://www.facebook.com${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
+  return isFacebookProfileUrl(absolute) ? absolute : undefined;
 }
 
 function isFacebookProfileUrl(value: unknown): value is string {
