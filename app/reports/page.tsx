@@ -141,7 +141,7 @@ export default function ReportsPage() {
       </header>
 
       <Space orientation="vertical" size={16} style={{ width: '100%' }}>
-        <Card className={styles.overviewCard} style={{ borderRadius: 12, overflow: 'hidden' }}>
+        <div>
           <Title level={5} className={styles.sectionTitleMobile} style={{ margin: 0, fontSize: 15 }}>
             Tổng quan chuyển đổi
           </Title>
@@ -153,7 +153,7 @@ export default function ReportsPage() {
             previousFunnel={isPrevSuccess ? previousFunnel : null}
             loading={isLoading}
           />
-        </Card>
+        </div>
 
         <ReportsConversionStats
           totalLeads={totalLeads}
