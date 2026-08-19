@@ -218,7 +218,7 @@ export async function notifyClassStudentsNewLecture(input: {
 }
 
 /** Returns the ids of all users whose role is ADMIN (managers see everything). */
-async function fetchAdminUserIds(): Promise<string[]> {
+export async function fetchAdminUserIds(): Promise<string[]> {
   const supabase = createAdminClient();
   // `roles!inner` filters the top-level users rows by the embedded role code —
   // a plain `.eq('roles.code', ...)` only constrains the embed, not the rows.
@@ -233,6 +233,38 @@ async function fetchAdminUserIds(): Promise<string[]> {
   }
 
   return ((data as unknown as { id: string }[]) || []).map((u) => u.id);
+}
+
+/** Notifies admins (and the assigned telesales, if any) that a new lead came in. */
+export async function notifyNewLead(lead: {
+  id: number;
+  full_name: string;
+  phone_number: string | null;
+  telesales_id?: string | null;
+}): Promise<{ recipients: number; delivered: number }> {
+  try {
+    if (!ensureVapid()) {
+      return { recipients: 0, delivered: 0 };
+    }
+
+    const recipientIds = new Set<string>(await fetchAdminUserIds());
+    if (lead.telesales_id) recipientIds.add(lead.telesales_id);
+    if (recipientIds.size === 0) {
+      return { recipients: 0, delivered: 0 };
+    }
+
+    const phone = lead.phone_number ? ` (${lead.phone_number})` : '';
+    const delivered = await sendPushToUsers([...recipientIds], {
+      title: 'Có lead mới',
+      body: `${lead.full_name}${phone}`,
+      url: `/lead?highlight=${lead.id}`,
+      tag: `lead-${lead.id}`,
+    });
+
+    return { recipients: recipientIds.size, delivered };
+  } catch {
+    return { recipients: 0, delivered: 0 };
+  }
 }
 
 type DueRow = Pick<

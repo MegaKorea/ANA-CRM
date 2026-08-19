@@ -478,6 +478,19 @@ export function validateLeadFormInput(input: unknown): LeadFormInput {
   };
 }
 
+export function validateAddNoteInput(input: unknown): string {
+  if (!input || typeof input !== 'object') {
+    throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+  }
+
+  const content = (input as Record<string, unknown>).content;
+  if (typeof content !== 'string' || !content.trim()) {
+    throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+  }
+
+  return content.trim();
+}
+
 export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {
   if (!input || typeof input !== 'object') {
     throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
