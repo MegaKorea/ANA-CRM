@@ -5,6 +5,7 @@ import type { CreateLeadInput, UpdateLeadInput } from '@/lib/validators/lead.val
 import { buildUpdateByRules } from '@/app/utils/buildUpdateByRules';
 import { LeadsTable } from '../supabase/types/tables/leads';
 import type { InsertTables, UpdateTables } from '@/types/supabase';
+import { notifyNewLead } from './push.service';
 
 export type Lead = LeadsTable['Row'];
 
@@ -214,7 +215,9 @@ export async function createLead(input: CreateLeadInput): Promise<Lead> {
       });
     }
 
-    return data as Lead;
+    const lead = data as Lead;
+    notifyNewLead(lead).catch(() => undefined);
+    return lead;
   } catch (error) {
     handleServiceError(error, LeadErrorCode.CREATE_FAILED);
   }
@@ -291,6 +294,12 @@ export async function updateLeadById(id: number, input: UpdateLeadInput): Promis
   } catch (error) {
     handleServiceError(error, LeadErrorCode.UPDATE_FAILED);
   }
+}
+
+export async function addLeadNote(id: number, content: string): Promise<Lead> {
+  const lead = await fetchLeadById(id);
+  const note = [...(lead.note ?? []), { content, created_at: new Date().toISOString() }];
+  return updateLeadById(id, { note });
 }
 
 export async function deleteLeadById(id: number): Promise<void> {
