@@ -7,6 +7,7 @@ import {
   ClockCircleTwoTone,
   CloseCircleTwoTone,
   MessageOutlined,
+  AudioOutlined,
 } from '@ant-design/icons';
 import { HiOutlineInformationCircle, HiOutlinePencilAlt, HiOutlineTrash } from 'react-icons/hi';
 import { DateLocale, AttendanceStatus } from '@/constants/enums';
@@ -34,6 +35,7 @@ interface LeadMobileCardProps {
   onOpenModal: (lead: Lead) => void;
   onOpenNoteAdd: (lead: Lead) => void;
   onOpenNoteHistory: (lead: Lead) => void;
+  onOpenNoteSummarize: (lead: Lead) => void;
   onOpenImages: (lead: Lead) => void;
   onOpenAttendance: (lead: Lead) => void;
   onDelete: (id: number) => void;
@@ -46,12 +48,14 @@ export const LeadMobileCard = memo(function LeadMobileCard({
   onOpenModal,
   onOpenNoteAdd,
   onOpenNoteHistory,
+  onOpenNoteSummarize,
   onOpenImages,
   onOpenAttendance,
   onDelete,
 }: LeadMobileCardProps) {
   const notes = Array.isArray(lead.note) ? lead.note : [];
   const noteCount = notes.length;
+  const noteSummarizeCount = Array.isArray(lead.note_summarize) ? lead.note_summarize.length : 0;
   const imageCount = lead.images?.length || 0;
   const zaloChatUrl = getZaloChatUrl(lead.pid_zalo);
   const smaxThreadUrl = getSmaxThreadUrl(lead.smax_log);
@@ -286,6 +290,15 @@ export const LeadMobileCard = memo(function LeadMobileCard({
                   size="small"
                   icon={<PictureOutlined />}
                   onClick={() => onOpenImages(lead)}
+                />
+              </Badge>
+            </Tooltip>
+            <Tooltip title="Ghi chú ghi âm">
+              <Badge count={noteSummarizeCount} size="small" offset={[-2, 0]}>
+                <Button
+                  size="small"
+                  icon={<AudioOutlined />}
+                  onClick={() => onOpenNoteSummarize(lead)}
                 />
               </Badge>
             </Tooltip>

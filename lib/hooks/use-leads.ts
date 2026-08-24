@@ -64,6 +64,18 @@ export function useDeleteLead() {
   });
 }
 
+export function useAddLeadNoteSummarize() {
+  const queryClient = useQueryClient();
+
+  return useMutation<Lead, unknown, { id: number; url: string; mime_type?: string }>({
+    mutationFn: ({ id, url, mime_type }) =>
+      api.post<Lead>(`${LeadApiPath.BASE}/${id}/note-summarize`, { url, mime_type }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [LeadQueryKey.LIST] });
+    },
+  });
+}
+
 export function useAssignTelesales() {
   const queryClient = useQueryClient();
 

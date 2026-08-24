@@ -4,7 +4,7 @@ import { validateEmailField } from '@/lib/utils/validation';
 import { formatPhoneToE164, validateE164Format, formatPhoneToLocal } from '@/lib/utils/phone';
 import type { LocationValue } from '@/components/common';
 import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
-import type { NoteItem } from '@/lib/supabase/types/tables/leads';
+import type { NoteItem, NoteSummarizeItem } from '@/lib/supabase/types/tables/leads';
 
 export interface CreateLeadInput {
   email?: string;
@@ -53,6 +53,7 @@ export interface UpdateLeadInput {
   telesales_id?: string | null;
   status?: LeadStatus;
   note?: NoteItem[];
+  note_summarize?: NoteSummarizeItem[];
   course_ids?: string[];
   appointment_date?: string | null;
   attendance_status?: AttendanceStatus;
@@ -489,6 +490,22 @@ export function validateAddNoteInput(input: unknown): string {
   }
 
   return content.trim();
+}
+
+export function validateNoteSummarizeInput(input: unknown): { url: string; mimeType: string | null } {
+  if (!input || typeof input !== 'object') {
+    throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+  }
+
+  const data = input as Record<string, unknown>;
+  const url = data.url;
+  if (typeof url !== 'string' || !url.trim()) {
+    throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+  }
+
+  const mimeType = typeof data.mime_type === 'string' && data.mime_type.trim() ? data.mime_type.trim() : null;
+
+  return { url: url.trim(), mimeType };
 }
 
 export function validateUpdateLeadInput(input: unknown): UpdateLeadInput {

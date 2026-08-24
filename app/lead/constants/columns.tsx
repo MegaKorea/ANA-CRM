@@ -7,6 +7,7 @@ import {
   InfoCircleOutlined,
   PictureOutlined,
   CalendarOutlined,
+  AudioOutlined,
 } from '@ant-design/icons';
 import { BsChatDotsFill } from 'react-icons/bs';
 import { hasSmaxConversation } from '@/lib/smax/parse-smax-log';
@@ -15,7 +16,7 @@ import { AttendanceStatus, DateLocale } from '@/constants/enums';
 import type { Course } from '@/lib/services/course.service';
 import type { LocationValue } from '@/components/common/LocationSelect';
 import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
-import type { NoteItem } from '@/lib/supabase/types/tables/leads';
+import type { NoteItem, NoteSummarizeItem } from '@/lib/supabase/types/tables/leads';
 import { formatNumberVi } from '@/lib/utils/numberFormat';
 import { openInNewTab } from '@/lib/utils/openInNewTab';
 import { AssignTelesales } from '@/app/lead/components/AssignTelesales';
@@ -89,6 +90,8 @@ export type HandleOpenNoteAddModal = (lead: Lead) => void;
 
 export type HandleOpenNoteHistoryModal = (lead: Lead) => void;
 
+export type HandleOpenNoteSummarizeModal = (lead: Lead) => void;
+
 export type HandleOpenImagesModal = (lead: Lead) => void;
 
 export type HandleOpenConversationModal = (lead: Lead) => void;
@@ -99,6 +102,7 @@ export const getLeadTableColumns = ({
   handleOpenDetailModal,
   handleOpenNoteAddModal,
   handleOpenNoteHistoryModal,
+  handleOpenNoteSummarizeModal,
   handleOpenImagesModal,
   handleOpenAttendanceModal,
   handleOpenAppointmentModal,
@@ -110,6 +114,7 @@ export const getLeadTableColumns = ({
   handleOpenDetailModal: HandleOpenLeadDetailModal;
   handleOpenNoteAddModal: HandleOpenNoteAddModal;
   handleOpenNoteHistoryModal: HandleOpenNoteHistoryModal;
+  handleOpenNoteSummarizeModal: HandleOpenNoteSummarizeModal;
   handleOpenImagesModal: HandleOpenImagesModal;
   handleOpenAttendanceModal: HandleOpenAttendanceModal;
   handleOpenAppointmentModal: HandleOpenAppointmentModal;
@@ -169,6 +174,28 @@ export const getLeadTableColumns = ({
               </Badge>
             </Tooltip>
           </Space>
+        );
+      },
+    },
+    {
+      title: <span style={{ whiteSpace: 'nowrap' }}>Ghi âm</span>,
+      key: 'note_summarize',
+      align: 'center',
+      width: 100,
+      render: (_: unknown, record: Lead) => {
+        const noteSummarizeCount = Array.isArray(record.note_summarize)
+          ? (record.note_summarize as NoteSummarizeItem[]).length
+          : 0;
+        return (
+          <Tooltip title="Ghi chú ghi âm">
+            <Badge count={noteSummarizeCount} size="small" offset={[-2, 0]}>
+              <Button
+                size="small"
+                icon={<AudioOutlined />}
+                onClick={() => handleOpenNoteSummarizeModal(record)}
+              />
+            </Badge>
+          </Tooltip>
         );
       },
     },

@@ -15,12 +15,13 @@ interface MainRowCardProps {
   record: MainRow;
   courseName: (courseId: string | null) => string | null;
   className: (classId: string | null) => string | null;
-  onPay: (enrollment: Enrollment) => void;
-  onEdit: (enrollment: Enrollment) => void;
-  onDelete: (enrollment: Enrollment) => void;
+  onPay: (record: MainRow) => void;
+  onEdit: (record: MainRow) => void;
+  onDelete: (record: MainRow) => void;
+  canDelete: boolean;
 }
 
-export function MainRowCard({ record, courseName, className, onPay, onEdit, onDelete }: MainRowCardProps) {
+export function MainRowCard({ record, courseName, className, onPay, onEdit, onDelete, canDelete }: MainRowCardProps) {
   const name = record.rowType === 'lead' ? record.full_name : record.lead_full_name || `Lead #${record.lead_id}`;
   const phone = record.rowType === 'lead' ? record.phone_number : record.lead_phone_number;
   const leadCourseId = record.rowType === 'lead' ? record.course_ids?.[0] : undefined;
@@ -119,17 +120,17 @@ export function MainRowCard({ record, courseName, className, onPay, onEdit, onDe
           </Typography.Text>
         )}
 
-        {record.rowType === 'enrollment' && (
-          <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-            <Button size="small" type="primary" icon={<DollarOutlined />} onClick={() => onPay(record)}>
-              Thu tiền
-            </Button>
-            <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(record)} />
+        <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+          <Button size="small" type="primary" icon={<DollarOutlined />} onClick={() => onPay(record)}>
+            Thu tiền
+          </Button>
+          <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(record)} />
+          {canDelete && (
             <Popconfirm title="Xóa đăng ký này?" okText="Xóa" cancelText="Hủy" onConfirm={() => onDelete(record)}>
               <Button size="small" danger icon={<DeleteOutlined />} />
             </Popconfirm>
-          </Space>
-        )}
+          )}
+        </Space>
       </Space>
     </Card>
   );
