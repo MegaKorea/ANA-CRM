@@ -12,7 +12,8 @@ const YEAR_OPTIONS = Array.from({ length: 100 }, (_, index) => {
   return { value: year.toString(), label: String(year) };
 });
 
-const DUPLICATE_CHECK_FIELDS = ['full_name', 'phone_number'];
+const PHONE_PATTERN = /^(0|\+84)\d{9,10}$/;
+const DUPLICATE_CHECK_DEBOUNCE_MS = 400;
 
 interface LeadFormValues {
   full_name: string;
@@ -57,6 +58,10 @@ export default function LeadFormPage() {
   const [wasUpdate, setWasUpdate] = useState(false);
   const [duplicate, setDuplicate] = useState<DuplicateLead | null>(null);
   const smaxLogRef = useRef<SmaxCustomer | null>(null);
+  const lastDuplicateIdRef = useRef<number | null>(null);
+
+  const watchedName = Form.useWatch('full_name', form);
+  const watchedPhone = Form.useWatch('phone_number', form);
 
   useEffect(() => {
     function getParentOrigin(): string {
@@ -100,6 +105,48 @@ export default function LeadFormPage() {
     return () => window.removeEventListener('message', handleMessage, false);
   }, [form]);
 
+  // Warn as soon as the identity fields look complete — waiting for a failed submit meant
+  // the user had to press the button twice to save anything.
+  useEffect(() => {
+    const fullName = watchedName?.trim();
+    const phoneNumber = watchedPhone?.trim();
+
+    if (!fullName || !phoneNumber || !PHONE_PATTERN.test(phoneNumber)) {
+      lastDuplicateIdRef.current = null;
+      setDuplicate(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `/api/lead-form?full_name=${encodeURIComponent(fullName)}&phone_number=${encodeURIComponent(phoneNumber)}`,
+          { signal: controller.signal }
+        );
+        if (!response.ok) return;
+
+        const result = await response.json();
+        const existing = (result?.existing ?? null) as DuplicateLead | null;
+
+        if (existing?.id !== lastDuplicateIdRef.current) {
+          lastDuplicateIdRef.current = existing?.id ?? null;
+          if (existing?.status) {
+            form.setFieldsValue({ status: existing.status });
+          }
+        }
+        setDuplicate(existing);
+      } catch {
+        // Offline or aborted — the submit still catches duplicates server-side.
+      }
+    }, DUPLICATE_CHECK_DEBOUNCE_MS);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [watchedName, watchedPhone, form]);
+
   const submitLead = useCallback(
     async (values: LeadFormValues, leadId?: number) => {
       setSubmitting(true);
@@ -125,11 +172,7 @@ export default function LeadFormPage() {
           result?.code === 'DUPLICATE_LEAD' &&
           result?.existing
         ) {
-          const existing = result.existing as DuplicateLead;
-          setDuplicate(existing);
-          if (existing.status) {
-            form.setFieldsValue({ status: existing.status });
-          }
+          setDuplicate(result.existing as DuplicateLead);
           message.warning('Thông tin đã tồn tại trong hệ thống.');
           return;
         }
@@ -143,6 +186,7 @@ export default function LeadFormPage() {
         setDuplicate(null);
         form.resetFields();
         smaxLogRef.current = null;
+        lastDuplicateIdRef.current = null;
       } catch {
         message.error('Lưu thông tin thất bại. Vui lòng thử lại.');
       } finally {
@@ -163,18 +207,10 @@ export default function LeadFormPage() {
     [duplicate, submitLead]
   );
 
-  const handleValuesChange = useCallback((changedValues: Partial<LeadFormValues>) => {
-    const touchedDuplicateField = Object.keys(changedValues).some((field) =>
-      DUPLICATE_CHECK_FIELDS.includes(field)
-    );
-    if (touchedDuplicateField) {
-      setDuplicate((prev) => (prev ? null : prev));
-    }
-  }, []);
-
   const handleReset = useCallback(() => {
     setSubmitted(false);
     setDuplicate(null);
+    lastDuplicateIdRef.current = null;
   }, []);
 
   return (
@@ -238,7 +274,6 @@ export default function LeadFormPage() {
               form={form}
               layout="vertical"
               onFinish={handleSubmit}
-              onValuesChange={handleValuesChange}
               requiredMark={false}
               initialValues={{ status: LeadStatus.NEW }}
             >
@@ -256,7 +291,7 @@ export default function LeadFormPage() {
                 rules={[
                   { required: true, message: 'Vui lòng nhập số điện thoại' },
                   {
-                    pattern: /^(0|\+84)\d{9,10}$/,
+                    pattern: PHONE_PATTERN,
                     message: 'Số điện thoại không hợp lệ',
                   },
                 ]}

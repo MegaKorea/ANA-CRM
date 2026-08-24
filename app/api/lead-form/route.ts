@@ -13,26 +13,43 @@ import {
 import type { NoteItem } from '@/lib/supabase/types/tables/leads';
 import { HttpStatusCode, LeadErrorCode, LeadSource, LeadStatus } from '@/constants/enums';
 import { handleRouteError } from '@/lib/utils/route-handler';
+import { normalizePhoneDigits } from '@/lib/utils/phone';
 import { fail } from '@/errors';
 
-function normalizePhone(phone: string | null | undefined): string {
-  return (phone ?? '').replace(/\D/g, '');
+function sameName(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
 function leadMatchesSubmittedIdentity(
   existing: { full_name: string; phone_number: string | null },
   input: { full_name: string; phone_number: string },
 ): boolean {
-  const existingPhone = normalizePhone(existing.phone_number);
-  const submittedPhone = normalizePhone(input.phone_number);
-
-  if (existingPhone) {
-    return existingPhone === submittedPhone;
+  // Public endpoint, so lead_id must be one findDuplicateLead would itself have surfaced:
+  // same phone, or same name. Requiring the phone to match made the name-only duplicate
+  // flow impossible — "Cập nhật" always 403'd and the typed note was lost.
+  const existingPhone = normalizePhoneDigits(existing.phone_number);
+  if (existingPhone && existingPhone === normalizePhoneDigits(input.phone_number)) {
+    return true;
   }
+  return sameName(existing.full_name, input.full_name);
+}
 
-  return (
-    existing.full_name.trim().toLowerCase() === input.full_name.trim().toLowerCase()
-  );
+function toDuplicatePayload(lead: {
+  id: number;
+  full_name: string;
+  phone_number: string | null;
+  status: string | null;
+  source: string | null;
+  created_at: string | null;
+}) {
+  return {
+    id: lead.id,
+    full_name: lead.full_name,
+    phone_number: lead.phone_number,
+    status: lead.status,
+    source: lead.source,
+    created_at: lead.created_at,
+  };
 }
 
 async function applyLeadUpdate(
@@ -88,23 +105,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // the client bounce the submit back as a second "Cập nhật" click, which silently
       // dropped the note the user had just typed. Only a name-only match still needs
       // confirming, since that would overwrite a different person's phone number.
-      if (normalizePhone(duplicate.phone_number) === normalizePhone(input.phone_number)) {
+      if (normalizePhoneDigits(duplicate.phone_number) === normalizePhoneDigits(input.phone_number)) {
         return applyLeadUpdate(duplicate.id, duplicate, input);
       }
 
       return NextResponse.json(
-        {
-          success: false,
-          code: 'DUPLICATE_LEAD',
-          existing: {
-            id: duplicate.id,
-            full_name: duplicate.full_name,
-            phone_number: duplicate.phone_number,
-            status: duplicate.status,
-            source: duplicate.source,
-            created_at: duplicate.created_at,
-          },
-        },
+        { success: false, code: 'DUPLICATE_LEAD', existing: toDuplicatePayload(duplicate) },
         { status: HttpStatusCode.CONFLICT }
       );
     }
@@ -120,6 +126,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
 
     return NextResponse.json({ success: true, id: lead.id }, { status: HttpStatusCode.CREATED });
+  } catch (error) {
+    return handleRouteError(error, LeadErrorCode.INTERNAL_SERVER_ERROR);
+  }
+}
+
+// Lets the form warn about an existing lead while the user is still typing, instead of
+// only after they submit and get bounced back for a second click.
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  try {
+    const { searchParams } = request.nextUrl;
+    const input = validateLeadFormInput({
+      full_name: searchParams.get('full_name'),
+      phone_number: searchParams.get('phone_number'),
+    });
+
+    const duplicate = await findDuplicateLead(input.full_name, input.phone_number);
+
+    return NextResponse.json(
+      { existing: duplicate ? toDuplicatePayload(duplicate) : null },
+      { status: HttpStatusCode.OK }
+    );
   } catch (error) {
     return handleRouteError(error, LeadErrorCode.INTERNAL_SERVER_ERROR);
   }
