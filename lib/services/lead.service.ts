@@ -1,11 +1,12 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { handleServiceError, handleSupabaseError, validateDataExists } from '@/lib/utils/error-handler';
-import { LeadErrorCode, LeadStatus } from '@/constants/enums';
+import { LeadErrorCode, LeadStatus, HttpStatusCode } from '@/constants/enums';
 import type { CreateLeadInput, UpdateLeadInput } from '@/lib/validators/lead.validator';
 import { buildUpdateByRules } from '@/app/utils/buildUpdateByRules';
-import { LeadsTable } from '../supabase/types/tables/leads';
+import { LeadsTable, NoteSummarizeItem } from '../supabase/types/tables/leads';
 import type { InsertTables, UpdateTables } from '@/types/supabase';
 import { notifyNewLead } from './push.service';
+import { AppError } from '@/errors';
 
 export type Lead = LeadsTable['Row'];
 
@@ -244,6 +245,7 @@ export async function updateLeadById(id: number, input: UpdateLeadInput): Promis
       telesales_id: 'nullable',
       status: 'direct',
       note: 'nullable',
+      note_summarize: 'nullable',
       course_ids: 'nullable',
 
       appointment_date: 'nullable',
@@ -300,6 +302,52 @@ export async function addLeadNote(id: number, content: string): Promise<Lead> {
   const lead = await fetchLeadById(id);
   const note = [...(lead.note ?? []), { content, created_at: new Date().toISOString() }];
   return updateLeadById(id, { note });
+}
+
+const NOTE_SUMMARIZE_WEBHOOK_URL = 'https://dhsyccqor.datadex.vn/webhook/summarize-record';
+
+/**
+ * Sends an uploaded audio recording url to the summarize webhook and stores
+ * its response on the lead. Dedupes on url so a record already summarized
+ * is never resent.
+ */
+export async function addLeadNoteSummarize(
+  id: number,
+  url: string,
+  mimeType: string | null = null
+): Promise<Lead> {
+  const lead = await fetchLeadById(id);
+  const existing = lead.note_summarize ?? [];
+
+  if (existing.some((item) => item.url === url)) {
+    return lead;
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(NOTE_SUMMARIZE_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+  } catch {
+    throw new AppError(LeadErrorCode.UPDATE_FAILED, HttpStatusCode.INTERNAL_SERVER_ERROR);
+  }
+
+  if (!response.ok) {
+    throw new AppError(LeadErrorCode.UPDATE_FAILED, HttpStatusCode.INTERNAL_SERVER_ERROR);
+  }
+
+  const payload = await response.json();
+  const newItem: NoteSummarizeItem = {
+    url,
+    mime_type: mimeType,
+    transcript: typeof payload?.transcript === 'string' ? payload.transcript : null,
+    result: payload?.result && typeof payload.result === 'object' ? payload.result : null,
+    created_at: new Date().toISOString(),
+  };
+
+  return updateLeadById(id, { note_summarize: [...existing, newItem] });
 }
 
 export async function deleteLeadById(id: number): Promise<void> {

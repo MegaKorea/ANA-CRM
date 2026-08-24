@@ -7,6 +7,15 @@ export interface NoteItem {
   created_at: string;
 }
 
+/** One audio-note summarize record: the uploaded file url plus the webhook's response. */
+export interface NoteSummarizeItem {
+  url: string;
+  mime_type: string | null;
+  transcript: string | null;
+  result: Record<string, unknown> | null;
+  created_at: string;
+}
+
 export interface LeadsTable {
   Row: {
     id: number;
@@ -27,6 +36,7 @@ export interface LeadsTable {
     telesales_id: string | null;
     status: LeadStatus;
     note: NoteItem[] | null;
+    note_summarize: NoteSummarizeItem[] | null;
     course_ids: string[] | null;
 
     appointment_date: string | null;
@@ -63,6 +73,7 @@ export interface LeadsTable {
     telesales_id?: string | null;
     status?: LeadStatus;
     note?: NoteItem[] | null;
+    note_summarize?: NoteSummarizeItem[] | null;
     course_ids?: string[] | null;
 
     appointment_date?: string | null;
@@ -96,6 +107,7 @@ export interface LeadsTable {
     telesales_id?: string | null;
     status?: LeadStatus;
     note?: NoteItem[] | null;
+    note_summarize?: NoteSummarizeItem[] | null;
     course_ids?: string[] | null;
 
     appointment_date?: string | null;

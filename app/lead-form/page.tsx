@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, App, Button, Card, Form, Input, Result, Select, Typography } from 'antd';
+import { Alert, App, Button, Card, Form, Input, Select, Typography } from 'antd';
 import { LeadStatus } from '@/constants/enums';
 import { LEAD_STATUS_OPTIONS } from '@/app/lead/constants/labels';
 
@@ -53,8 +53,6 @@ export default function LeadFormPage() {
   const { message } = App.useApp();
   const [form] = Form.useForm<LeadFormValues>();
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [wasUpdate, setWasUpdate] = useState(false);
   const [duplicate, setDuplicate] = useState<DuplicateLead | null>(null);
   const smaxLogRef = useRef<SmaxCustomer | null>(null);
 
@@ -138,8 +136,7 @@ export default function LeadFormPage() {
           throw new Error('REQUEST_FAILED');
         }
 
-        setWasUpdate(Boolean(result.updated));
-        setSubmitted(true);
+        message.success(result.updated ? 'Cập nhật lead thành công!' : 'Tạo lead thành công!');
         setDuplicate(null);
         form.resetFields();
         smaxLogRef.current = null;
@@ -172,11 +169,6 @@ export default function LeadFormPage() {
     }
   }, []);
 
-  const handleReset = useCallback(() => {
-    setSubmitted(false);
-    setDuplicate(null);
-  }, []);
-
   return (
     <div
       style={{
@@ -189,120 +181,101 @@ export default function LeadFormPage() {
       }}
     >
       <Card style={{ width: '100%', maxWidth: 420 }}>
-        {submitted ? (
-          <Result
-            status="success"
-            title={wasUpdate ? 'Cập nhật lead thành công!' : 'Tạo lead thành công!'}
-            subTitle={
-              wasUpdate
-                ? 'Thông tin lead đã được cập nhật trong hệ thống.'
-                : 'Lead mới đã được thêm vào hệ thống.'
-            }
-            extra={
-              <Button type="primary" onClick={handleReset}>
-                Nhập lead khác
-              </Button>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <Title level={3} style={{ marginBottom: 8 }}>
+            Nhập thông tin Lead
+          </Title>
+          <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+            Nhập họ tên và số điện thoại khách hàng để tạo lead trong hệ thống.
+          </Paragraph>
+        </div>
+
+        {duplicate && (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="Thông tin đã tồn tại"
+            description={
+              <span>
+                Đã có lead trùng họ tên hoặc số điện thoại:{' '}
+                <b>{duplicate.full_name}</b>
+                {duplicate.phone_number ? ` — ${duplicate.phone_number}` : ''}.
+                <br />
+                Nhấn <b>Cập nhật</b> để cập nhật lead này bằng thông tin vừa nhập,
+                hoặc sửa lại họ tên và số điện thoại để tạo lead mới.
+              </span>
             }
           />
-        ) : (
-          <>
-            <div style={{ textAlign: 'center', marginBottom: 24 }}>
-              <Title level={3} style={{ marginBottom: 8 }}>
-                Nhập thông tin Lead
-              </Title>
-              <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                Nhập họ tên và số điện thoại khách hàng để tạo lead trong hệ thống.
-              </Paragraph>
-            </div>
-
-            {duplicate && (
-              <Alert
-                type="warning"
-                showIcon
-                style={{ marginBottom: 16 }}
-                message="Thông tin đã tồn tại"
-                description={
-                  <span>
-                    Đã có lead trùng họ tên hoặc số điện thoại:{' '}
-                    <b>{duplicate.full_name}</b>
-                    {duplicate.phone_number ? ` — ${duplicate.phone_number}` : ''}.
-                    <br />
-                    Nhấn <b>Cập nhật</b> để cập nhật lead này bằng thông tin vừa nhập,
-                    hoặc sửa lại họ tên và số điện thoại để tạo lead mới.
-                  </span>
-                }
-              />
-            )}
-
-            <Form<LeadFormValues>
-              form={form}
-              layout="vertical"
-              onFinish={handleSubmit}
-              onValuesChange={handleValuesChange}
-              requiredMark={false}
-              initialValues={{ status: LeadStatus.NEW }}
-            >
-              <Form.Item
-                name="full_name"
-                label="Họ và tên"
-                rules={[{ required: true, message: 'Vui lòng nhập họ và tên' }]}
-              >
-                <Input placeholder="Nhập họ và tên khách hàng" size="large" allowClear />
-              </Form.Item>
-
-              <Form.Item
-                name="phone_number"
-                label="Số điện thoại"
-                rules={[
-                  { required: true, message: 'Vui lòng nhập số điện thoại' },
-                  {
-                    pattern: /^(0|\+84)\d{9,10}$/,
-                    message: 'Số điện thoại không hợp lệ',
-                  },
-                ]}
-              >
-                <Input placeholder="Nhập số điện thoại khách hàng" size="large" allowClear />
-              </Form.Item>
-
-              <Form.Item name="date_of_birth" label="Năm sinh">
-                <Select
-                  placeholder="Chọn năm sinh"
-                  size="large"
-                  allowClear
-                  showSearch={{ optionFilterProp: 'label' }}
-                  options={YEAR_OPTIONS}
-                />
-              </Form.Item>
-
-              <Form.Item name="status" label="Trạng thái">
-                <Select size="large" options={LEAD_STATUS_OPTIONS} />
-              </Form.Item>
-
-              <Form.Item name="note" label="Ghi chú">
-                <Input.TextArea
-                  placeholder="Nhập ghi chú về khách hàng (tùy chọn)"
-                  rows={3}
-                  maxLength={1000}
-                  showCount
-                  allowClear
-                />
-              </Form.Item>
-
-              <Form.Item style={{ marginBottom: 0, marginTop: 8 }}>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  size="large"
-                  block
-                  loading={submitting}
-                  danger={Boolean(duplicate)}
-                >
-                  {duplicate ? 'Cập nhật' : 'Lưu thông tin'}
-                </Button>
-              </Form.Item>
-            </Form>
-          </>
         )}
+
+        <Form<LeadFormValues>
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+          onValuesChange={handleValuesChange}
+          requiredMark={false}
+          initialValues={{ status: LeadStatus.NEW }}
+        >
+          <Form.Item
+            name="full_name"
+            label="Họ và tên"
+            rules={[{ required: true, message: 'Vui lòng nhập họ và tên' }]}
+          >
+            <Input placeholder="Nhập họ và tên khách hàng" size="large" allowClear />
+          </Form.Item>
+
+          <Form.Item
+            name="phone_number"
+            label="Số điện thoại"
+            rules={[
+              { required: true, message: 'Vui lòng nhập số điện thoại' },
+              {
+                pattern: /^(0|\+84)\d{9,10}$/,
+                message: 'Số điện thoại không hợp lệ',
+              },
+            ]}
+          >
+            <Input placeholder="Nhập số điện thoại khách hàng" size="large" allowClear />
+          </Form.Item>
+
+          <Form.Item name="date_of_birth" label="Năm sinh">
+            <Select
+              placeholder="Chọn năm sinh"
+              size="large"
+              allowClear
+              showSearch={{ optionFilterProp: 'label' }}
+              options={YEAR_OPTIONS}
+            />
+          </Form.Item>
+
+          <Form.Item name="status" label="Trạng thái">
+            <Select size="large" options={LEAD_STATUS_OPTIONS} />
+          </Form.Item>
+
+          <Form.Item name="note" label="Ghi chú">
+            <Input.TextArea
+              placeholder="Nhập ghi chú về khách hàng (tùy chọn)"
+              rows={3}
+              maxLength={1000}
+              showCount
+              allowClear
+            />
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0, marginTop: 8 }}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              size="large"
+              block
+              loading={submitting}
+              danger={Boolean(duplicate)}
+            >
+              {duplicate ? 'Cập nhật' : 'Lưu thông tin'}
+            </Button>
+          </Form.Item>
+        </Form>
       </Card>
     </div>
   );

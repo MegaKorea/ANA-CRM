@@ -18,6 +18,7 @@ import { useClasses } from '@/lib/hooks/use-classes';
 import { useLeads } from '@/lib/hooks/use-leads';
 import type { PaymentTicket } from '@/lib/services/payment-ticket.service';
 import type { Enrollment } from '@/lib/services/enrollment.service';
+import type { Lead } from '@/lib/services/lead.service';
 import { formatCurrencyVnd } from '@/lib/utils/numberFormat';
 import { getLatestNoteContent } from '@/lib/utils/notes';
 import { LeadStatus } from '@/constants/enums';
@@ -34,6 +35,7 @@ import { EnrollmentPaymentModal } from './EnrollmentPaymentModal';
 import { EnrollmentCreateDrawer } from './EnrollmentCreateDrawer';
 import { MainRowCard, type MainRow } from './MainRowCard';
 import { useIsMobile } from '@/lib/hooks/use-mobile';
+import { useAuthPermission } from '@/lib/hooks/use-auth-permission';
 
 const autoMaterializedLeadIds = new Set<number>();
 const EMPTY_ARRAY: readonly never[] = [];
@@ -54,6 +56,7 @@ export default function AccountingPage() {
 function AccountingPageContent() {
   const { message, modal } = App.useApp();
   const isMobile = useIsMobile();
+  const { hasPermission: canDelete } = useAuthPermission(['ADMIN']);
   const [filterRange, setFilterRange] = useState<[Dayjs, Dayjs]>([
     dayjs().startOf('month'),
     dayjs().endOf('month'),
@@ -143,6 +146,23 @@ function AccountingPageContent() {
     return map;
   }, [tickets]);
 
+  const buildEnsureInput = useCallback(
+    (lead: Lead) => {
+      const enrollmentDate = lead.appointment_date ?? lead.created_at ?? undefined;
+      return {
+        lead_id: lead.id,
+        category: 'khóa học' as const,
+        course_id: lead.course_ids?.[0] ?? courses?.[0]?.id,
+        enrollment_date: enrollmentDate,
+        sales_month: dayjs(enrollmentDate).format('YYYY-MM'),
+        source: lead.source ?? undefined,
+        tuition_fee: lead.tuition_fee ?? 0,
+        note: getLatestNoteContent(lead.note),
+      };
+    },
+    [courses]
+  );
+
   const pendingLeadIdsKey = pendingConvertedLeads.map((l) => l.id).join(',');
   useEffect(() => {
     if (!courses || courses.length === 0) return;
@@ -153,27 +173,16 @@ function AccountingPageContent() {
       for (const lead of pendingConvertedLeads) {
         if (cancelled) return;
         if (autoMaterializedLeadIds.has(lead.id)) continue;
-        const courseId = lead.course_ids?.[0] ?? courses[0].id;
 
         autoMaterializedLeadIds.add(lead.id);
-        const enrollmentDate = lead.appointment_date ?? lead.created_at ?? undefined;
-        await ensureEnrollment.mutateAsync({
-          lead_id: lead.id,
-          category: 'khóa học',
-          course_id: courseId,
-          enrollment_date: enrollmentDate,
-          sales_month: dayjs(enrollmentDate).format('YYYY-MM'),
-          source: lead.source ?? undefined,
-          tuition_fee: lead.tuition_fee ?? 0,
-          note: getLatestNoteContent(lead.note),
-        }).catch(() => {});
+        await ensureEnrollment.mutateAsync(buildEnsureInput(lead)).catch(() => {});
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [pendingLeadIdsKey, courses, enrolledLeadIdsLoading]);
+  }, [pendingLeadIdsKey, courses, enrolledLeadIdsLoading, buildEnsureInput]);
 
   const mainRows: MainRow[] = useMemo(() => {
     const enrollmentRows: MainRow[] = enrollments.map((e) => ({ rowType: 'enrollment', ...e }));
@@ -275,6 +284,46 @@ function AccountingPageContent() {
       });
     },
     [deleteEnrollment, message]
+  );
+
+  // Pending leads have no enrollment row yet — materialize one on demand so
+  // edit/pay/delete work the same as for an already-materialized enrollment.
+  const materializeLead = useCallback(
+    async (lead: Lead): Promise<Enrollment | null> => {
+      try {
+        const enrollment = await ensureEnrollment.mutateAsync(buildEnsureInput(lead));
+        autoMaterializedLeadIds.add(lead.id);
+        return enrollment;
+      } catch {
+        message.error('Không thể tạo đăng ký cho lead này');
+        return null;
+      }
+    },
+    [ensureEnrollment, buildEnsureInput, message]
+  );
+
+  const handleEditRow = useCallback(
+    async (record: MainRow) => {
+      const enrollment = record.rowType === 'enrollment' ? record : await materializeLead(record);
+      if (enrollment) openEditForm(enrollment);
+    },
+    [materializeLead]
+  );
+
+  const handlePayRow = useCallback(
+    async (record: MainRow) => {
+      const enrollment = record.rowType === 'enrollment' ? record : await materializeLead(record);
+      if (enrollment) openPaymentForm(enrollment);
+    },
+    [materializeLead]
+  );
+
+  const handleDeleteRow = useCallback(
+    async (record: MainRow) => {
+      const enrollment = record.rowType === 'enrollment' ? record : await materializeLead(record);
+      if (enrollment) handleDeleteEnrollment(enrollment);
+    },
+    [materializeLead, handleDeleteEnrollment]
   );
 
   const columns: ColumnsType<MainRow> = useMemo(
@@ -437,38 +486,37 @@ function AccountingPageContent() {
         align: 'center' as const,
         fixed: 'right' as const,
         width: 150,
-        render: (_: unknown, record: MainRow) => {
-          if (record.rowType === 'lead') return null;
-          return (
-            <Space>
-              <Tooltip title="Thu tiền">
-                <Button
-                  type="primary"
-                  size="small"
-                  icon={<DollarOutlined />}
-                  onClick={() => openPaymentForm(record)}
-                />
-              </Tooltip>
-              <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEditForm(record)} />
+        render: (_: unknown, record: MainRow) => (
+          <Space>
+            <Tooltip title="Thu tiền">
+              <Button
+                type="primary"
+                size="small"
+                icon={<DollarOutlined />}
+                onClick={() => handlePayRow(record)}
+              />
+            </Tooltip>
+            <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEditRow(record)} />
+            {canDelete && (
               <Popconfirm
                 title="Xóa đăng ký này?"
                 description={
-                  record.paid_amount > 0
+                  record.rowType === 'enrollment' && record.paid_amount > 0
                     ? `Sẽ xóa luôn ${formatCurrencyVnd(record.paid_amount)} phiếu thu đã ghi nhận cho đăng ký này.`
                     : undefined
                 }
                 okText="Xóa"
                 cancelText="Hủy"
-                onConfirm={() => handleDeleteEnrollment(record)}
+                onConfirm={() => handleDeleteRow(record)}
               >
                 <Button type="text" danger size="small" icon={<DeleteOutlined />} />
               </Popconfirm>
-            </Space>
-          );
-        },
+            )}
+          </Space>
+        ),
       },
     ],
-    [courseName, className, handleDeleteEnrollment, currentPage, pageSize, latestPaymentMethodByEnrollmentId]
+    [courseName, className, handlePayRow, handleEditRow, handleDeleteRow, currentPage, pageSize, latestPaymentMethodByEnrollmentId, canDelete]
   );
 
   const pendingColumns: ColumnsType<PaymentTicket> = useMemo(
@@ -637,9 +685,10 @@ function AccountingPageContent() {
                   record={record}
                   courseName={courseName}
                   className={className}
-                  onPay={openPaymentForm}
-                  onEdit={openEditForm}
-                  onDelete={handleDeleteEnrollment}
+                  onPay={handlePayRow}
+                  onEdit={handleEditRow}
+                  onDelete={handleDeleteRow}
+                  canDelete={canDelete}
                 />
               ))}
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>

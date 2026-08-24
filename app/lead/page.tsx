@@ -41,6 +41,10 @@ const NoteHistoryModal = dynamic(
   () => import('@/app/lead/components/NoteHistoryModal').then((m) => m.NoteHistoryModal),
   { ssr: false },
 );
+const NoteSummarizeModal = dynamic(
+  () => import('@/app/lead/components/NoteSummarizeModal').then((m) => m.NoteSummarizeModal),
+  { ssr: false },
+);
 const LeadImagesModal = dynamic(
   () => import('@/app/lead/components/LeadImagesModal').then((m) => m.LeadImagesModal),
   { ssr: false },
@@ -96,6 +100,7 @@ function LeadPageContent() {
 
   const noteAddModal = useLeadModal();
   const noteHistoryModal = useLeadModal();
+  const noteSummarizeModal = useLeadModal();
   const imagesModal = useLeadModal();
   const attendanceModal = useLeadModal();
   const appointmentModal = useLeadModal();
@@ -340,6 +345,7 @@ function LeadPageContent() {
         handleOpenDetailModal: detailModal.openModal,
         handleOpenNoteAddModal: noteAddModal.openModal,
         handleOpenNoteHistoryModal: noteHistoryModal.openModal,
+        handleOpenNoteSummarizeModal: noteSummarizeModal.openModal,
         handleOpenImagesModal: imagesModal.openModal,
         handleOpenAttendanceModal: attendanceModal.openModal,
         handleOpenAppointmentModal: appointmentModal.openModal,
@@ -358,6 +364,7 @@ function LeadPageContent() {
       detailModal.openModal,
       noteAddModal.openModal,
       noteHistoryModal.openModal,
+      noteSummarizeModal.openModal,
       imagesModal.openModal,
       attendanceModal.openModal,
       appointmentModal.openModal,
@@ -459,6 +466,7 @@ function LeadPageContent() {
                       onOpenModal={handleOpenModal}
                       onOpenNoteAdd={noteAddModal.openModal}
                       onOpenNoteHistory={noteHistoryModal.openModal}
+                      onOpenNoteSummarize={noteSummarizeModal.openModal}
                       onOpenImages={imagesModal.openModal}
                       onOpenAttendance={attendanceModal.openModal}
                       onDelete={handleDelete}
@@ -509,6 +517,12 @@ function LeadPageContent() {
         open={noteHistoryModal.open}
         lead={noteHistoryModal.lead}
         onClose={noteHistoryModal.closeModal}
+      />
+
+      <NoteSummarizeModal
+        open={noteSummarizeModal.open}
+        lead={noteSummarizeModal.lead}
+        onClose={noteSummarizeModal.closeModal}
       />
 
       <LeadImagesModal

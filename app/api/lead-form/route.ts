@@ -9,9 +9,13 @@ import { validateLeadFormInput, validateLeadId } from '@/lib/validators/lead.val
 import { HttpStatusCode, LeadErrorCode, LeadSource, LeadStatus } from '@/constants/enums';
 import { handleRouteError } from '@/lib/utils/route-handler';
 import { fail } from '@/errors';
+import { formatPhoneToE164 } from '@/lib/utils/phone';
 
+// Older leads may have phone_number stored without the +84 prefix — format
+// both sides to E.164 before stripping non-digits so they compare equal.
 function normalizePhone(phone: string | null | undefined): string {
-  return (phone ?? '').replace(/\D/g, '');
+  if (!phone) return '';
+  return formatPhoneToE164(phone).replace(/\D/g, '');
 }
 
 function leadMatchesSubmittedIdentity(
