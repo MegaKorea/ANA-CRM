@@ -36,3 +36,13 @@ export function formatPhoneToLocal(phone: string): string {
 export function validateE164Format(phone: string): boolean {
   return PhoneFormat.E164_PATTERN.test(phone);
 }
+
+/**
+ * Subscriber digits only, so the same number compares equal no matter which format it
+ * was stored in (0912345678, +84912345678, 84912345678, "0912 345 678").
+ */
+export function normalizePhoneDigits(phone: string | null | undefined): string {
+  const digits = (phone ?? '').replace(/\D/g, '');
+  if (digits.startsWith('84')) return digits.slice(2);
+  return digits.replace(/^0/, '');
+}
