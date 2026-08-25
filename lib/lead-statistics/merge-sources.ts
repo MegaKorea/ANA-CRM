@@ -23,6 +23,7 @@ export type MergedLeadStatistics = {
   totalLeads: number;
   dataSource: FunnelStepSource;
   smaxTotalOrders: number;
+  nurturingTotal: number;
 };
 
 type DaySources = {
@@ -79,34 +80,28 @@ export function mergeLeadStatisticsSources(input: {
   const { totalSpend, byDay: fbByDay } = indexFacebookByDay(facebook);
   const smaxByDay = new Map((smax?.calendars ?? []).map((day) => [day.date, day]));
 
+  // Decide the source ONCE for the whole date range, not per day — otherwise
+  // a single real zero-lead day inside the range would silently borrow SMAX's
+  // (differently-defined) count for that day, mixing two incompatible totals.
+  const crmLeadsInRange = leadData.chartData.some((row) => (row.totalLeads || 0) > 0);
+  const fbMessagesInRange = fbByDay.size > 0 && [...fbByDay.values()].some((d) => d.messages > 0);
+
   const flags: DaySources = {
-    usedFacebookMessages: false,
-    usedSmaxMessages: false,
-    usedCrmLeads: false,
-    usedSmaxLeads: false,
+    usedFacebookMessages: fbMessagesInRange,
+    usedSmaxMessages: !fbMessagesInRange,
+    usedCrmLeads: crmLeadsInRange,
+    usedSmaxLeads: !crmLeadsInRange,
   };
 
   const chartData = leadData.chartData.map((row) => {
     const fb = fbByDay.get(row.date);
     const smaxDay = smaxByDay.get(row.date);
 
-    const fbMessages = fb?.messages ?? 0;
-    let messages = fbMessages;
-    if (fbMessages > 0) {
-      flags.usedFacebookMessages = true;
-    } else {
-      messages = smaxDay?.messages ?? smaxDay?.interactions ?? 0;
-      if (messages > 0) flags.usedSmaxMessages = true;
-    }
+    const messages = fbMessagesInRange
+      ? (fb?.messages ?? 0)
+      : (smaxDay?.messages ?? smaxDay?.interactions ?? 0);
 
-    const crmLeads = row.totalLeads || 0;
-    let totalLeads = crmLeads;
-    if (crmLeads > 0) {
-      flags.usedCrmLeads = true;
-    } else {
-      totalLeads = smaxDay?.leads ?? 0;
-      if (totalLeads > 0) flags.usedSmaxLeads = true;
-    }
+    const totalLeads = crmLeadsInRange ? row.totalLeads || 0 : (smaxDay?.leads ?? 0);
 
     return {
       ...row,
@@ -124,7 +119,7 @@ export function mergeLeadStatisticsSources(input: {
     (acc, row) => acc + (row.totalLeads || 0),
     0,
   );
-  const totalLeads = chartLeadTotal > 0 ? chartLeadTotal : (smax?.data ?? 0);
+  const totalLeads = crmLeadsInRange ? chartLeadTotal : (smax?.data ?? 0);
 
   return {
     summary: leadData.summary,
@@ -138,12 +133,8 @@ export function mergeLeadStatisticsSources(input: {
       'smax',
     ),
     totalLeads,
-    dataSource: resolveSource(
-      flags.usedCrmLeads,
-      flags.usedSmaxLeads || totalLeads > 0,
-      'crm',
-      'smax',
-    ),
+    dataSource: resolveSource(flags.usedCrmLeads, flags.usedSmaxLeads, 'crm', 'smax'),
     smaxTotalOrders: smax?.orders ?? 0,
+    nurturingTotal: leadData.summary.nurturingTotal,
   };
 }

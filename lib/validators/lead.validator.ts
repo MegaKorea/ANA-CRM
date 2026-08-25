@@ -505,6 +505,10 @@ export function validateNoteSummarizeInput(input: unknown): { url: string; mimeT
 
   const mimeType = typeof data.mime_type === 'string' && data.mime_type.trim() ? data.mime_type.trim() : null;
 
+  if (!mimeType || !mimeType.startsWith('audio/')) {
+    throw new AppError(LeadErrorCode.BAD_REQUEST, HttpStatusCode.BAD_REQUEST);
+  }
+
   return { url: url.trim(), mimeType };
 }
 

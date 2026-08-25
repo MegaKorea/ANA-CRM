@@ -59,12 +59,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       importedEnrollments = (enrollments ?? []) as ImportedEnrollmentRow[];
     }
 
+    // Current pipeline snapshot, not scoped to startDate/endDate — "nurturing"
+    // is an ongoing state, not a dated event, so it shouldn't hide leads just
+    // because they were created outside the selected range.
+    const { count: nurturingTotal, error: nurturingError } = await supabase
+      .from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_imported', false)
+      .eq('status', LeadStatus.NURTURING);
+    if (nurturingError) throw nurturingError;
+
     const body = aggregateLeadStatistics(
       startDate,
       endDate,
       (leads ?? []) as LeadStatLeadRow[],
       importedEnrollments,
     );
+    body.summary.nurturingTotal = nurturingTotal ?? 0;
 
     return NextResponse.json(body, { status: HttpStatusCode.OK });
   } catch (error) {
