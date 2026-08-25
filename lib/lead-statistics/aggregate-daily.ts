@@ -33,7 +33,7 @@ export function aggregateLeadStatistics(
   bumpImportedRegistrations(dateMap, registeredIds, importedEnrollments);
 
   return {
-    summary: { registeredTotal: registeredIds.size },
+    summary: { registeredTotal: registeredIds.size, nurturingTotal: 0 },
     chartData: Array.from(dateMap.values()),
   };
 }

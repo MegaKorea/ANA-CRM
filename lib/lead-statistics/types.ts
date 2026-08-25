@@ -11,6 +11,8 @@ export type LeadStatisticsChartRow = {
 
 export type LeadStatisticsSummaryDto = {
   registeredTotal: number;
+  /** Snapshot count of leads currently in "nurturing" status — not scoped to the queried date range, since it's a current pipeline state, not a period event. */
+  nurturingTotal: number;
 };
 
 export type LeadStatisticsApiResponse = {

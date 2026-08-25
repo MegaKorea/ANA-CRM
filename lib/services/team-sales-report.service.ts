@@ -16,7 +16,7 @@ interface ActiveClassificationRule {
 
 const DEFAULT_CLASSIFICATION_RULE: ActiveClassificationRule = {
   recentInteractionHours: 24,
-  racKqtStatuses: [LeadStatus.REJECT, LeadStatus.NOT_INTERESTED],
+  racKqtStatuses: [],
 };
 
 async function resolveActiveClassificationRule(): Promise<ActiveClassificationRule> {
@@ -138,7 +138,7 @@ type InteractionBucket =
 
 function classifyLead(
   lead: ReportLeadRow,
-  endAtMs: number,
+  nowMs: number,
   rule: ActiveClassificationRule,
 ): InteractionBucket {
   if (lead.status && rule.racKqtStatuses.includes(lead.status)) {
@@ -150,17 +150,27 @@ function classifyLead(
   if (lead.pid_zalo) {
     return 'chamZalo';
   }
-  if (lead.status === LeadStatus.NOT_CONTACTED) {
+  if (lead.status === LeadStatus.NOT_CONTACTED || lead.status === LeadStatus.NEW) {
     return 'chuaTiepCan';
   }
-  if (lead.status === LeadStatus.LOW_INTERACTION) {
+  if (
+    lead.status === LeadStatus.LOW_INTERACTION ||
+    lead.status === LeadStatus.REJECT ||
+    lead.status === LeadStatus.NOT_INTERESTED
+  ) {
     return 'itTuongTac';
+  }
+  if (lead.status === LeadStatus.INTERESTED || lead.status === LeadStatus.NURTURING) {
+    return 'tuongTacQuanTam';
   }
 
   const noteAt = lastNoteAt(lead.note);
   if (noteAt == null) return 'chuaTiepCan';
 
-  const hoursSinceNote = (endAtMs - noteAt) / (60 * 60 * 1000);
+  // status has no history table, so it always reflects "now" — the note
+  // recency check must be measured against "now" too, not the report's end
+  // date, or the two signals drift apart for any report about a past period.
+  const hoursSinceNote = (nowMs - noteAt) / (60 * 60 * 1000);
   return hoursSinceNote <= rule.recentInteractionHours ? 'tuongTacQuanTam' : 'itTuongTac';
 }
 
@@ -171,7 +181,7 @@ async function computeTeamSalesReportRow(
   noteEntries: LeadNoteEntry[],
 ): Promise<TeamSalesReportRow> {
   const supabase = createAdminClient();
-  const endAtMs = new Date(endAt).getTime();
+  const nowMs = Date.now();
 
   const [createdLeads, arrivedLeadsRes, convertedLeads, revenueTickets] = await Promise.all([
     fetchAllRows<ReportLeadRow>((from, to) =>
@@ -219,7 +229,7 @@ async function computeTeamSalesReportRow(
     racKqt: 0,
   };
   for (const lead of createdLeads) {
-    const bucket = classifyLead(lead, endAtMs, rule);
+    const bucket = classifyLead(lead, nowMs, rule);
     if (bucket) buckets[bucket] += 1;
   }
 

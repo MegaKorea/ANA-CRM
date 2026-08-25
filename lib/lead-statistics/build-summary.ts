@@ -20,14 +20,12 @@ function sumChart(chartData: LeadStatisticsChartRow[]) {
   let totalAppointments = 0;
   let totalArrived = 0;
   let registeredFromChart = 0;
-  let totalNurturing = 0;
   for (const row of chartData) {
     totalAppointments += row.totalAppointments || 0;
     totalArrived += row.arrivedAppointments || 0;
     registeredFromChart += row.registeredLeads || 0;
-    totalNurturing += row.nurturingLeads || 0;
   }
-  return { totalAppointments, totalArrived, registeredFromChart, totalNurturing };
+  return { totalAppointments, totalArrived, registeredFromChart };
 }
 
 function resolveSuccess(
@@ -46,8 +44,7 @@ export function buildLeadStatisticsSummary(
   data: MergedLeadStatistics | undefined,
 ): LeadStatisticsSummaryView {
   const chartData = data?.chartData ?? [];
-  const { totalAppointments, totalArrived, registeredFromChart, totalNurturing } =
-    sumChart(chartData);
+  const { totalAppointments, totalArrived, registeredFromChart } = sumChart(chartData);
 
   const { success, source: successSource } = resolveSuccess(
     data?.summary?.registeredTotal,
@@ -62,7 +59,7 @@ export function buildLeadStatisticsSummary(
     totalLeads: data?.totalLeads ?? 0,
     totalAppointments,
     totalArrived,
-    totalNurturing,
+    totalNurturing: data?.nurturingTotal ?? 0,
     funnel: buildLeadFunnelMetrics({
       messages: data?.fbTotalMessages ?? 0,
       data: data?.totalLeads ?? 0,
