@@ -7,7 +7,6 @@ import {
   CalendarOutlined,
   CheckCircleOutlined,
   PercentageOutlined,
-  ArrowRightOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
 } from '@ant-design/icons';
@@ -49,7 +48,6 @@ type OverviewItem = {
   deltaPct: number | null;
   icon: ReactNode;
   color: string;
-  showArrow: boolean;
 };
 
 function TrendLine({ deltaPct }: { deltaPct: number | null }) {
@@ -88,7 +86,6 @@ function buildOverviewItems(
       deltaPct: previousFunnel ? percentChange(value, prev) : null,
       icon: meta.icon,
       color: meta.color,
-      showArrow: true,
     };
   });
 
@@ -104,7 +101,6 @@ function buildOverviewItems(
       : null,
     icon: <PercentageOutlined />,
     color: '#16a34a',
-    showArrow: false,
   });
 
   return steps;
@@ -247,9 +243,6 @@ export const ReportsOverviewCards = memo(function ReportsOverviewCards({
               <div className={styles.desktopCardWrap}>
                 <DesktopStepCard item={item} loading={loading} />
               </div>
-              {item.showArrow ? (
-                <ArrowRightOutlined className={styles.desktopArrow} aria-hidden />
-              ) : null}
             </div>
           ))}
         </div>

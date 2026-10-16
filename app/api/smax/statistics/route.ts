@@ -6,7 +6,10 @@ import {
   requireReportsAccess,
 } from '@/lib/api/reports-access';
 import { handleRouteError } from '@/lib/utils/route-handler';
-import { fetchSmaxCustomerStatistics } from '@/lib/smax/smax.service';
+import {
+  fetchSmaxCustomerStatistics,
+  getSmaxFacebookPagePids,
+} from '@/lib/smax/smax.service';
 import type { SmaxStatisticsApiResponse } from '@/lib/smax/types';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -17,6 +20,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const stats = await fetchSmaxCustomerStatistics({
       startDate,
       endDate,
+      // "Nhắn tin" on the reports funnel counts the Facebook channel only.
+      pagePids: getSmaxFacebookPagePids(),
       type: SmaxCustomerStatType.MESSAGE_AND_COMMENT,
     });
 

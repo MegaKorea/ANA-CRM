@@ -5,14 +5,13 @@
 .desktopGrid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
+  gap: 12px;
   align-items: stretch;
 }
 
 .desktopItem {
   display: flex;
   align-items: center;
-  gap: 6px;
   min-width: 0;
 }
 
@@ -20,12 +19,6 @@
   flex: 1;
   min-width: 0;
   height: 100%;
-}
-
-.desktopArrow {
-  color: var(--ant-color-text-quaternary);
-  font-size: 14px;
-  flex-shrink: 0;
 }
 
 .mobile {
