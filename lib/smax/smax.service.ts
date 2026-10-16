@@ -132,6 +132,11 @@ function resolveAllowedPagePids(requested?: string[]): string[] {
   return filtered.length > 0 ? filtered : allowed;
 }
 
+/** Facebook page PIDs among the allowed SMAX pages (excludes Zalo / Instagram). */
+export function getSmaxFacebookPagePids(): string[] {
+  return resolveAllowedPagePids().filter((pid) => /^fb/i.test(pid));
+}
+
 function toSmaxUtcRangeBound(isoDate: string, endOfDay: boolean): string {
   const local = new Date(
     `${isoDate}T${endOfDay ? '23:59:59' : '00:00:00'}+07:00`,
