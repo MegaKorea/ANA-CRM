@@ -3,6 +3,7 @@ import type {
   SmaxStatisticsCalendarDay,
 } from '@/lib/smax/types';
 import { asRecord } from '@/lib/smax/utils';
+import { toVnDate } from '@/lib/utils/vn-date';
 
 function toNonNegativeInt(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
@@ -23,13 +24,22 @@ function firstPositiveInt(...values: unknown[]): number {
   return toNonNegativeInt(values[0]) ?? 0;
 }
 
+const EXPLICIT_TZ_RE = /(Z|[+-]\d{2}:?\d{2})$/i;
+
 function toCalendarDate(value: unknown): string | null {
   if (typeof value !== 'string' || !value.trim()) return null;
-  const parsed = new Date(value);
+  const trimmed = value.trim();
+  const parsed = new Date(trimmed);
   if (Number.isNaN(parsed.getTime())) return null;
-  const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
+  // A timestamp with an explicit offset (e.g. `2026-10-15T17:00:00.000Z`, which
+  // is VN midnight of 10-16) must be bucketed by its VN calendar day, not by
+  // its UTC date prefix — otherwise every SMAX day shifts back by one.
+  if (/[T ]\d{2}:\d{2}/.test(trimmed) && EXPLICIT_TZ_RE.test(trimmed)) {
+    return toVnDate(trimmed);
+  }
+  const match = trimmed.match(/^(\d{4}-\d{2}-\d{2})/);
   if (match) return match[1];
-  return parsed.toISOString().slice(0, 10);
+  return toVnDate(trimmed);
 }
 
 function mapCalendars(raw: unknown): SmaxStatisticsCalendarDay[] {

@@ -84,7 +84,13 @@ export function mergeLeadStatisticsSources(input: {
   // a single real zero-lead day inside the range would silently borrow SMAX's
   // (differently-defined) count for that day, mixing two incompatible totals.
   const crmLeadsInRange = leadData.chartData.some((row) => (row.totalLeads || 0) > 0);
-  const fbMessagesInRange = fbByDay.size > 0 && [...fbByDay.values()].some((d) => d.messages > 0);
+  // SMAX counts every inbound conversation (organic + ads); Facebook's
+  // `messaging_conversation_started` only counts ad-driven ones. Prefer SMAX
+  // whenever it responded so the current and previous periods are always
+  // measured with the same source — otherwise one FB ad message in the range
+  // flipped the whole range to FB (e.g. 1 vs 83 "so với kỳ trước").
+  const fbMessagesInRange =
+    !smax && fbByDay.size > 0 && [...fbByDay.values()].some((d) => d.messages > 0);
 
   const flags: DaySources = {
     usedFacebookMessages: fbMessagesInRange,
@@ -111,10 +117,15 @@ export function mergeLeadStatisticsSources(input: {
     };
   });
 
-  const fbTotalMessages = chartData.reduce(
+  const chartMessageTotal = chartData.reduce(
     (acc, row) => acc + (row.fbMessages || 0),
     0,
   );
+  // Use SMAX's own range total rather than summing calendar buckets: bucket
+  // granularity depends on key_time (hourly / daily / custom) and may not line
+  // up 1:1 with the CRM's VN-day chart rows.
+  const fbTotalMessages =
+    !fbMessagesInRange && smax ? Math.max(smax.messages, chartMessageTotal) : chartMessageTotal;
   const chartLeadTotal = chartData.reduce(
     (acc, row) => acc + (row.totalLeads || 0),
     0,
