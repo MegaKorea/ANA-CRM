@@ -26,6 +26,10 @@ import dynamic from 'next/dynamic';
 import { LeadFilters } from '@/app/lead/components/LeadFilters';
 import { LeadMobileCard } from '@/app/lead/components/LeadMobileCard';
 import { LeadSummaryCards } from '@/app/lead/components/LeadSummaryCards';
+import {
+  LeadColumnSettings,
+  useLeadHiddenColumns,
+} from '@/app/lead/components/LeadColumnSettings';
 import { hasSmaxConversation } from '@/lib/smax/parse-smax-log';
 
 const LeadModal = dynamic(
@@ -49,8 +53,8 @@ const LeadImagesModal = dynamic(
   { ssr: false },
 );
 
-const AttendanceModal = dynamic(
-  () => import('@/app/lead/components/AttendanceModal').then((m) => m.AttendanceModal),
+const AttendanceDrawer = dynamic(
+  () => import('@/app/lead/components/AttendanceDrawer').then((m) => m.AttendanceDrawer),
   { ssr: false },
 );
 
@@ -382,6 +386,17 @@ function LeadPageContent() {
     ],
   );
 
+  const { hiddenKeys: hiddenColumnKeys, setHiddenKeys: setHiddenColumnKeys } =
+    useLeadHiddenColumns();
+  const columnOptions = useMemo(
+    () => columns.map((col: any) => ({ key: col.key as string, title: col.title })),
+    [columns],
+  );
+  const visibleColumns = useMemo(
+    () => columns.filter((col: any) => !hiddenColumnKeys.has(col.key as string)),
+    [columns, hiddenColumnKeys],
+  );
+
   const isSubmitting = createLeadMutation.isPending || updateLeadMutation.isPending;
 
   const handleSubmitAsync = useCallback(
@@ -396,6 +411,13 @@ function LeadPageContent() {
       <Row justify="end" align="middle" className="mb-section">
         <Col>
           <Space size={LeadPageGap.ACTIONS}>
+            {!isMobile && (
+              <LeadColumnSettings
+                columns={columnOptions}
+                hiddenKeys={hiddenColumnKeys}
+                onChange={setHiddenColumnKeys}
+              />
+            )}
             <Button icon={<ReloadOutlined />} loading={isFetching} onClick={handleRefresh}>
               {LeadPageText.BUTTON_REFRESH}
             </Button>
@@ -430,7 +452,7 @@ function LeadPageContent() {
           {!isMobile ? (
             <Table<Lead>
               scroll={{ x: 'max-content' }}
-              columns={columns}
+              columns={visibleColumns}
               dataSource={leads}
               loading={isLoading}
               rowKey="id"
@@ -539,7 +561,7 @@ function LeadPageContent() {
         onClose={imagesModal.closeModal}
       />
 
-      <AttendanceModal
+      <AttendanceDrawer
         open={attendanceModal.open}
         lead={attendanceModal.lead}
         onClose={attendanceModal.closeModal}
