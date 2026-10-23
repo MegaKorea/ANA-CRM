@@ -1,4 +1,4 @@
-import { Row, Col, Select, DatePicker, Space } from 'antd';
+import { Row, Col, Select, DatePicker, Space, Tag } from 'antd';
 import { DebouncedInput } from '@/components/common/DebouncedInput';
 import { LeadStatus, LeadSource, DateFormat } from '@/constants/enums';
 import {
@@ -8,6 +8,8 @@ import {
   LeadStatusLabel,
   LeadSourceIcon,
   LeadSourceLabel,
+  CARE_MILESTONES,
+  type CareMilestone,
 } from '@/app/lead/constants';
 import type { Dayjs } from 'dayjs';
 import { memo } from 'react';
@@ -24,6 +26,8 @@ interface LeadFiltersProps {
   onCourseChange: (course: string | undefined) => void;
   createdAtRange: [Dayjs | null, Dayjs | null] | null;
   onCreatedAtRangeChange: (range: [Dayjs | null, Dayjs | null] | null) => void;
+  careMilestone: CareMilestone | undefined;
+  onCareMilestoneChange: (milestone: CareMilestone | undefined) => void;
   courses: any[];
 }
 
@@ -39,11 +43,13 @@ export const LeadFilters = memo(function LeadFilters({
   onCourseChange,
   createdAtRange,
   onCreatedAtRangeChange,
+  careMilestone,
+  onCareMilestoneChange,
   courses,
 }: LeadFiltersProps) {
   return (
     <Row gutter={[16, 16]} className="mb-section">
-      <Col xs={24} md={8}>
+      <Col xs={24} md={5}>
         <DebouncedInput
           key={searchKey}
           defaultValue={searchDefaultValue}
@@ -65,7 +71,7 @@ export const LeadFilters = memo(function LeadFilters({
           style={{ width: '100%' }}
         />
       </Col>
-      <Col xs={24} md={4}>
+      <Col xs={24} md={3}>
         <Select
           allowClear
           placeholder={LeadPageText.COLUMN_SOURCE}
@@ -108,6 +114,23 @@ export const LeadFilters = memo(function LeadFilters({
           onChange={onCreatedAtRangeChange}
           style={{ width: '100%' }}
           format={DateFormat.ISO_DATE}
+        />
+      </Col>
+      <Col xs={24} md={4}>
+        <Select
+          allowClear
+          placeholder="Chăm khách"
+          value={careMilestone}
+          onChange={onCareMilestoneChange}
+          options={CARE_MILESTONES.map((milestone) => ({
+            label: (
+              <Tag color={milestone.color} style={{ marginInlineEnd: 0 }}>
+                {milestone.label}
+              </Tag>
+            ),
+            value: milestone.value,
+          }))}
+          style={{ width: '100%' }}
         />
       </Col>
     </Row>

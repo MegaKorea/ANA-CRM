@@ -5,7 +5,6 @@ import {
   CheckCircleTwoTone,
   ClockCircleTwoTone,
   CloseCircleTwoTone,
-  MessageOutlined,
   AudioOutlined,
 } from '@ant-design/icons';
 import { HiOutlineInformationCircle, HiOutlinePencilAlt, HiOutlineTrash } from 'react-icons/hi';
@@ -13,7 +12,6 @@ import { DateLocale, AttendanceStatus } from '@/constants/enums';
 import type { Lead } from '@/lib/services/lead.service';
 import {
   getZaloChatUrl,
-  getSmaxThreadUrl,
   getSmaxTags,
   renderSmaxTagList,
   getLeadStatusColor,
@@ -26,6 +24,7 @@ import { AssignTelesales } from '@/app/lead/components/AssignTelesales';
 import { LeadRate } from '@/app/lead/components/LeadRate';
 import { memo } from 'react';
 import { SiZalo } from 'react-icons/si';
+import { SmaxThreadLink } from '@/app/lead/components/SmaxThreadLink';
 
 interface LeadMobileCardProps {
   lead: Lead;
@@ -55,38 +54,16 @@ export const LeadMobileCard = memo(function LeadMobileCard({
   const noteSummarizeCount = Array.isArray(lead.note_summarize) ? lead.note_summarize.length : 0;
   const imageCount = lead.images?.length || 0;
   const zaloChatUrl = getZaloChatUrl(lead.pid_zalo);
-  const smaxThreadUrl = getSmaxThreadUrl(lead.smax_log);
 
   return (
     <Card
       size="small"
       title={
-        <Space size={4} align="center">
-          <Typography.Text
-            strong
-            style={{
-              fontSize: '15px',
-              whiteSpace: 'normal',
-              wordBreak: 'break-word',
-              color: '#1677ff',
-            }}
-          >
-            {lead.full_name}
-          </Typography.Text>
-          {smaxThreadUrl && (
-            <Tooltip title="Mở hội thoại Smax">
-              <Button
-                size="small"
-                type="text"
-                icon={<MessageOutlined style={{ fontSize: 15, color: 'var(--accent-600)' }} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(smaxThreadUrl, '_blank', 'noopener,noreferrer');
-                }}
-              />
-            </Tooltip>
-          )}
-        </Space>
+        <SmaxThreadLink
+          lead={lead}
+          strong
+          style={{ fontSize: '15px', whiteSpace: 'normal', wordBreak: 'break-word' }}
+        />
       }
       extra={
         lead.status ? (
