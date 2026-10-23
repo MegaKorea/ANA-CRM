@@ -468,7 +468,7 @@ export const getLeadTableColumns = ({
       fixed: 'right',
       width: LeadTableColumnWidth.ACTION,
       render: (_: unknown, record: Lead) => (
-        <Button onClick={() => handleOpenModal(record)}>
+        <Button type="text" onClick={() => handleOpenModal(record)}>
           <HiOutlinePencilAlt size={LeadActionIconSize.DEFAULT} />
         </Button>
       ),
