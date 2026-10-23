@@ -94,6 +94,7 @@ const HIDDEN_COLUMN_KEYS = new Set([
   'current_address_temp',
   'images',
   'tuition_fee',
+  'detail',
 ]);
 
 export const getLeadTableColumns = ({
