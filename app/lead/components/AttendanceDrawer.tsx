@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
-import { App, Modal, Radio, Space } from 'antd';
+import { App, Button, Drawer, Radio, Space } from 'antd';
 import { CheckCircleTwoTone, ClockCircleTwoTone, CloseCircleTwoTone } from '@ant-design/icons';
 import { AttendanceStatus } from '@/constants/enums';
 import type { Lead } from '@/lib/services/lead.service';
 import { useUpdateLead } from '@/lib/hooks/use-leads';
-import styles from './attendanceModal.module.scss';
+import { useIsMobile } from '@/lib/hooks/use-mobile';
+import styles from './attendanceDrawer.module.scss';
 
-interface AttendanceModalProps {
+interface AttendanceDrawerProps {
   open: boolean;
   lead: Lead | null;
   onClose: () => void;
 }
 
-export function AttendanceModal({ open, lead, onClose }: AttendanceModalProps) {
+export function AttendanceDrawer({ open, lead, onClose }: AttendanceDrawerProps) {
   const { message } = App.useApp();
+  const isMobile = useIsMobile();
   const [prevLeadId, setPrevLeadId] = useState<number | null>(null);
   const [status, setStatus] = useState<AttendanceStatus | null>(null);
   const updateLeadMutation = useUpdateLead();
@@ -44,15 +46,19 @@ export function AttendanceModal({ open, lead, onClose }: AttendanceModalProps) {
   };
 
   return (
-    <Modal
+    <Drawer
       title="Cập nhật trạng thái điểm danh"
       open={open}
-      onCancel={onClose}
-      onOk={handleSave}
-      okText="Lưu lại"
-      cancelText="Hủy"
-      confirmLoading={updateLeadMutation.isPending}
-      centered
+      onClose={onClose}
+      size={isMobile ? '100%' : 400}
+      footer={
+        <Space style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Button onClick={onClose}>Hủy</Button>
+          <Button type="primary" loading={updateLeadMutation.isPending} onClick={handleSave}>
+            Lưu lại
+          </Button>
+        </Space>
+      }
     >
       <div className={styles.container}>
         <div className={styles.header}>
@@ -84,6 +90,6 @@ export function AttendanceModal({ open, lead, onClose }: AttendanceModalProps) {
           </Radio.Group>
         </div>
       </div>
-    </Modal>
+    </Drawer>
   );
 }
