@@ -1,6 +1,5 @@
 import { Card, Flex, Typography, Tag, Space, Tooltip, Badge, Button, Popconfirm } from 'antd';
 import {
-  PlusOutlined,
   InfoCircleOutlined,
   PictureOutlined,
   CheckCircleTwoTone,
@@ -33,7 +32,6 @@ interface LeadMobileCardProps {
   courses: any[];
   onOpenDetail: (lead: Lead) => void;
   onOpenModal: (lead: Lead) => void;
-  onOpenNoteAdd: (lead: Lead) => void;
   onOpenNoteHistory: (lead: Lead) => void;
   onOpenNoteSummarize: (lead: Lead) => void;
   onOpenImages: (lead: Lead) => void;
@@ -46,7 +44,6 @@ export const LeadMobileCard = memo(function LeadMobileCard({
   courses,
   onOpenDetail,
   onOpenModal,
-  onOpenNoteAdd,
   onOpenNoteHistory,
   onOpenNoteSummarize,
   onOpenImages,
@@ -266,21 +263,12 @@ export const LeadMobileCard = memo(function LeadMobileCard({
         <Flex justify="space-between" align="center" className="text-body-small">
           <Typography.Text type="secondary">Ghi chú & Hình ảnh</Typography.Text>
           <Space>
-            <Tooltip title="Thêm ghi chú">
-              <Button
-                type="primary"
-                size="small"
-                icon={<PlusOutlined />}
-                onClick={() => onOpenNoteAdd(lead)}
-              />
-            </Tooltip>
-            <Tooltip title="Xem lịch sử ghi chú">
+            <Tooltip title="Ghi chú">
               <Badge count={noteCount} size="small" offset={[-2, 0]}>
                 <Button
                   size="small"
                   icon={<InfoCircleOutlined />}
                   onClick={() => onOpenNoteHistory(lead)}
-                  disabled={noteCount === 0}
                 />
               </Badge>
             </Tooltip>

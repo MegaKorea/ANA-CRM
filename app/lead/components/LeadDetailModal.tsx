@@ -1,26 +1,36 @@
 'use client';
 
-import { Modal, Descriptions, Timeline, Tag, Typography, Empty } from 'antd';
+import { Modal, Descriptions, Timeline, Tag, Typography, Empty, Badge, Button } from 'antd';
 import type { Lead } from '@/lib/services/lead.service';
 import {
   LeadPageText,
   formatLocationValue,
   formatLocationValueV2,
+  getLeadFacebookUrl,
   getZaloChatUrl,
 } from '@/app/lead/constants';
+import { formatNumberVi } from '@/lib/utils/numberFormat';
 import type { LocationValue } from '@/components/common/LocationSelect';
 import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
 import type { NoteItem } from '@/lib/supabase/types/tables/leads';
-import { ClockCircleOutlined } from '@ant-design/icons';
+import { AudioOutlined, ClockCircleOutlined, PictureOutlined } from '@ant-design/icons';
 import { JSX } from 'react';
 
 interface LeadDetailModalProps {
   open: boolean;
   lead: Lead | null;
   onClose: () => void;
+  onOpenNoteSummarize: (lead: Lead) => void;
+  onOpenImages: (lead: Lead) => void;
 }
 
-export function LeadDetailModal({ open, lead, onClose }: LeadDetailModalProps): JSX.Element | null {
+export function LeadDetailModal({
+  open,
+  lead,
+  onClose,
+  onOpenNoteSummarize,
+  onOpenImages,
+}: LeadDetailModalProps): JSX.Element | null {
   if (!lead) {
     return null;
   }
@@ -31,6 +41,8 @@ export function LeadDetailModal({ open, lead, onClose }: LeadDetailModalProps): 
   const currentAddressTemp = lead.current_address_temp as LocationValueV2 | null | undefined;
   const notes: NoteItem[] = Array.isArray(lead.note) ? lead.note : [];
   const zaloChatUrl = getZaloChatUrl(lead.pid_zalo);
+  const facebookUrl = getLeadFacebookUrl(lead);
+  const noteSummarizeCount = Array.isArray(lead.note_summarize) ? lead.note_summarize.length : 0;
   const sortedNotes = [...notes].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );
@@ -45,6 +57,9 @@ export function LeadDetailModal({ open, lead, onClose }: LeadDetailModalProps): 
       centered
     >
       <Descriptions column={1} bordered>
+        <Descriptions.Item label={LeadPageText.COLUMN_DATE_OF_BIRTH}>
+          {lead.date_of_birth || '-'}
+        </Descriptions.Item>
         <Descriptions.Item label={LeadPageText.COLUMN_PLACE_OF_BIRTH}>
           {formatLocationValue(placeOfBirth) || '-'}
         </Descriptions.Item>
@@ -56,6 +71,15 @@ export function LeadDetailModal({ open, lead, onClose }: LeadDetailModalProps): 
         </Descriptions.Item>
         <Descriptions.Item label={LeadPageText.COLUMN_CITIZEN_ID}>
           {lead.citizen_id || '-'}
+        </Descriptions.Item>
+        <Descriptions.Item label="Facebook">
+          {facebookUrl ? (
+            <Typography.Link href={facebookUrl} target="_blank" rel="noreferrer">
+              Mở Facebook
+            </Typography.Link>
+          ) : (
+            '-'
+          )}
         </Descriptions.Item>
         <Descriptions.Item label="PID Zalo">
           {zaloChatUrl ? (
@@ -71,6 +95,23 @@ export function LeadDetailModal({ open, lead, onClose }: LeadDetailModalProps): 
         </Descriptions.Item>
         <Descriptions.Item label={LeadPageText.COLUMN_ETHNICITY}>
           {lead.ethnicity || '-'}
+        </Descriptions.Item>
+        <Descriptions.Item label="Học phí">
+          {lead.tuition_fee ? `${formatNumberVi(lead.tuition_fee)} đ` : '-'}
+        </Descriptions.Item>
+        <Descriptions.Item label="Ghi âm">
+          <Badge count={noteSummarizeCount} size="small" offset={[-2, 0]}>
+            <Button
+              size="small"
+              icon={<AudioOutlined />}
+              onClick={() => onOpenNoteSummarize(lead)}
+            />
+          </Badge>
+        </Descriptions.Item>
+        <Descriptions.Item label={LeadPageText.COLUMN_IMAGES}>
+          <Badge count={lead.images?.length || 0} size="small" offset={[-2, 0]}>
+            <Button size="small" icon={<PictureOutlined />} onClick={() => onOpenImages(lead)} />
+          </Badge>
         </Descriptions.Item>
         <Descriptions.Item label={LeadPageText.COLUMN_NOTE}>
           {sortedNotes.length === 0 ? (
