@@ -58,8 +58,10 @@
   --border-focus: var(--accent-600);
 
   // 5. Typography
+  // Same system stack Facebook falls back to (its own "Optimistic" font is
+  // proprietary): Segoe UI on Windows, San Francisco on macOS/iOS.
   --font-sans:
-    'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
     sans-serif;
   --fs-display: clamp(30px, 4vw, 40px);
   --fs-h1: 24px;
