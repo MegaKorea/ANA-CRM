@@ -110,7 +110,7 @@ export const LeadPageText = {
   SUCCESS_DELETE: 'Xóa Data thành công',
   SUCCESS_REFRESH: 'Đã làm mới danh sách Data',
   ERROR_GENERIC: 'Có lỗi xảy ra',
-  COURSE_IDS_LABEL: 'Khóa học quan tâm',
+  COURSE_IDS_LABEL: 'Khóa học',
 } as const;
 
 export const LeadSourceLabel = {
