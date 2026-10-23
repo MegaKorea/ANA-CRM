@@ -30,7 +30,7 @@ export enum LeadDateUnit {
 
 export enum LeadTableColumnWidth {
   ID = 80,
-  ACTION = 180,
+  ACTION = 100,
   DETAIL = 150,
 }
 

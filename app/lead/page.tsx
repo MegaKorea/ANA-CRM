@@ -334,11 +334,12 @@ function LeadPageContent() {
       deleteLeadMutation.mutate(id, {
         onSuccess: () => {
           message.success(LeadPageText.SUCCESS_DELETE);
+          handleCloseModal();
         },
         onError: handleError,
       });
     },
-    [deleteLeadMutation, handleError, message],
+    [deleteLeadMutation, handleCloseModal, handleError, message],
   );
 
   const handleRefresh = useCallback(() => {
@@ -353,7 +354,6 @@ function LeadPageContent() {
     () =>
       getLeadTableColumns({
         handleOpenModal,
-        handleDelete,
         handleOpenDetailModal: detailModal.openModal,
         handleOpenNoteHistoryModal: noteHistoryModal.openModal,
         handleOpenNoteSummarizeModal: noteSummarizeModal.openModal,
@@ -371,7 +371,6 @@ function LeadPageContent() {
       })),
     [
       handleOpenModal,
-      handleDelete,
       detailModal.openModal,
       noteHistoryModal.openModal,
       noteSummarizeModal.openModal,
@@ -450,6 +449,7 @@ function LeadPageContent() {
                 },
               }}
               bordered={false}
+              size="small"
               className="minimal-table"
             />
           ) : isLoading ? (
@@ -507,8 +507,10 @@ function LeadPageContent() {
         editingLead={editingLead}
         form={form}
         isSubmitting={isSubmitting}
+        isDeleting={deleteLeadMutation.isPending}
         onClose={handleCloseModal}
         onSubmit={handleSubmitAsync}
+        onDelete={handleDelete}
       />
 
       <LeadDetailModal

@@ -15,9 +15,11 @@ import {
   Button,
   Card,
   Flex,
+  Popconfirm,
 } from 'antd';
 import {
   ClockCircleOutlined,
+  DeleteOutlined,
   FlagOutlined,
   MessageOutlined,
   UserOutlined,
@@ -92,8 +94,10 @@ interface LeadModalProps {
   editingLead: Lead | null;
   form: ReturnType<typeof Form.useForm<LeadFormValues>>[0];
   isSubmitting: boolean;
+  isDeleting: boolean;
   onClose: () => void;
   onSubmit: (values: LeadFormValues) => Promise<void>;
+  onDelete: (id: number) => void;
 }
 
 export function LeadModal({
@@ -101,8 +105,10 @@ export function LeadModal({
   editingLead,
   form,
   isSubmitting,
+  isDeleting,
   onClose,
   onSubmit,
+  onDelete,
 }: LeadModalProps) {
   const { message } = App.useApp();
   const { data: courses, isLoading: isCoursesLoading } = useCourses();
@@ -115,12 +121,29 @@ export function LeadModal({
       size={1000}
       destroyOnHidden
       footer={
-        <Space style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Button onClick={onClose}>Hủy</Button>
-          <Button type="primary" onClick={() => form.submit()} loading={isSubmitting}>
-            Lưu
-          </Button>
-        </Space>
+        <Flex justify="space-between">
+          {editingLead ? (
+            <Popconfirm
+              title={LeadPageText.DELETE_TITLE}
+              description={LeadPageText.DELETE_DESCRIPTION}
+              onConfirm={() => onDelete(editingLead.id)}
+              okText={LeadPageText.DELETE_OK_TEXT}
+              cancelText={LeadPageText.DELETE_CANCEL_TEXT}
+            >
+              <Button danger icon={<DeleteOutlined />} loading={isDeleting}>
+                Xóa
+              </Button>
+            </Popconfirm>
+          ) : (
+            <span />
+          )}
+          <Space>
+            <Button onClick={onClose}>Hủy</Button>
+            <Button type="primary" onClick={() => form.submit()} loading={isSubmitting}>
+              Lưu
+            </Button>
+          </Space>
+        </Flex>
       }
     >
       <Form<LeadFormValues>
