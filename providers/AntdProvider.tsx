@@ -24,8 +24,7 @@ function AntdProviderContent({ children }: AntdProviderProps): JSX.Element {
         colorWarning: colors.warning,
         colorError: colors.error,
         colorInfo: colors.info,
-        fontFamily:
-          'var(--font-lexend), "Lexend", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        fontFamily: 'var(--font-sans)',
         fontSize: THEME.fontSize.base,
         borderRadius: THEME.borderRadius.sm,
         borderRadiusLG: THEME.borderRadius.md,

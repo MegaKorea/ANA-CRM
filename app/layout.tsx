@@ -1,17 +1,9 @@
 import type { Metadata } from 'next';
-import { Lexend } from 'next/font/google';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { AppProviders } from '@/providers';
 import { ConditionalLayout } from '@/components/layout/ConditionalLayout';
 import logoAna from '@/app/assets/logo/logo-ana.png';
 import './scss/index.scss';
-
-const lexend = Lexend({
-  weight: ['300', '400', '500', '600', '700', '800'],
-  subsets: ['latin'],
-  variable: '--font-lexend',
-  display: 'swap',
-});
 
 export const metadata: Metadata = {
   title: 'ANA CRM',
@@ -30,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" suppressHydrationWarning>
-      <body className={lexend.variable}>
+      <body>
         <AntdRegistry>
           <AppProviders>
             <ConditionalLayout>{children}</ConditionalLayout>
