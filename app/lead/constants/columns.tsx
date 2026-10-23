@@ -343,7 +343,7 @@ export const getLeadTableColumns = ({
         }
         const courseNames = courseIds.map((id) => {
           const course = courses.find((c) => c.id === id);
-          return course ? toSentenceCase(course.name) : id;
+          return course ? course.name : id;
         });
         return courseNames.join(', ');
       },
