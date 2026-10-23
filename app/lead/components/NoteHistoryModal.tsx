@@ -1,9 +1,23 @@
 'use client';
 
-import { Modal, Timeline, Empty, Typography, Tag, theme } from 'antd';
+import {
+  App,
+  Modal,
+  Timeline,
+  Empty,
+  Typography,
+  Tag,
+  Input,
+  Button,
+  Flex,
+  Tooltip,
+  theme,
+} from 'antd';
+import { useState } from 'react';
 import type { Lead } from '@/lib/services/lead.service';
 import type { NoteItem } from '@/lib/supabase/types/tables/leads';
-import { ClockCircleOutlined } from '@ant-design/icons';
+import { ClockCircleOutlined, PlusOutlined } from '@ant-design/icons';
+import { useUpdateLead } from '@/lib/hooks/use-leads';
 
 interface NoteHistoryModalProps {
   open: boolean;
@@ -13,16 +27,63 @@ interface NoteHistoryModalProps {
 
 export function NoteHistoryModal({ open, lead, onClose }: NoteHistoryModalProps) {
   const { token } = theme.useToken();
-  const notes: NoteItem[] = Array.isArray(lead?.note) ? lead.note : [];
+  const { message } = App.useApp();
+  const [isAdding, setIsAdding] = useState(false);
+  const [noteContent, setNoteContent] = useState('');
+  // `lead` is a snapshot taken when the modal opened, so keep notes saved
+  // from inside the modal locally to show them without closing it.
+  const [savedNotes, setSavedNotes] = useState<NoteItem[] | null>(null);
+  const updateLeadMutation = useUpdateLead();
+
+  const notes: NoteItem[] = savedNotes ?? (Array.isArray(lead?.note) ? lead.note : []);
   const sortedNotes = [...notes].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );
 
+  const handleSubmit = () => {
+    if (!lead || !noteContent.trim()) {
+      message.warning('Vui lòng nhập nội dung ghi chú');
+      return;
+    }
+
+    const updatedNotes: NoteItem[] = [
+      ...notes,
+      { content: noteContent.trim(), created_at: new Date().toISOString() },
+    ];
+
+    updateLeadMutation.mutate(
+      { id: lead.id, input: { note: updatedNotes } },
+      {
+        onSuccess: () => {
+          message.success('Thêm ghi chú thành công');
+          setNoteContent('');
+          setIsAdding(false);
+          setSavedNotes(updatedNotes);
+        },
+        onError: (error) => {
+          const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra';
+          message.error(errorMessage);
+        },
+      },
+    );
+  };
+
+  const handleCancelAdd = () => {
+    setNoteContent('');
+    setIsAdding(false);
+  };
+
+  const handleClose = () => {
+    handleCancelAdd();
+    setSavedNotes(null);
+    onClose();
+  };
+
   return (
     <Modal
       open={open}
-      title={`Lịch sử ghi chú - ${lead?.full_name || ''}`}
-      onCancel={onClose}
+      title={`Ghi chú - ${lead?.full_name || ''}`}
+      onCancel={handleClose}
       footer={null}
       width={600}
       centered
@@ -65,6 +126,47 @@ export function NoteHistoryModal({ open, lead, onClose }: NoteHistoryModalProps)
             }))}
           />
         </div>
+      )}
+
+      {isAdding ? (
+        <Flex vertical gap={8}>
+          <Input.TextArea
+            autoFocus
+            rows={3}
+            value={noteContent}
+            onChange={(e) => setNoteContent(e.target.value)}
+            placeholder="Nhập nội dung ghi chú... (Enter để lưu, Shift + Enter để xuống dòng)"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
+          />
+          <Flex justify="flex-end" gap={8}>
+            <Button size="small" onClick={handleCancelAdd}>
+              Hủy
+            </Button>
+            <Button
+              type="primary"
+              size="small"
+              onClick={handleSubmit}
+              loading={updateLeadMutation.isPending}
+              disabled={!noteContent.trim()}
+            >
+              Lưu
+            </Button>
+          </Flex>
+        </Flex>
+      ) : (
+        <Tooltip title="Thêm ghi chú">
+          <Button
+            type="primary"
+            size="small"
+            icon={<PlusOutlined />}
+            onClick={() => setIsAdding(true)}
+          />
+        </Tooltip>
       )}
     </Modal>
   );

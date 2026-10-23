@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { Tag } from 'antd';
-import { FiGlobe, FiMail, FiPhone, FiFacebook, FiMessageSquare, FiMoreHorizontal } from 'react-icons/fi';
+import { FiGlobe, FiMail, FiPhone, FiFacebook, FiMoreHorizontal } from 'react-icons/fi';
+import { SmaxIcon } from '@/app/lead/components/SmaxIcon';
 import { AttendanceStatus, LeadSource, LeadStatus } from '@/constants/enums';
 import type { LocationValue } from '@/components/common/LocationSelect';
 import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
@@ -126,7 +127,7 @@ export const LeadSourceIcon = {
   [LeadSource.EMAIL]: <FiMail size={LeadSourceIconSize.DEFAULT} />,
   [LeadSource.PHONE]: <FiPhone size={LeadSourceIconSize.DEFAULT} />,
   [LeadSource.FACEBOOK]: <FiFacebook size={LeadSourceIconSize.DEFAULT} />,
-  [LeadSource.SMAX]: <FiMessageSquare size={LeadSourceIconSize.DEFAULT} />,
+  [LeadSource.SMAX]: <SmaxIcon size={LeadSourceIconSize.DEFAULT} />,
   [LeadSource.OTHER]: <FiMoreHorizontal size={LeadSourceIconSize.DEFAULT} />,
 } as const;
 

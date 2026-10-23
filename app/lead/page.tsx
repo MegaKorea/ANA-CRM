@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { App, Table, Button, Space, Row, Col, Form, Typography, Empty, Pagination, Spin } from 'antd';
+import { App, Table, Button, Space, Row, Col, Form, Empty, Pagination, Spin } from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import type { Lead } from '@/lib/services/lead.service';
@@ -23,6 +23,7 @@ import { useIsMobile } from '@/lib/hooks/use-mobile';
 import dynamic from 'next/dynamic';
 import { LeadFilters } from '@/app/lead/components/LeadFilters';
 import { LeadMobileCard } from '@/app/lead/components/LeadMobileCard';
+import { LeadSummaryCards } from '@/app/lead/components/LeadSummaryCards';
 import { hasSmaxConversation } from '@/lib/smax/parse-smax-log';
 
 const LeadModal = dynamic(
@@ -31,10 +32,6 @@ const LeadModal = dynamic(
 );
 const LeadDetailModal = dynamic(
   () => import('@/app/lead/components/LeadDetailModal').then((m) => m.LeadDetailModal),
-  { ssr: false },
-);
-const NoteAddModal = dynamic(
-  () => import('@/app/lead/components/NoteAddModal').then((m) => m.NoteAddModal),
   { ssr: false },
 );
 const NoteHistoryModal = dynamic(
@@ -64,6 +61,8 @@ const ConversationModal = dynamic(
   () => import('@/app/lead/components/ConversationModal'),
   { ssr: false },
 );
+
+const LEAD_PAGE_SIZE_OPTIONS = [15, 30, 50, 100];
 
 export default function LeadPage() {
   return (
@@ -98,7 +97,6 @@ function LeadPageContent() {
     }
   }, [appliedHighlightId, router]);
 
-  const noteAddModal = useLeadModal();
   const noteHistoryModal = useLeadModal();
   const noteSummarizeModal = useLeadModal();
   const imagesModal = useLeadModal();
@@ -114,7 +112,7 @@ function LeadPageContent() {
   const [createdAtRange, setCreatedAtRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(LEAD_PAGE_SIZE_OPTIONS[0]);
   const isMobile = useIsMobile();
 
   const appointmentParam = searchParams.get('appointment');
@@ -343,7 +341,6 @@ function LeadPageContent() {
         handleOpenModal,
         handleDelete,
         handleOpenDetailModal: detailModal.openModal,
-        handleOpenNoteAddModal: noteAddModal.openModal,
         handleOpenNoteHistoryModal: noteHistoryModal.openModal,
         handleOpenNoteSummarizeModal: noteSummarizeModal.openModal,
         handleOpenImagesModal: imagesModal.openModal,
@@ -362,7 +359,6 @@ function LeadPageContent() {
       handleOpenModal,
       handleDelete,
       detailModal.openModal,
-      noteAddModal.openModal,
       noteHistoryModal.openModal,
       noteSummarizeModal.openModal,
       imagesModal.openModal,
@@ -384,13 +380,8 @@ function LeadPageContent() {
 
   return (
     <div>
-      <Row justify="space-between" align="middle" className="mb-section">
+      <Row justify="end" align="middle" className="mb-section">
         <Col>
-          <Typography.Title level={2} className="text-h2" style={{ margin: 0 }}>
-            {LeadPageText.TITLE}
-          </Typography.Title>
-        </Col>
-        <Col style={{ marginTop: 15 }}>
           <Space size={LeadPageGap.ACTIONS}>
             <Button icon={<ReloadOutlined />} loading={isFetching} onClick={handleRefresh}>
               {LeadPageText.BUTTON_REFRESH}
@@ -401,6 +392,8 @@ function LeadPageContent() {
           </Space>
         </Col>
       </Row>
+
+      <LeadSummaryCards createdAtRange={createdAtRange} />
 
       <LeadFilters
         searchKey={searchInputKey}
@@ -434,6 +427,7 @@ function LeadPageContent() {
                 pageSize: pageSize,
                 total: total,
                 showSizeChanger: true,
+                pageSizeOptions: LEAD_PAGE_SIZE_OPTIONS,
                 onChange: (page, size) => {
                   setCurrentPage(page);
                   setPageSize(size);
@@ -464,7 +458,6 @@ function LeadPageContent() {
                       courses={courses || []}
                       onOpenDetail={detailModal.openModal}
                       onOpenModal={handleOpenModal}
-                      onOpenNoteAdd={noteAddModal.openModal}
                       onOpenNoteHistory={noteHistoryModal.openModal}
                       onOpenNoteSummarize={noteSummarizeModal.openModal}
                       onOpenImages={imagesModal.openModal}
@@ -481,6 +474,7 @@ function LeadPageContent() {
                 size="small"
                 align="center"
                 showSizeChanger
+                pageSizeOptions={LEAD_PAGE_SIZE_OPTIONS}
                 onChange={(page, size) => {
                   setCurrentPage(page);
                   setPageSize(size);
@@ -505,12 +499,8 @@ function LeadPageContent() {
         open={detailModal.open}
         lead={detailModal.lead}
         onClose={detailModal.closeModal}
-      />
-
-      <NoteAddModal
-        open={noteAddModal.open}
-        lead={noteAddModal.lead}
-        onClose={noteAddModal.closeModal}
+        onOpenNoteSummarize={noteSummarizeModal.openModal}
+        onOpenImages={imagesModal.openModal}
       />
 
       <NoteHistoryModal

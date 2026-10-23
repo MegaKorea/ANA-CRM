@@ -3,7 +3,6 @@ import type { ColumnsType } from 'antd/es/table';
 import Image from 'next/image';
 import { HiOutlinePencilAlt, HiOutlineTrash, HiOutlineInformationCircle } from 'react-icons/hi';
 import {
-  PlusOutlined,
   InfoCircleOutlined,
   PictureOutlined,
   CalendarOutlined,
@@ -19,6 +18,7 @@ import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
 import type { NoteItem, NoteSummarizeItem } from '@/lib/supabase/types/tables/leads';
 import { formatNumberVi } from '@/lib/utils/numberFormat';
 import { openInNewTab } from '@/lib/utils/openInNewTab';
+import { toSentenceCase } from '@/lib/utils/text-case';
 import { AssignTelesales } from '@/app/lead/components/AssignTelesales';
 import { LeadRate } from '@/app/lead/components/LeadRate';
 import { SmaxThreadButton } from '@/app/lead/components/SmaxThreadButton';
@@ -26,7 +26,6 @@ import { AttendanceStatusIcon } from '@/app/lead/components/AttendanceStatusIcon
 import { LeadStatusLabel } from '@/app/lead/constants/labels';
 import {
   LeadActionIconSize,
-  LeadPageGap,
   LeadPageText,
   LeadSourceIcon,
   LeadSourceLabel,
@@ -86,8 +85,6 @@ export type HandleDeleteLead = (id: number) => void;
 
 export type HandleOpenLeadDetailModal = (lead: Lead) => void;
 
-export type HandleOpenNoteAddModal = (lead: Lead) => void;
-
 export type HandleOpenNoteHistoryModal = (lead: Lead) => void;
 
 export type HandleOpenNoteSummarizeModal = (lead: Lead) => void;
@@ -96,11 +93,21 @@ export type HandleOpenImagesModal = (lead: Lead) => void;
 
 export type HandleOpenConversationModal = (lead: Lead) => void;
 
+// Columns kept in code but hidden from the table to keep it compact; their
+// data is shown in LeadDetailModal ("Thông tin thêm") instead.
+const HIDDEN_COLUMN_KEYS = new Set([
+  'note_summarize',
+  'facebook_url',
+  'date_of_birth',
+  'current_address_temp',
+  'images',
+  'tuition_fee',
+]);
+
 export const getLeadTableColumns = ({
   handleOpenModal,
   handleDelete,
   handleOpenDetailModal,
-  handleOpenNoteAddModal,
   handleOpenNoteHistoryModal,
   handleOpenNoteSummarizeModal,
   handleOpenImagesModal,
@@ -112,7 +119,6 @@ export const getLeadTableColumns = ({
   handleOpenModal: HandleOpenLeadModal;
   handleDelete: HandleDeleteLead;
   handleOpenDetailModal: HandleOpenLeadDetailModal;
-  handleOpenNoteAddModal: HandleOpenNoteAddModal;
   handleOpenNoteHistoryModal: HandleOpenNoteHistoryModal;
   handleOpenNoteSummarizeModal: HandleOpenNoteSummarizeModal;
   handleOpenImagesModal: HandleOpenImagesModal;
@@ -122,10 +128,16 @@ export const getLeadTableColumns = ({
   courses?: Course[] | null;
 }): ColumnsType<Lead> => [
     {
-      title: LeadPageText.COLUMN_ID,
-      dataIndex: 'id',
-      key: 'id',
-      width: LeadTableColumnWidth.ID,
+      title: LeadPageText.COLUMN_CREATED_AT,
+      dataIndex: 'created_at',
+      key: 'created_at',
+      render: (date: string | null) =>
+        date
+          ? new Date(date).toLocaleDateString(DateLocale.VIET_NAM, {
+              day: '2-digit',
+              month: '2-digit',
+            })
+          : null,
     },
     {
       title: LeadPageText.COLUMN_FULL_NAME,
@@ -154,26 +166,15 @@ export const getLeadTableColumns = ({
         const notes: NoteItem[] = Array.isArray(record.note) ? (record.note as NoteItem[]) : [];
         const noteCount = notes.length;
         return (
-          <Space>
-            <Tooltip title="Thêm ghi chú">
+          <Tooltip title="Ghi chú">
+            <Badge count={noteCount} size="small" offset={[-2, 0]}>
               <Button
-                type="primary"
                 size="small"
-                icon={<PlusOutlined />}
-                onClick={() => handleOpenNoteAddModal(record)}
+                icon={<InfoCircleOutlined />}
+                onClick={() => handleOpenNoteHistoryModal(record)}
               />
-            </Tooltip>
-            <Tooltip title="Xem lịch sử ghi chú">
-              <Badge count={noteCount} size="small" offset={[-2, 0]}>
-                <Button
-                  size="small"
-                  icon={<InfoCircleOutlined />}
-                  onClick={() => handleOpenNoteHistoryModal(record)}
-                  disabled={noteCount === 0}
-                />
-              </Badge>
-            </Tooltip>
-          </Space>
+            </Badge>
+          </Tooltip>
         );
       },
     },
@@ -297,7 +298,7 @@ export const getLeadTableColumns = ({
         return (
           <div style={{ textAlign: 'left' }}>
             <Tag color={getLeadStatusColor(status)} style={{ marginInlineEnd: 0 }}>
-              {LeadStatusLabel[status as keyof typeof LeadStatusLabel] ?? status}
+              {toSentenceCase(LeadStatusLabel[status as keyof typeof LeadStatusLabel] ?? status)}
             </Tag>
           </div>
         );
@@ -340,7 +341,7 @@ export const getLeadTableColumns = ({
         }
         const courseNames = courseIds.map((id) => {
           const course = courses.find((c) => c.id === id);
-          return course ? course.name : id;
+          return course ? toSentenceCase(course.name) : id;
         });
         return courseNames.join(', ');
       },
@@ -356,20 +357,18 @@ export const getLeadTableColumns = ({
         }
         const icon = LeadSourceIcon[source as keyof typeof LeadSourceIcon];
         const label = LeadSourceLabel[source as keyof typeof LeadSourceLabel] ?? source;
+        // Unknown sources have no icon, so fall back to the raw label.
+        if (!icon) {
+          return label;
+        }
         return (
-          <Space size={LeadPageGap.ACTIONS}>
-            {icon}
-            {label}
-          </Space>
+          <Tooltip title={label}>
+            <span style={{ display: 'inline-flex' }} aria-label={label}>
+              {icon}
+            </span>
+          </Tooltip>
         );
       },
-    },
-    {
-      title: LeadPageText.COLUMN_CREATED_AT,
-      dataIndex: 'created_at',
-      key: 'created_at',
-      render: (date: string | null) =>
-        date ? new Date(date).toLocaleDateString(DateLocale.VIET_NAM) : null,
     },
     {
       title: 'Học phí',
@@ -486,4 +485,7 @@ export const getLeadTableColumns = ({
         </Space>
       ),
     },
-  ];
+  ]
+    .filter((col) => !HIDDEN_COLUMN_KEYS.has(col.key as string))
+    // Left-align every column (header and cells) for a consistent table.
+    .map((col) => ({ ...col, align: 'left' })) as ColumnsType<Lead>;
