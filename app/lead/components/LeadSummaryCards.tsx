@@ -1,24 +1,21 @@
 import { Row, Col, Card, Statistic } from 'antd';
-import { DatabaseOutlined, HeartOutlined, CalendarOutlined } from '@ant-design/icons';
-import { memo, type ReactNode } from 'react';
+import { memo } from 'react';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useLeads } from '@/lib/hooks/use-leads';
 import { useAppointmentsInRange } from '@/lib/hooks/use-appointments';
 import { useLeadStatistics } from '@/lib/hooks/use-lead-statistics';
-import { MessengerIcon } from '@/components/common/MessengerIcon';
 import { LeadStatus, DateFormat } from '@/constants/enums';
 
 interface SummaryCardProps {
   title: string;
   value: number | string;
-  icon: ReactNode;
   loading?: boolean;
 }
 
-function SummaryCard({ title, value, icon, loading }: SummaryCardProps) {
+function SummaryCard({ title, value, loading }: SummaryCardProps) {
   return (
     <Card size="small" style={{ height: '100%', borderRadius: 12 }}>
-      <Statistic title={title} value={value} loading={loading} prefix={icon} />
+      <Statistic title={title} value={value} loading={loading} />
     </Card>
   );
 }
@@ -74,7 +71,6 @@ export const LeadSummaryCards = memo(function LeadSummaryCards({
         <SummaryCard
           title="Nhắn tin"
           value={statistics?.fbTotalMessages ?? 0}
-          icon={<MessengerIcon />}
           loading={isLoadingMessages}
         />
       </Col>
@@ -82,7 +78,6 @@ export const LeadSummaryCards = memo(function LeadSummaryCards({
         <SummaryCard
           title="Data"
           value={allLeads?.total ?? 0}
-          icon={<DatabaseOutlined />}
           loading={isLoadingAll}
         />
       </Col>
@@ -90,7 +85,6 @@ export const LeadSummaryCards = memo(function LeadSummaryCards({
         <SummaryCard
           title="Đang chăm sóc"
           value={nurturingLeads?.total ?? 0}
-          icon={<HeartOutlined />}
           loading={isLoadingNurturing}
         />
       </Col>
@@ -98,7 +92,6 @@ export const LeadSummaryCards = memo(function LeadSummaryCards({
         <SummaryCard
           title="Lịch hẹn"
           value={appointments?.length ?? 0}
-          icon={<CalendarOutlined />}
           loading={isLoadingAppointments}
         />
       </Col>
