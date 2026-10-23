@@ -8,7 +8,7 @@ import {
   CalendarOutlined,
   AudioOutlined,
 } from '@ant-design/icons';
-import { BsChatDotsFill } from 'react-icons/bs';
+import { MessengerIcon } from '@/components/common/MessengerIcon';
 import { hasSmaxConversation } from '@/lib/smax/parse-smax-log';
 import type { Lead } from '@/lib/services/lead.service';
 import { AttendanceStatus, DateLocale } from '@/constants/enums';
@@ -21,9 +21,10 @@ import { openInNewTab } from '@/lib/utils/openInNewTab';
 import { toSentenceCase } from '@/lib/utils/text-case';
 import { AssignTelesales } from '@/app/lead/components/AssignTelesales';
 import { LeadRate } from '@/app/lead/components/LeadRate';
-import { SmaxThreadButton } from '@/app/lead/components/SmaxThreadButton';
+import { SmaxThreadLink } from '@/app/lead/components/SmaxThreadLink';
 import { AttendanceStatusIcon } from '@/app/lead/components/AttendanceStatusIcon';
 import { LeadStatusLabel } from '@/app/lead/constants/labels';
+import { getCareMilestone } from '@/app/lead/constants/care-milestones';
 import {
   LeadActionIconSize,
   LeadPageText,
@@ -44,14 +45,11 @@ function ChannelBadgeIcon({
   active,
   imgSrc,
   alt,
-  icon,
-  bgColor,
 }: {
   active: boolean;
-} & (
-  | { imgSrc: string; alt: string; icon?: never; bgColor?: never }
-  | { icon: React.ReactNode; bgColor: string; imgSrc?: never; alt?: never }
-)) {
+  imgSrc: string;
+  alt: string;
+}) {
   return (
     <span
       style={{
@@ -63,15 +61,11 @@ function ChannelBadgeIcon({
         height: CHANNEL_BADGE_SIZE,
         borderRadius: '50%',
         overflow: 'hidden',
-        background: imgSrc ? '#fff' : bgColor,
+        background: '#fff',
         filter: active ? undefined : 'grayscale(1) opacity(0.4)',
       }}
     >
-      {imgSrc ? (
-        <Image src={imgSrc} alt={alt} fill sizes={`${CHANNEL_BADGE_SIZE}px`} style={{ objectFit: 'cover' }} />
-      ) : (
-        icon
-      )}
+      <Image src={imgSrc} alt={alt} fill sizes={`${CHANNEL_BADGE_SIZE}px`} style={{ objectFit: 'cover' }} />
     </span>
   );
 }
@@ -131,24 +125,32 @@ export const getLeadTableColumns = ({
       title: LeadPageText.COLUMN_CREATED_AT,
       dataIndex: 'created_at',
       key: 'created_at',
-      render: (date: string | null) =>
-        date
-          ? new Date(date).toLocaleDateString(DateLocale.VIET_NAM, {
-              day: '2-digit',
-              month: '2-digit',
-            })
-          : null,
+      render: (date: string | null) => {
+        if (!date) {
+          return null;
+        }
+        const label = new Date(date).toLocaleDateString(DateLocale.VIET_NAM, {
+          day: '2-digit',
+          month: '2-digit',
+        });
+        const milestone = getCareMilestone(date);
+        if (!milestone) {
+          return label;
+        }
+        return (
+          <Tooltip title={`Chăm khách: ${milestone.label}`}>
+            <Tag color={milestone.color} style={{ marginInlineEnd: 0 }}>
+              {label}
+            </Tag>
+          </Tooltip>
+        );
+      },
     },
     {
       title: LeadPageText.COLUMN_FULL_NAME,
       dataIndex: 'full_name',
       key: 'full_name',
-      render: (_: unknown, record: Lead) => (
-        <Space size={4}>
-          <span>{record.full_name}</span>
-          <SmaxThreadButton lead={record} />
-        </Space>
-      ),
+      render: (_: unknown, record: Lead) => <SmaxThreadLink lead={record} />,
     },
     {
       title: LeadPageText.COLUMN_PHONE_NUMBER,
@@ -256,13 +258,8 @@ export const getLeadTableColumns = ({
               type="text"
               disabled={!canOpenChat}
               onClick={() => canOpenChat && handleOpenConversationModal(record)}
-              icon={
-                <ChannelBadgeIcon
-                  icon={<BsChatDotsFill size={9} color="#fff" />}
-                  bgColor="#52c41a"
-                  active={canOpenChat}
-                />
-              }
+              // Disabled text buttons grey out currentColor, so no extra inactive styling.
+              icon={<MessengerIcon size={CHANNEL_BADGE_SIZE} />}
             />
           </Tooltip>
         );

@@ -4,7 +4,9 @@
  *  - `labels.tsx`       — status labels only (used by the public `/lead-form`)
  *  - `lead-helpers.tsx` — pure constants/data helpers shared across lead components
  *  - `columns.tsx`      — the antd Table column factory (pulls in row-action components)
+ *  - `care-milestones.ts` — "Chăm khách" milestones by lead age
  */
 export * from './labels';
 export * from './lead-helpers';
 export * from './columns';
+export * from './care-milestones';

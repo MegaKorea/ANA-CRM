@@ -5,10 +5,10 @@ import {
   App,
   Button,
   DatePicker,
+  Drawer,
   Empty,
   Form,
   Input,
-  Modal,
   Popconfirm,
   Select,
   Space,
@@ -27,6 +27,7 @@ import {
 } from '@/lib/hooks/use-appointments';
 import { AttendanceStatus, DateLocale } from '@/constants/enums';
 import type { LeadAppointment } from '@/lib/services/appointment.service';
+import { useIsMobile } from '@/lib/hooks/use-mobile';
 
 const { Text } = Typography;
 
@@ -56,7 +57,7 @@ interface AppointmentFormValues {
   note?: string;
 }
 
-interface AppointmentModalProps {
+interface AppointmentDrawerProps {
   open: boolean;
   leadId: number | undefined;
   leadName?: string | null;
@@ -68,14 +69,15 @@ interface AppointmentModalProps {
  * appointments; the nearest upcoming one is mirrored back onto the lead row by
  * the server so the lead table and statistics keep working.
  */
-export default function AppointmentModal({
+export default function AppointmentDrawer({
   open,
   leadId,
   leadName,
   onClose,
-}: AppointmentModalProps) {
+}: AppointmentDrawerProps) {
   const { message } = App.useApp();
   const [form] = Form.useForm<AppointmentFormValues>();
+  const isMobile = useIsMobile();
 
   const { data: appointments, isLoading } = useAppointmentsByLead(open ? leadId : undefined);
   const { mutate: createAppointment, isPending: isCreating } = useCreateAppointment();
@@ -142,11 +144,10 @@ export default function AppointmentModal({
   );
 
   return (
-    <Modal
+    <Drawer
       open={open}
-      onCancel={onClose}
-      footer={null}
-      width={640}
+      onClose={onClose}
+      size={isMobile ? '100%' : 640}
       destroyOnHidden
       title={leadName ? `Lịch hẹn — ${leadName}` : 'Lịch hẹn'}
     >
@@ -251,6 +252,6 @@ export default function AppointmentModal({
           ))}
         </div>
       )}
-    </Modal>
+    </Drawer>
   );
 }

@@ -13,9 +13,11 @@ import {
   LeadPageGap,
   LeadPageText,
   getLeadTableColumns,
+  resolveCreatedAtBounds,
+  type CareMilestone,
 } from '@/app/lead/constants';
 import type { LeadFormValues } from '@/app/lead/components/LeadModal';
-import { LeadStatus, DateFormat, LeadSource } from '@/constants/enums';
+import { LeadStatus, LeadSource } from '@/constants/enums';
 import { type LocationValue } from '@/components/common/LocationSelect';
 import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
 import { useCourses } from '@/lib/hooks/use-courses';
@@ -52,8 +54,8 @@ const AttendanceModal = dynamic(
   { ssr: false },
 );
 
-const AppointmentModal = dynamic(
-  () => import('@/app/lead/components/AppointmentModal'),
+const AppointmentDrawer = dynamic(
+  () => import('@/app/lead/components/AppointmentDrawer'),
   { ssr: false }
 );
 
@@ -110,6 +112,7 @@ function LeadPageContent() {
   const [sourceFilter, setSourceFilter] = useState<LeadSource | undefined>(undefined);
   const [courseFilter, setCourseFilter] = useState<string | undefined>(undefined);
   const [createdAtRange, setCreatedAtRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [careMilestone, setCareMilestone] = useState<CareMilestone | undefined>(undefined);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(LEAD_PAGE_SIZE_OPTIONS[0]);
@@ -137,6 +140,7 @@ function LeadPageContent() {
     setSourceFilter(undefined);
     setCourseFilter(undefined);
     setCreatedAtRange(null);
+    setCareMilestone(undefined);
     setCurrentPage(1);
     setFocusAppointmentLeadId(appointmentDeepLinkLead.id);
   }
@@ -171,14 +175,24 @@ function LeadPageContent() {
     setCurrentPage(1);
   }, []);
 
+  const handleCareMilestoneChange = useCallback((val: CareMilestone | undefined) => {
+    setCareMilestone(val);
+    setCurrentPage(1);
+  }, []);
+
+  const createdAtBounds = useMemo(
+    () => resolveCreatedAtBounds(createdAtRange, careMilestone),
+    [createdAtRange, careMilestone],
+  );
+
   const { data, isLoading, isFetching, refetch } = useLeads({
     search: searchKeyword || undefined,
     status: statusFilter,
     excludeStatus: statusFilter ? undefined : LeadStatus.CONVERTED,
     source: sourceFilter,
     course_id: courseFilter,
-    startDate: createdAtRange?.[0] ? createdAtRange[0].format(DateFormat.ISO_DATE) : undefined,
-    endDate: createdAtRange?.[1] ? createdAtRange[1].format(DateFormat.ISO_DATE) : undefined,
+    startDate: createdAtBounds.startDate,
+    endDate: createdAtBounds.endDate,
     page: currentPage,
     limit: pageSize,
   });
@@ -407,6 +421,8 @@ function LeadPageContent() {
         onCourseChange={handleCourseChange}
         createdAtRange={createdAtRange}
         onCreatedAtRangeChange={handleCreatedAtRangeChange}
+        careMilestone={careMilestone}
+        onCareMilestoneChange={handleCareMilestoneChange}
         courses={courses || []}
       />
 
@@ -527,7 +543,7 @@ function LeadPageContent() {
         onClose={attendanceModal.closeModal}
       />
 
-      <AppointmentModal
+      <AppointmentDrawer
         open={appointmentModal.open}
         leadId={appointmentModal.lead?.id}
         leadName={appointmentModal.lead?.full_name}
