@@ -1,7 +1,7 @@
-import { Button, Popconfirm, Space, Tooltip, Badge, Tag } from 'antd';
+import { Button, Space, Tooltip, Badge, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import Image from 'next/image';
-import { HiOutlinePencilAlt, HiOutlineTrash, HiOutlineInformationCircle } from 'react-icons/hi';
+import { HiOutlinePencilAlt, HiOutlineInformationCircle } from 'react-icons/hi';
 import {
   InfoCircleOutlined,
   PictureOutlined,
@@ -75,8 +75,6 @@ export type HandleOpenAppointmentModal = (lead: Lead) => void;
 
 export type HandleOpenLeadModal = (lead?: Lead) => void;
 
-export type HandleDeleteLead = (id: number) => void;
-
 export type HandleOpenLeadDetailModal = (lead: Lead) => void;
 
 export type HandleOpenNoteHistoryModal = (lead: Lead) => void;
@@ -100,7 +98,6 @@ const HIDDEN_COLUMN_KEYS = new Set([
 
 export const getLeadTableColumns = ({
   handleOpenModal,
-  handleDelete,
   handleOpenDetailModal,
   handleOpenNoteHistoryModal,
   handleOpenNoteSummarizeModal,
@@ -111,7 +108,6 @@ export const getLeadTableColumns = ({
   courses,
 }: {
   handleOpenModal: HandleOpenLeadModal;
-  handleDelete: HandleDeleteLead;
   handleOpenDetailModal: HandleOpenLeadDetailModal;
   handleOpenNoteHistoryModal: HandleOpenNoteHistoryModal;
   handleOpenNoteSummarizeModal: HandleOpenNoteSummarizeModal;
@@ -167,8 +163,16 @@ export const getLeadTableColumns = ({
       render: (_: unknown, record: Lead) => {
         const notes: NoteItem[] = Array.isArray(record.note) ? (record.note as NoteItem[]) : [];
         const noteCount = notes.length;
+        const latestNote = notes.reduce<NoteItem | null>(
+          (latest, note) =>
+            !latest || new Date(note.created_at) > new Date(latest.created_at) ? note : latest,
+          null,
+        );
         return (
-          <Tooltip title="Ghi chú">
+          <Tooltip
+            title={latestNote?.content || 'Ghi chú'}
+            styles={{ container: { whiteSpace: 'pre-wrap' } }}
+          >
             <Badge count={noteCount} size="small" offset={[-2, 0]}>
               <Button
                 size="small"
@@ -464,22 +468,9 @@ export const getLeadTableColumns = ({
       fixed: 'right',
       width: LeadTableColumnWidth.ACTION,
       render: (_: unknown, record: Lead) => (
-        <Space>
-          <Button onClick={() => handleOpenModal(record)}>
-            <HiOutlinePencilAlt size={LeadActionIconSize.DEFAULT} />
-          </Button>
-          <Popconfirm
-            title={LeadPageText.DELETE_TITLE}
-            description={LeadPageText.DELETE_DESCRIPTION}
-            onConfirm={() => handleDelete(record.id)}
-            okText={LeadPageText.DELETE_OK_TEXT}
-            cancelText={LeadPageText.DELETE_CANCEL_TEXT}
-          >
-            <Button danger>
-              <HiOutlineTrash size={LeadActionIconSize.DEFAULT} />
-            </Button>
-          </Popconfirm>
-        </Space>
+        <Button onClick={() => handleOpenModal(record)}>
+          <HiOutlinePencilAlt size={LeadActionIconSize.DEFAULT} />
+        </Button>
       ),
     },
   ]

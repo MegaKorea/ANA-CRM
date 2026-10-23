@@ -10,13 +10,12 @@ import {
   Input,
   Button,
   Flex,
-  Tooltip,
   theme,
 } from 'antd';
 import { useState } from 'react';
 import type { Lead } from '@/lib/services/lead.service';
 import type { NoteItem } from '@/lib/supabase/types/tables/leads';
-import { ClockCircleOutlined, PlusOutlined } from '@ant-design/icons';
+import { ClockCircleOutlined } from '@ant-design/icons';
 import { useUpdateLead } from '@/lib/hooks/use-leads';
 
 interface NoteHistoryModalProps {
@@ -28,7 +27,6 @@ interface NoteHistoryModalProps {
 export function NoteHistoryModal({ open, lead, onClose }: NoteHistoryModalProps) {
   const { token } = theme.useToken();
   const { message } = App.useApp();
-  const [isAdding, setIsAdding] = useState(false);
   const [noteContent, setNoteContent] = useState('');
   // `lead` is a snapshot taken when the modal opened, so keep notes saved
   // from inside the modal locally to show them without closing it.
@@ -57,7 +55,6 @@ export function NoteHistoryModal({ open, lead, onClose }: NoteHistoryModalProps)
         onSuccess: () => {
           message.success('Thêm ghi chú thành công');
           setNoteContent('');
-          setIsAdding(false);
           setSavedNotes(updatedNotes);
         },
         onError: (error) => {
@@ -68,13 +65,8 @@ export function NoteHistoryModal({ open, lead, onClose }: NoteHistoryModalProps)
     );
   };
 
-  const handleCancelAdd = () => {
-    setNoteContent('');
-    setIsAdding(false);
-  };
-
   const handleClose = () => {
-    handleCancelAdd();
+    setNoteContent('');
     setSavedNotes(null);
     onClose();
   };
@@ -128,46 +120,32 @@ export function NoteHistoryModal({ open, lead, onClose }: NoteHistoryModalProps)
         </div>
       )}
 
-      {isAdding ? (
-        <Flex vertical gap={8}>
-          <Input.TextArea
-            autoFocus
-            rows={3}
-            value={noteContent}
-            onChange={(e) => setNoteContent(e.target.value)}
-            placeholder="Nhập nội dung ghi chú... (Enter để lưu, Shift + Enter để xuống dòng)"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit();
-              }
-            }}
-          />
-          <Flex justify="flex-end" gap={8}>
-            <Button size="small" onClick={handleCancelAdd}>
-              Hủy
-            </Button>
-            <Button
-              type="primary"
-              size="small"
-              onClick={handleSubmit}
-              loading={updateLeadMutation.isPending}
-              disabled={!noteContent.trim()}
-            >
-              Lưu
-            </Button>
-          </Flex>
-        </Flex>
-      ) : (
-        <Tooltip title="Thêm ghi chú">
+      <Flex vertical gap={8}>
+        <Input.TextArea
+          autoFocus
+          rows={3}
+          value={noteContent}
+          onChange={(e) => setNoteContent(e.target.value)}
+          placeholder="Nhập nội dung ghi chú... (Enter để lưu, Shift + Enter để xuống dòng)"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSubmit();
+            }
+          }}
+        />
+        <Flex justify="flex-end">
           <Button
             type="primary"
             size="small"
-            icon={<PlusOutlined />}
-            onClick={() => setIsAdding(true)}
-          />
-        </Tooltip>
-      )}
+            onClick={handleSubmit}
+            loading={updateLeadMutation.isPending}
+            disabled={!noteContent.trim()}
+          >
+            Lưu
+          </Button>
+        </Flex>
+      </Flex>
     </Modal>
   );
 }

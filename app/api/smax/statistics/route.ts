@@ -27,6 +27,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const body: SmaxStatisticsApiResponse = {
       messages: stats.messages,
+      newCustomers: stats.newCustomers,
       data: stats.data,
       orders: stats.orders,
       calendars: stats.calendars,

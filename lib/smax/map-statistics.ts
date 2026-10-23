@@ -100,6 +100,7 @@ export function mapSmaxCustomerStatistics(payload: unknown): SmaxCustomerStatist
 
   return {
     messages: toNonNegativeInt(data.customer_message_total) ?? 0,
+    newCustomers: toNonNegativeInt(data.customer_new_total) ?? 0,
     data: toNonNegativeInt(data.customer_lead_total) ?? 0,
     orders: ordersFromRange > 0 ? ordersFromRange : ordersFromCalendars,
     calendars,

@@ -23,6 +23,7 @@ export type MergedLeadStatistics = {
   totalLeads: number;
   dataSource: FunnelStepSource;
   smaxTotalOrders: number;
+  smaxNewCustomers: number;
   nurturingTotal: number;
 };
 
@@ -146,6 +147,7 @@ export function mergeLeadStatisticsSources(input: {
     totalLeads,
     dataSource: resolveSource(flags.usedCrmLeads, flags.usedSmaxLeads, 'crm', 'smax'),
     smaxTotalOrders: smax?.orders ?? 0,
+    smaxNewCustomers: smax?.newCustomers ?? 0,
     nurturingTotal: leadData.summary.nurturingTotal,
   };
 }

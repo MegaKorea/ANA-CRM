@@ -72,6 +72,7 @@ export interface SmaxCustomerStatisticsRequest {
 
 export interface SmaxCustomerStatistics {
   messages: number;
+  newCustomers: number;
   data: number;
   orders: number;
   calendars: SmaxStatisticsCalendarDay[];
@@ -88,6 +89,7 @@ export interface SmaxStatisticsCalendarDay {
 
 export interface SmaxStatisticsApiResponse {
   messages: number;
+  newCustomers: number;
   data: number;
   orders: number;
   calendars: SmaxStatisticsCalendarDay[];

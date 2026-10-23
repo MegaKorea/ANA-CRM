@@ -39,7 +39,7 @@ export const LeadSummaryCards = memo(function LeadSummaryCards({
   const rangeStart = (startDate ?? endDate) as string;
   const rangeEnd = (endDate ?? startDate) as string;
 
-  // Same "Nhắn tin" source as the reports page (SMAX, Facebook fallback).
+  // "Nhắn tin" here is SMAX's new-customer count (customer_new_total).
   const { data: statistics, isLoading: isLoadingMessages } = useLeadStatistics(
     rangeStart,
     rangeEnd,
@@ -70,7 +70,7 @@ export const LeadSummaryCards = memo(function LeadSummaryCards({
       <Col xs={12} md={6}>
         <SummaryCard
           title="Nhắn tin"
-          value={statistics?.fbTotalMessages ?? 0}
+          value={statistics?.smaxNewCustomers ?? 0}
           loading={isLoadingMessages}
         />
       </Col>
