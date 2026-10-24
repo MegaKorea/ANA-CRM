@@ -21,7 +21,7 @@ import {
   type CareMilestone,
 } from '@/app/lead/constants';
 import type { Dayjs } from 'dayjs';
-import { memo } from 'react';
+import { memo, type ReactNode } from 'react';
 import styles from './LeadFilters.module.scss';
 
 interface LeadFiltersProps {
@@ -40,6 +40,8 @@ interface LeadFiltersProps {
   onCareMilestoneChange: (milestone: CareMilestone | undefined) => void;
   courses: any[];
   onCreate: () => void;
+  /** Rendered just before the create button (e.g. column settings). */
+  extra?: ReactNode;
 }
 
 export const LeadFilters = memo(function LeadFilters({
@@ -58,6 +60,7 @@ export const LeadFilters = memo(function LeadFilters({
   onCareMilestoneChange,
   courses,
   onCreate,
+  extra,
 }: LeadFiltersProps) {
   return (
     <div className={`${styles.bar} mb-section`}>
@@ -151,6 +154,7 @@ export const LeadFilters = memo(function LeadFilters({
           style={{ width: '100%' }}
         />
       </div>
+      {extra}
       <Button type="primary" icon={<LuPlus />} onClick={onCreate} className={styles.create}>
         Thêm khách hàng
       </Button>
