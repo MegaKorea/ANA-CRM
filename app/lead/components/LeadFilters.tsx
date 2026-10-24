@@ -1,4 +1,13 @@
-import { Row, Col, Select, DatePicker, Space, Tag } from 'antd';
+import { Select, DatePicker, Space, Tag, Button } from 'antd';
+import {
+  LuBookOpen,
+  LuCalendar,
+  LuPlus,
+  LuSearch,
+  LuShieldCheck,
+  LuUser,
+  LuWaypoints,
+} from 'react-icons/lu';
 import { DebouncedInput } from '@/components/common/DebouncedInput';
 import { LeadStatus, LeadSource, DateFormat } from '@/constants/enums';
 import {
@@ -13,6 +22,7 @@ import {
 } from '@/app/lead/constants';
 import type { Dayjs } from 'dayjs';
 import { memo } from 'react';
+import styles from './LeadFilters.module.scss';
 
 interface LeadFiltersProps {
   searchKey?: number;
@@ -29,6 +39,7 @@ interface LeadFiltersProps {
   careMilestone: CareMilestone | undefined;
   onCareMilestoneChange: (milestone: CareMilestone | undefined) => void;
   courses: any[];
+  onCreate: () => void;
 }
 
 export const LeadFilters = memo(function LeadFilters({
@@ -46,21 +57,24 @@ export const LeadFilters = memo(function LeadFilters({
   careMilestone,
   onCareMilestoneChange,
   courses,
+  onCreate,
 }: LeadFiltersProps) {
   return (
-    <Row gutter={[16, 16]} className="mb-section">
-      <Col xs={24} md={5}>
+    <div className={`${styles.bar} mb-section`}>
+      <div className={styles.search}>
         <DebouncedInput
           key={searchKey}
           defaultValue={searchDefaultValue}
-          placeholder={`${LeadPageText.COLUMN_FULL_NAME} / ${LeadPageText.COLUMN_EMAIL} / ${LeadPageText.COLUMN_PHONE_NUMBER}`}
+          prefix={<LuSearch className={styles.prefix} />}
+          placeholder="Tìm kiếm theo tên, SĐT, email..."
           onChange={onSearch}
           allowClear
         />
-      </Col>
-      <Col xs={24} md={4}>
+      </div>
+      <div className={styles.field}>
         <Select
           allowClear
+          prefix={<LuShieldCheck className={styles.prefix} />}
           placeholder={LeadPageText.COLUMN_STATUS}
           value={statusFilter}
           onChange={onStatusChange}
@@ -70,10 +84,11 @@ export const LeadFilters = memo(function LeadFilters({
           }))}
           style={{ width: '100%' }}
         />
-      </Col>
-      <Col xs={24} md={3}>
+      </div>
+      <div className={styles.field}>
         <Select
           allowClear
+          prefix={<LuWaypoints className={styles.prefix} />}
           placeholder={LeadPageText.COLUMN_SOURCE}
           value={sourceFilter}
           onChange={onSourceChange}
@@ -91,10 +106,11 @@ export const LeadFilters = memo(function LeadFilters({
           })}
           style={{ width: '100%' }}
         />
-      </Col>
-      <Col xs={24} md={4}>
+      </div>
+      <div className={styles.field}>
         <Select
           allowClear
+          prefix={<LuBookOpen className={styles.prefix} />}
           placeholder={LeadPageText.FIELD_COURSE_IDS_PLACEHOLDER}
           value={courseFilter}
           onChange={onCourseChange}
@@ -105,21 +121,23 @@ export const LeadFilters = memo(function LeadFilters({
           style={{ width: '100%' }}
           showSearch={{ optionFilterProp: 'label' }}
         />
-      </Col>
-      <Col xs={24} md={4}>
+      </div>
+      <div className={styles.field}>
         <DatePicker.RangePicker
           allowClear
+          prefix={<LuCalendar className={styles.prefix} />}
           placeholder={[LeadDateRangePlaceholder[0], LeadDateRangePlaceholder[1]]}
           value={createdAtRange ?? undefined}
           onChange={onCreatedAtRangeChange}
           style={{ width: '100%' }}
           format={DateFormat.ISO_DATE}
         />
-      </Col>
-      <Col xs={24} md={4}>
+      </div>
+      <div className={styles.field}>
         <Select
           allowClear
-          placeholder="Chăm khách"
+          prefix={<LuUser className={styles.prefix} />}
+          placeholder="Chăm sóc"
           value={careMilestone}
           onChange={onCareMilestoneChange}
           options={CARE_MILESTONES.map((milestone) => ({
@@ -132,7 +150,10 @@ export const LeadFilters = memo(function LeadFilters({
           }))}
           style={{ width: '100%' }}
         />
-      </Col>
-    </Row>
+      </div>
+      <Button type="primary" icon={<LuPlus />} onClick={onCreate} className={styles.create}>
+        Thêm khách hàng
+      </Button>
+    </div>
   );
 });

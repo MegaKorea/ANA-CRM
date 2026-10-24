@@ -3,7 +3,7 @@
 import { Suspense, useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { App, Table, Button, Space, Row, Col, Form, Empty, Pagination, Spin } from 'antd';
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import { ReloadOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import type { Lead } from '@/lib/services/lead.service';
 import type { CreateLeadInput, UpdateLeadInput } from '@/lib/validators/lead.validator';
@@ -187,6 +187,18 @@ function LeadPageContent() {
   const createdAtBounds = useMemo(
     () => resolveCreatedAtBounds(createdAtRange, careMilestone),
     [createdAtRange, careMilestone],
+  );
+
+  const summaryFilters = useMemo(
+    () => ({
+      search: searchKeyword || undefined,
+      status: statusFilter,
+      source: sourceFilter,
+      courseId: courseFilter,
+      startDate: createdAtBounds.startDate,
+      endDate: createdAtBounds.endDate,
+    }),
+    [searchKeyword, statusFilter, sourceFilter, courseFilter, createdAtBounds],
   );
 
   const { data, isLoading, isFetching, refetch } = useLeads({
@@ -421,14 +433,11 @@ function LeadPageContent() {
             <Button icon={<ReloadOutlined />} loading={isFetching} onClick={handleRefresh}>
               {LeadPageText.BUTTON_REFRESH}
             </Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenModal()}>
-              {LeadPageText.BUTTON_CREATE}
-            </Button>
           </Space>
         </Col>
       </Row>
 
-      <LeadSummaryCards createdAtRange={createdAtRange} />
+      <LeadSummaryCards filters={summaryFilters} />
 
       <LeadFilters
         searchKey={searchInputKey}
@@ -445,6 +454,7 @@ function LeadPageContent() {
         careMilestone={careMilestone}
         onCareMilestoneChange={handleCareMilestoneChange}
         courses={courses || []}
+        onCreate={() => handleOpenModal()}
       />
 
       <Row>

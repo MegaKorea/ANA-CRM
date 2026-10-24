@@ -19,6 +19,8 @@ export interface LeadQueryParams {
   startDate?: string;
   endDate?: string;
   course_id?: string;
+  /** Only leads that have an appointment booked (appointment_date set). */
+  hasAppointment?: boolean;
   page?: number;
   limit?: number;
 }
@@ -56,6 +58,10 @@ export async function fetchAllLeads(params?: LeadQueryParams): Promise<Paginated
 
     if (params?.course_id) {
       query = query.contains('course_ids', [params.course_id]);
+    }
+
+    if (params?.hasAppointment) {
+      query = query.not('appointment_date', 'is', null);
     }
 
     if (params?.startDate) {
