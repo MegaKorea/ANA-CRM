@@ -311,6 +311,7 @@ export const LEAD_STATUS_COLORS: Record<LeadStatus, string> = {
   [LeadStatus.NEW]: 'default',
   [LeadStatus.NOT_CONTACTED]: 'purple',
   [LeadStatus.INTERESTED]: 'magenta',
+  [LeadStatus.CONSIDERING]: 'cyan',
   [LeadStatus.NOT_INTERESTED]: 'volcano',
   [LeadStatus.NURTURING]: 'orange',
   [LeadStatus.CONVERTED]: 'green',

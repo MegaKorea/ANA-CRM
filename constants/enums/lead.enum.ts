@@ -18,6 +18,7 @@ export enum LeadStatus {
   NEW = 'new',
   NOT_CONTACTED = 'not_contacted',
   INTERESTED = 'interested',
+  CONSIDERING = 'considering',
   NURTURING = 'nurturing',
   LOW_INTERACTION = 'low_interaction',
   NOT_INTERESTED = 'not_interested',

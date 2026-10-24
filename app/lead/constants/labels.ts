@@ -6,6 +6,7 @@ export const LeadStatusLabel = {
   [LeadStatus.NOT_CONTACTED]: 'CHƯA TIẾP CẬN',
   [LeadStatus.REJECT]: 'TỪ CHỐI',
   [LeadStatus.INTERESTED]: 'QUAN TÂM',
+  [LeadStatus.CONSIDERING]: 'ĐANG CÂN NHẮC',
   [LeadStatus.NOT_INTERESTED]: 'KHÔNG QUAN TÂM',
   [LeadStatus.NURTURING]: 'ĐANG CHĂM SÓC',
   [LeadStatus.LOW_INTERACTION]: 'ÍT TƯƠNG TÁC',
