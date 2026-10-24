@@ -62,9 +62,11 @@ interface LeadSummaryCardsProps {
 }
 
 /**
- * Pipeline stats above the lead table. The "Data" funnel and the appointment
- * total default to today and follow the table's filters; the today/tomorrow
- * appointment counts are always fixed to those days.
+ * Pipeline stats above the lead table. The "Data" funnel defaults to today
+ * and follows the table's filters: every step after "Tin nhắn" is counted from
+ * the same cohort of leads (created in the range), so an appointment counts
+ * toward the leads it came from, not toward the day it is scheduled on. The
+ * today/tomorrow appointment counts are always fixed to those days.
  */
 export const LeadSummaryCards = memo(function LeadSummaryCards({
   filters,
@@ -76,7 +78,7 @@ export const LeadSummaryCards = memo(function LeadSummaryCards({
   const startDate = hasDateFilter ? filters.startDate : today;
   const endDate = hasDateFilter ? filters.endDate : today;
 
-  // SMAX and appointment APIs take plain VN dates.
+  // SMAX takes plain VN dates.
   const rangeEnd = endDate ? dayjs(endDate).format(DateFormat.ISO_DATE) : today;
   const rangeStart = startDate ? dayjs(startDate).format(DateFormat.ISO_DATE) : rangeEnd;
 
@@ -109,11 +111,7 @@ export const LeadSummaryCards = memo(function LeadSummaryCards({
     status: LeadStatus.CONVERTED,
   });
 
-  // Appointments are counted by appointment date.
-  const { data: rangeAppointments, isLoading: isLoadingRange } = useAppointmentsInRange(
-    rangeStart,
-    rangeEnd,
-  );
+  // Today/tomorrow are counted by appointment date, regardless of filters.
   const { data: todayAppointments, isLoading: isLoadingToday } = useAppointmentsInRange(
     today,
     today,
@@ -175,8 +173,8 @@ export const LeadSummaryCards = memo(function LeadSummaryCards({
             icon={<LuCalendarDays />}
             tone="purple"
             label="Tổng số lịch hẹn"
-            value={rangeAppointments?.length ?? 0}
-            loading={isLoadingRange}
+            value={bookedLeads?.total ?? 0}
+            loading={isLoadingBooked}
           />
           <Connector tone="purple" dash />
           <StatCard

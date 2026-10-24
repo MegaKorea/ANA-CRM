@@ -1,0 +1,15 @@
+// Borderless until hovered/focused so the table still reads as plain text.
+.select:global(.ant-select) {
+  min-width: 130px;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+
+  &:hover,
+  &:global(.ant-select-focused) {
+    background: rgba(0, 0, 0, 0.04);
+  }
+}
+
+.courses:global(.ant-select) {
+  width: 220px;
+}

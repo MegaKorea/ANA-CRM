@@ -53,6 +53,65 @@ export function useUpdateLead() {
   });
 }
 
+type LeadQueryData = PaginatedLeads | Lead | undefined;
+
+function patchLeadQueryData(data: LeadQueryData, id: number, patch: Partial<Lead>): LeadQueryData {
+  if (!data) return data;
+  if ('data' in data && Array.isArray(data.data)) {
+    return {
+      ...data,
+      data: data.data.map((lead) => (lead.id === id ? { ...lead, ...patch } : lead)),
+    };
+  }
+  return (data as Lead).id === id ? { ...(data as Lead), ...patch } : data;
+}
+
+/**
+ * Inline edits from the lead table (status, courses). The row is patched in
+ * the cache right away and rolled back on error. Afterwards only the summary
+ * counts (limit: 1) refetch; the table itself is just marked stale so the
+ * edited row doesn't jump or vanish (e.g. status → converted) under the
+ * cursor — it settles on the next filter/page change.
+ */
+export function useInlineUpdateLead() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    Lead,
+    unknown,
+    { id: number; input: UpdateLeadInput },
+    { snapshots: [readonly unknown[], LeadQueryData][] }
+  >({
+    mutationFn: ({ id, input }) => api.put<Lead>(`${LeadApiPath.BASE}/${id}`, input),
+    onMutate: async ({ id, input }) => {
+      await queryClient.cancelQueries({ queryKey: [LeadQueryKey.LIST] });
+      const snapshots = queryClient.getQueriesData<LeadQueryData>({
+        queryKey: [LeadQueryKey.LIST],
+      });
+      queryClient.setQueriesData<LeadQueryData>({ queryKey: [LeadQueryKey.LIST] }, (data) =>
+        patchLeadQueryData(data, id, input as Partial<Lead>),
+      );
+      return { snapshots };
+    },
+    onError: (_error, _variables, context) => {
+      context?.snapshots.forEach(([key, data]) => queryClient.setQueryData(key, data));
+    },
+    onSettled: () => {
+      const isSummaryCount = (key: readonly unknown[]) =>
+        (key[1] as { limit?: number } | undefined)?.limit === 1;
+      queryClient.invalidateQueries({
+        queryKey: [LeadQueryKey.LIST],
+        predicate: (query) => isSummaryCount(query.queryKey),
+      });
+      queryClient.invalidateQueries({
+        queryKey: [LeadQueryKey.LIST],
+        predicate: (query) => !isSummaryCount(query.queryKey),
+        refetchType: 'none',
+      });
+    },
+  });
+}
+
 export function useDeleteLead() {
   const queryClient = useQueryClient();
 

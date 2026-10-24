@@ -18,12 +18,11 @@ import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
 import type { NoteItem, NoteSummarizeItem } from '@/lib/supabase/types/tables/leads';
 import { formatNumberVi } from '@/lib/utils/numberFormat';
 import { openInNewTab } from '@/lib/utils/openInNewTab';
-import { toSentenceCase } from '@/lib/utils/text-case';
 import { AssignTelesales } from '@/app/lead/components/AssignTelesales';
 import { LeadRate } from '@/app/lead/components/LeadRate';
+import { LeadCourseSelect, LeadStatusSelect } from '@/app/lead/components/LeadInlineSelects';
 import { SmaxThreadLink } from '@/app/lead/components/SmaxThreadLink';
 import { AttendanceStatusIcon } from '@/app/lead/components/AttendanceStatusIcon';
-import { LeadStatusLabel } from '@/app/lead/constants/labels';
 import { getCareMilestone } from '@/app/lead/constants/care-milestones';
 import {
   LeadActionIconSize,
@@ -34,7 +33,6 @@ import {
   formatLocationValue,
   formatLocationValueV2,
   getLeadFacebookUrl,
-  getLeadStatusColor,
   getZaloChatUrl,
 } from '@/app/lead/constants/lead-helpers';
 
@@ -95,6 +93,8 @@ const HIDDEN_COLUMN_KEYS = new Set([
   'images',
   'tuition_fee',
   'detail',
+  // Tạm ẩn: chỉ hiện ngày, lịch hẹn quản lý qua drawer.
+  'appointment_date',
 ]);
 
 export const getLeadTableColumns = ({
@@ -293,18 +293,8 @@ export const getLeadTableColumns = ({
       dataIndex: 'status',
       key: 'status',
       align: 'center' as const,
-      render: (status: string | null) => {
-        if (!status) {
-          return null;
-        }
-        return (
-          <div style={{ textAlign: 'left' }}>
-            <Tag color={getLeadStatusColor(status)} style={{ marginInlineEnd: 0 }}>
-              {toSentenceCase(LeadStatusLabel[status as keyof typeof LeadStatusLabel] ?? status)}
-            </Tag>
-          </div>
-        );
-      },
+      width: 160,
+      render: (_: unknown, record: Lead) => <LeadStatusSelect lead={record} />,
     },
     {
       title: 'Tiềm năng',
@@ -334,19 +324,10 @@ export const getLeadTableColumns = ({
       title: LeadPageText.COURSE_IDS_LABEL,
       dataIndex: 'course_ids',
       key: 'course_ids',
-      render: (courseIds: string[] | null) => {
-        if (!courseIds || courseIds.length === 0) {
-          return null;
-        }
-        if (!courses) {
-          return courseIds.join(', ');
-        }
-        const courseNames = courseIds.map((id) => {
-          const course = courses.find((c) => c.id === id);
-          return course ? course.name : id;
-        });
-        return courseNames.join(', ');
-      },
+      width: 240,
+      render: (_: unknown, record: Lead) => (
+        <LeadCourseSelect lead={record} courses={courses} />
+      ),
     },
     {
       title: LeadPageText.COLUMN_SOURCE,
