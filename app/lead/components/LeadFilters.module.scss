@@ -1,0 +1,36 @@
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #e8ecf3;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.search {
+  flex: 2 1 240px;
+}
+
+.field {
+  flex: 1 1 150px;
+}
+
+.prefix {
+  margin-inline-end: 4px;
+  font-size: 16px;
+  color: #6b7280;
+}
+
+.create:global(.ant-btn) {
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .search,
+  .field,
+  .create:global(.ant-btn) {
+    flex-basis: 100%;
+  }
+}

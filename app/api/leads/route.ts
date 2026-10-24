@@ -15,6 +15,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const courseId = searchParams.get('course_id') ?? undefined;
     const startDate = searchParams.get('startDate') ?? undefined;
     const endDate = searchParams.get('endDate') ?? undefined;
+    const hasAppointment = searchParams.get('hasAppointment') === 'true';
 
     const pageStr = searchParams.get('page');
     const limitStr = searchParams.get('limit');
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       course_id: courseId || undefined,
       startDate: startDate || undefined,
       endDate: endDate || undefined,
+      hasAppointment: hasAppointment || undefined,
       page,
       limit,
     });

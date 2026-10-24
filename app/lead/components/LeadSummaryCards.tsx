@@ -1,100 +1,201 @@
-import { Row, Col, Card, Statistic } from 'antd';
-import { memo } from 'react';
-import dayjs, { type Dayjs } from 'dayjs';
+import { memo, type ReactNode } from 'react';
+import dayjs from 'dayjs';
+import {
+  LuArrowRight,
+  LuCalendarDays,
+  LuChartNoAxesColumn,
+  LuCircleCheck,
+  LuMessageCircleMore,
+  LuMinus,
+  LuMoon,
+  LuPhone,
+  LuSun,
+} from 'react-icons/lu';
 import { useLeads } from '@/lib/hooks/use-leads';
 import { useAppointmentsInRange } from '@/lib/hooks/use-appointments';
 import { useLeadStatistics } from '@/lib/hooks/use-lead-statistics';
 import { LeadStatus, DateFormat } from '@/constants/enums';
+import styles from './LeadSummaryCards.module.scss';
 
-interface SummaryCardProps {
-  title: string;
-  value: number | string;
+type Tone = 'blue' | 'orange' | 'green' | 'purple' | 'amber';
+
+interface StatCardProps {
+  icon: ReactNode;
+  tone: Tone;
+  label: string;
+  value: number;
   loading?: boolean;
 }
 
-function SummaryCard({ title, value, loading }: SummaryCardProps) {
+function StatCard({ icon, tone, label, value, loading }: StatCardProps) {
   return (
-    <Card size="small" style={{ height: '100%', borderRadius: 12 }}>
-      <Statistic title={title} value={value} loading={loading} />
-    </Card>
+    <div className={styles.stat}>
+      <span className={`${styles.icon} ${styles[tone]}`}>{icon}</span>
+      <div className={styles.text}>
+        <span className={styles.value}>{loading ? '–' : value.toLocaleString('vi-VN')}</span>
+        <span className={styles.label}>{label}</span>
+      </div>
+    </div>
   );
 }
 
+function Connector({ tone, dash }: { tone: Tone; dash?: boolean }) {
+  return (
+    <span className={`${styles.connector} ${styles[`${tone}Text`]}`} aria-hidden>
+      {dash ? <LuMinus /> : <LuArrowRight />}
+    </span>
+  );
+}
+
+export interface LeadSummaryFilters {
+  search?: string;
+  status?: LeadStatus;
+  source?: string;
+  courseId?: string;
+  /** Created-at bounds as sent to the leads API (dates or exact ISO boundaries). */
+  startDate?: string;
+  endDate?: string;
+}
+
 interface LeadSummaryCardsProps {
-  createdAtRange: [Dayjs | null, Dayjs | null] | null;
+  filters: LeadSummaryFilters;
 }
 
 /**
- * Report cards shown above the lead table. Defaults to today; follows the
- * table's created-at filter when one is set, and ignores its other filters.
+ * Pipeline stats above the lead table. The "Data" funnel and the appointment
+ * total default to today and follow the table's filters; the today/tomorrow
+ * appointment counts are always fixed to those days.
  */
 export const LeadSummaryCards = memo(function LeadSummaryCards({
-  createdAtRange,
+  filters,
 }: LeadSummaryCardsProps) {
-  const hasRange = !!(createdAtRange?.[0] || createdAtRange?.[1]);
   const today = dayjs().format(DateFormat.ISO_DATE);
-  const startDate = hasRange ? createdAtRange?.[0]?.format(DateFormat.ISO_DATE) : today;
-  const endDate = hasRange ? createdAtRange?.[1]?.format(DateFormat.ISO_DATE) : today;
+  const tomorrow = dayjs().add(1, 'day').format(DateFormat.ISO_DATE);
 
-  const rangeStart = (startDate ?? endDate) as string;
-  const rangeEnd = (endDate ?? startDate) as string;
+  const hasDateFilter = !!(filters.startDate || filters.endDate);
+  const startDate = hasDateFilter ? filters.startDate : today;
+  const endDate = hasDateFilter ? filters.endDate : today;
 
-  // "Nhắn tin" here is SMAX's new-customer count (customer_new_total).
+  // SMAX and appointment APIs take plain VN dates.
+  const rangeEnd = endDate ? dayjs(endDate).format(DateFormat.ISO_DATE) : today;
+  const rangeStart = startDate ? dayjs(startDate).format(DateFormat.ISO_DATE) : rangeEnd;
+
+  // limit: 1 — only the `total` count is needed, not the rows.
+  const leadParams = {
+    search: filters.search,
+    status: filters.status,
+    source: filters.source,
+    course_id: filters.courseId,
+    startDate,
+    endDate,
+    page: 1,
+    limit: 1,
+  };
+  const statusExcludesConverted = !!filters.status && filters.status !== LeadStatus.CONVERTED;
+
+  // "Tin nhắn" is SMAX's new-customer count (customer_new_total); it only
+  // follows the date range since SMAX knows nothing about our lead filters.
   const { data: statistics, isLoading: isLoadingMessages } = useLeadStatistics(
     rangeStart,
     rangeEnd,
   );
-  // limit: 1 — only the `total` count is needed, not the rows.
-  const { data: allLeads, isLoading: isLoadingAll } = useLeads({
-    excludeStatus: LeadStatus.CONVERTED,
-    startDate,
-    endDate,
-    page: 1,
-    limit: 1,
+  const { data: allLeads, isLoading: isLoadingAll } = useLeads(leadParams);
+  const { data: bookedLeads, isLoading: isLoadingBooked } = useLeads({
+    ...leadParams,
+    hasAppointment: true,
   });
-  const { data: nurturingLeads, isLoading: isLoadingNurturing } = useLeads({
-    status: LeadStatus.NURTURING,
-    startDate,
-    endDate,
-    page: 1,
-    limit: 1,
+  const { data: convertedLeads, isLoading: isLoadingConverted } = useLeads({
+    ...leadParams,
+    status: LeadStatus.CONVERTED,
   });
-  // Appointments are counted by appointment date within the same range.
-  const { data: appointments, isLoading: isLoadingAppointments } = useAppointmentsInRange(
+
+  // Appointments are counted by appointment date.
+  const { data: rangeAppointments, isLoading: isLoadingRange } = useAppointmentsInRange(
     rangeStart,
     rangeEnd,
   );
+  const { data: todayAppointments, isLoading: isLoadingToday } = useAppointmentsInRange(
+    today,
+    today,
+  );
+  const { data: tomorrowAppointments, isLoading: isLoadingTomorrow } = useAppointmentsInRange(
+    tomorrow,
+    tomorrow,
+  );
 
   return (
-    <Row gutter={[16, 16]} className="mb-section">
-      <Col xs={12} md={6}>
-        <SummaryCard
-          title="Nhắn tin"
-          value={statistics?.smaxNewCustomers ?? 0}
-          loading={isLoadingMessages}
-        />
-      </Col>
-      <Col xs={12} md={6}>
-        <SummaryCard
-          title="Data"
-          value={allLeads?.total ?? 0}
-          loading={isLoadingAll}
-        />
-      </Col>
-      <Col xs={12} md={6}>
-        <SummaryCard
-          title="Đang chăm sóc"
-          value={nurturingLeads?.total ?? 0}
-          loading={isLoadingNurturing}
-        />
-      </Col>
-      <Col xs={12} md={6}>
-        <SummaryCard
-          title="Lịch hẹn"
-          value={appointments?.length ?? 0}
-          loading={isLoadingAppointments}
-        />
-      </Col>
-    </Row>
+    <section className={`${styles.panel} mb-section`}>
+      <div className={styles.group}>
+        <h3 className={`${styles.heading} ${styles.blueText}`}>
+          <LuChartNoAxesColumn /> Data
+        </h3>
+        <div className={styles.row}>
+          <StatCard
+            icon={<LuMessageCircleMore />}
+            tone="blue"
+            label="Tin nhắn"
+            value={statistics?.smaxNewCustomers ?? 0}
+            loading={isLoadingMessages}
+          />
+          <Connector tone="blue" />
+          <StatCard
+            icon={<LuPhone />}
+            tone="blue"
+            label="SĐT"
+            value={allLeads?.total ?? 0}
+            loading={isLoadingAll}
+          />
+          <Connector tone="blue" />
+          <StatCard
+            icon={<LuCalendarDays />}
+            tone="orange"
+            label="Lịch hẹn"
+            value={bookedLeads?.total ?? 0}
+            loading={isLoadingBooked}
+          />
+          <Connector tone="green" />
+          <StatCard
+            icon={<LuCircleCheck />}
+            tone="green"
+            label="Thành công"
+            value={statusExcludesConverted ? 0 : (convertedLeads?.total ?? 0)}
+            loading={isLoadingConverted}
+          />
+        </div>
+      </div>
+
+      <div className={styles.divider} />
+
+      <div className={styles.group}>
+        <h3 className={`${styles.heading} ${styles.purpleText}`}>
+          <LuCalendarDays /> Lịch hẹn
+        </h3>
+        <div className={styles.row}>
+          <StatCard
+            icon={<LuCalendarDays />}
+            tone="purple"
+            label="Tổng số lịch hẹn"
+            value={rangeAppointments?.length ?? 0}
+            loading={isLoadingRange}
+          />
+          <Connector tone="purple" dash />
+          <StatCard
+            icon={<LuSun />}
+            tone="amber"
+            label="Lịch hẹn hôm nay"
+            value={todayAppointments?.length ?? 0}
+            loading={isLoadingToday}
+          />
+          <Connector tone="purple" />
+          <StatCard
+            icon={<LuMoon />}
+            tone="purple"
+            label="Lịch hẹn ngày mai"
+            value={tomorrowAppointments?.length ?? 0}
+            loading={isLoadingTomorrow}
+          />
+        </div>
+      </div>
+    </section>
   );
 });
