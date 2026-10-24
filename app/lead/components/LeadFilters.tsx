@@ -22,6 +22,7 @@ import {
 } from '@/app/lead/constants';
 import type { Dayjs } from 'dayjs';
 import { memo, type ReactNode } from 'react';
+import { toSentenceCase } from '@/lib/utils/text-case';
 import styles from './LeadFilters.module.scss';
 
 interface LeadFiltersProps {
@@ -82,7 +83,7 @@ export const LeadFilters = memo(function LeadFilters({
           value={statusFilter}
           onChange={onStatusChange}
           options={Object.values(LeadStatus).map((status) => ({
-            label: LeadStatusLabel[status as keyof typeof LeadStatusLabel],
+            label: toSentenceCase(LeadStatusLabel[status as keyof typeof LeadStatusLabel] ?? status),
             value: status,
           }))}
           style={{ width: '100%' }}
