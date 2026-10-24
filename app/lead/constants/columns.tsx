@@ -120,6 +120,8 @@ export const getLeadTableColumns = ({
       title: LeadPageText.COLUMN_CREATED_AT,
       dataIndex: 'created_at',
       key: 'created_at',
+      fixed: 'left',
+      width: 100,
       render: (date: string | null) => {
         if (!date) {
           return null;
@@ -145,12 +147,14 @@ export const getLeadTableColumns = ({
       title: LeadPageText.COLUMN_FULL_NAME,
       dataIndex: 'full_name',
       key: 'full_name',
+      fixed: 'left',
       render: (_: unknown, record: Lead) => <SmaxThreadLink lead={record} />,
     },
     {
       title: LeadPageText.COLUMN_PHONE_NUMBER,
       dataIndex: 'phone_number',
       key: 'phone_number',
+      fixed: 'left',
       align: 'center' as const,
     },
     {
@@ -227,44 +231,34 @@ export const getLeadTableColumns = ({
       },
     },
     {
-      title: 'Zalo',
-      key: 'pid_zalo',
-      align: 'center',
-      width: 72,
+      title: 'Hội thoại',
+      key: 'conversation',
+      width: 96,
       render: (_: unknown, record: Lead) => {
         const zaloChatUrl = getZaloChatUrl(record.pid_zalo);
-
-        return (
-          <Tooltip title={zaloChatUrl ? 'Mở Zalo' : 'Không có PID Zalo'}>
-            <Button
-              size="small"
-              type="text"
-              disabled={!zaloChatUrl}
-              onClick={() => openInNewTab(zaloChatUrl)}
-              icon={<ChannelBadgeIcon imgSrc="/zalo.jpg" alt="Zalo" active={!!zaloChatUrl} />}
-            />
-          </Tooltip>
-        );
-      },
-    },
-    {
-      title: 'Chat',
-      key: 'conversation',
-      align: 'center',
-      width: 72,
-      render: (_: unknown, record: Lead) => {
         const canOpenChat = hasSmaxConversation(record.smax_log);
         return (
-          <Tooltip title={canOpenChat ? 'Xem hội thoại' : 'Không có hội thoại Smax'}>
-            <Button
-              size="small"
-              type="text"
-              disabled={!canOpenChat}
-              onClick={() => canOpenChat && handleOpenConversationModal(record)}
-              // Disabled text buttons grey out currentColor, so no extra inactive styling.
-              icon={<MessengerIcon size={CHANNEL_BADGE_SIZE} />}
-            />
-          </Tooltip>
+          <Space size={4}>
+            <Tooltip title={zaloChatUrl ? 'Mở Zalo' : 'Không có PID Zalo'}>
+              <Button
+                size="small"
+                type="text"
+                disabled={!zaloChatUrl}
+                onClick={() => openInNewTab(zaloChatUrl)}
+                icon={<ChannelBadgeIcon imgSrc="/zalo.jpg" alt="Zalo" active={!!zaloChatUrl} />}
+              />
+            </Tooltip>
+            <Tooltip title={canOpenChat ? 'Xem hội thoại' : 'Không có hội thoại Smax'}>
+              <Button
+                size="small"
+                type="text"
+                disabled={!canOpenChat}
+                onClick={() => canOpenChat && handleOpenConversationModal(record)}
+                // Disabled text buttons grey out currentColor, so no extra inactive styling.
+                icon={<MessengerIcon size={CHANNEL_BADGE_SIZE} />}
+              />
+            </Tooltip>
+          </Space>
         );
       },
     },
@@ -445,7 +439,6 @@ export const getLeadTableColumns = ({
       title: LeadPageText.COLUMN_ACTION,
       key: 'action',
       align: 'center',
-      fixed: 'right',
       width: LeadTableColumnWidth.ACTION,
       render: (_: unknown, record: Lead) => (
         <Button type="text" onClick={() => handleOpenModal(record)}>
