@@ -1,10 +1,10 @@
 // Reads as plain text in the table: no fill, the chevron only appears on hover.
 .select:global(.ant-select) {
-  min-width: 130px;
+  min-width: 150px;
   border-radius: 6px;
   transition: background-color 0.15s ease;
 
-  :global(.ant-select-arrow) {
+  :global(.ant-select-suffix) {
     opacity: 0;
     color: #9ca3af;
     transition: opacity 0.15s ease;
@@ -15,12 +15,12 @@
   &:global(.ant-select-open) {
     background: #f3f4f6;
 
-    :global(.ant-select-arrow) {
+    :global(.ant-select-suffix) {
       opacity: 1;
     }
   }
 
-  :global(.ant-select-selection-placeholder) {
+  :global(.ant-select-placeholder) {
     color: #d1d5db;
   }
 }
@@ -54,7 +54,7 @@
 }
 
 // The last tag is the one followed by antd's search-input suffix item.
-:global(.ant-select-selection-overflow-item):has(+ :global(.ant-select-selection-overflow-item-suffix)) .courseName::after {
+:global(.ant-select-content-item):has(+ :global(.ant-select-content-item-suffix)) .courseName::after {
   content: none;
 }
 

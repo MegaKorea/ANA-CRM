@@ -291,7 +291,7 @@ export const getLeadTableColumns = ({
       dataIndex: 'status',
       key: 'status',
       align: 'center' as const,
-      width: 160,
+      width: 180,
       render: (_: unknown, record: Lead) => <LeadStatusSelect lead={record} />,
     },
     {
