@@ -289,6 +289,53 @@ export const getLeadTableColumns = ({
       render: (_: unknown, record: Lead) => <LeadStatusSelect lead={record} />,
     },
     {
+      title: LeadPageText.COLUMN_APPOINTMENT_DATE,
+      dataIndex: 'appointment_date',
+      key: 'appointment_date',
+      render: (_: unknown, record: Lead) => {
+        if (!record.appointment_date) {
+          return (
+            <span data-lead-appointment={record.id}>
+              <Tooltip title="Đặt lịch hẹn">
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<CalendarOutlined />}
+                  onClick={() => handleOpenAppointmentModal(record)}
+                />
+              </Tooltip>
+            </span>
+          );
+        }
+
+        return (
+          <span data-lead-appointment={record.id}>
+            <Space size={4}>
+              <Tooltip title="Quản lý lịch hẹn">
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<CalendarOutlined />}
+                  onClick={() => handleOpenAppointmentModal(record)}
+                />
+              </Tooltip>
+              <span>{new Date(record.appointment_date).toLocaleDateString(DateLocale.VIET_NAM)}</span>
+              <Tooltip title="Cập nhật trạng thái điểm danh">
+                <Badge dot={record.attendance_status === AttendanceStatus.NOT_ARRIVED} offset={[-2, 2]}>
+                  <Button
+                    size="small"
+                    type="text"
+                    icon={<AttendanceStatusIcon status={record.attendance_status} />}
+                    onClick={() => handleOpenAttendanceModal(record)}
+                  />
+                </Badge>
+              </Tooltip>
+            </Space>
+          </span>
+        );
+      },
+    },
+    {
       title: 'Tiềm năng',
       key: 'rate',
       align: 'center',
@@ -352,53 +399,6 @@ export const getLeadTableColumns = ({
       width: 140,
       render: (value: number | null) =>
         value ? formatNumberVi(value) + ' đ' : null,
-    },
-    {
-      title: LeadPageText.COLUMN_APPOINTMENT_DATE,
-      dataIndex: 'appointment_date',
-      key: 'appointment_date',
-      render: (_: unknown, record: Lead) => {
-        if (!record.appointment_date) {
-          return (
-            <span data-lead-appointment={record.id}>
-              <Tooltip title="Đặt lịch hẹn">
-                <Button
-                  size="small"
-                  type="text"
-                  icon={<CalendarOutlined />}
-                  onClick={() => handleOpenAppointmentModal(record)}
-                />
-              </Tooltip>
-            </span>
-          );
-        }
-
-        return (
-          <span data-lead-appointment={record.id}>
-            <Space size={4}>
-              <Tooltip title="Quản lý lịch hẹn">
-                <Button
-                  size="small"
-                  type="text"
-                  icon={<CalendarOutlined />}
-                  onClick={() => handleOpenAppointmentModal(record)}
-                />
-              </Tooltip>
-              <span>{new Date(record.appointment_date).toLocaleDateString(DateLocale.VIET_NAM)}</span>
-              <Tooltip title="Cập nhật trạng thái điểm danh">
-                <Badge dot={record.attendance_status === AttendanceStatus.NOT_ARRIVED} offset={[-2, 2]}>
-                  <Button
-                    size="small"
-                    type="text"
-                    icon={<AttendanceStatusIcon status={record.attendance_status} />}
-                    onClick={() => handleOpenAttendanceModal(record)}
-                  />
-                </Badge>
-              </Tooltip>
-            </Space>
-          </span>
-        );
-      },
     },
     {
       title: 'Telesales',
