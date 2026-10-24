@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { App, Select, Tag } from 'antd';
+import { App, Select } from 'antd';
+import { LuCheck, LuChevronDown } from 'react-icons/lu';
 import type { Lead } from '@/lib/services/lead.service';
 import type { Course } from '@/lib/services/course.service';
 import { useInlineUpdateLead } from '@/lib/hooks/use-leads';
@@ -11,18 +12,42 @@ import { getLeadStatusColor } from '@/app/lead/constants/lead-helpers';
 import { toSentenceCase } from '@/lib/utils/text-case';
 import styles from './LeadInlineSelects.module.scss';
 
-function StatusTag({ status }: { status: string }) {
+// Dot colours for the antd preset names used by LEAD_STATUS_COLORS.
+const STATUS_DOT_COLOR: Record<string, string> = {
+  default: '#9ca3af',
+  purple: '#8b5cf6',
+  magenta: '#db2777',
+  volcano: '#ea580c',
+  orange: '#f59e0b',
+  green: '#16a34a',
+  red: '#dc2626',
+  gold: '#ca8a04',
+};
+
+function StatusLabel({ status }: { status: string }) {
   return (
-    <Tag color={getLeadStatusColor(status)} style={{ marginInlineEnd: 0 }}>
+    <span className={styles.status}>
+      <span
+        className={styles.dot}
+        style={{ background: STATUS_DOT_COLOR[getLeadStatusColor(status)] ?? STATUS_DOT_COLOR.default }}
+      />
       {toSentenceCase(LeadStatusLabel[status as keyof typeof LeadStatusLabel] ?? status)}
-    </Tag>
+    </span>
   );
 }
 
 const STATUS_OPTIONS = Object.values(LeadStatus).map((status) => ({
   value: status,
-  label: <StatusTag status={status} />,
+  label: <StatusLabel status={status} />,
 }));
+
+const sharedSelectProps = {
+  size: 'small' as const,
+  variant: 'borderless' as const,
+  suffixIcon: <LuChevronDown />,
+  popupMatchSelectWidth: false,
+  classNames: { popup: { root: styles.popup } },
+};
 
 /** Status cell: saves as soon as an option is picked (optimistic). */
 export function LeadStatusSelect({ lead }: { lead: Lead }) {
@@ -39,22 +64,26 @@ export function LeadStatusSelect({ lead }: { lead: Lead }) {
 
   return (
     <Select<LeadStatus>
-      size="small"
-      variant="borderless"
+      {...sharedSelectProps}
       className={styles.select}
       value={(lead.status as LeadStatus) ?? undefined}
-      placeholder="Chọn"
+      placeholder="—"
       options={STATUS_OPTIONS}
       onChange={handleChange}
-      popupMatchSelectWidth={false}
+      optionRender={(option) => (
+        <span className={styles.option}>
+          {option.label}
+          {option.value === lead.status && <LuCheck className={styles.check} />}
+        </span>
+      )}
     />
   );
 }
 
 /**
- * Course cell: picks are kept as a local draft while the dropdown is open and
- * saved once it closes, so ticking several courses is a single request and
- * the row never flickers between intermediate states.
+ * Course cell: shown as plain comma-separated names. Picks are kept as a
+ * local draft while the dropdown is open and saved once it closes, so ticking
+ * several courses is a single request and the row never flickers.
  */
 export function LeadCourseSelect({ lead, courses }: { lead: Lead; courses?: Course[] | null }) {
   const { message } = App.useApp();
@@ -63,8 +92,6 @@ export function LeadCourseSelect({ lead, courses }: { lead: Lead; courses?: Cour
 
   const saved = lead.course_ids ?? [];
   const value = draft ?? saved;
-
-  const [open, setOpen] = useState(false);
 
   const commit = (next: string[] | null) => {
     if (next == null) return;
@@ -79,23 +106,19 @@ export function LeadCourseSelect({ lead, courses }: { lead: Lead; courses?: Cour
 
   return (
     <Select<string[]>
+      {...sharedSelectProps}
       mode="multiple"
-      size="small"
-      variant="borderless"
       className={`${styles.select} ${styles.courses}`}
       value={value}
-      placeholder="Chọn khóa học"
+      placeholder="—"
       options={courses?.map((course) => ({ label: course.name, value: course.id }))}
-      open={open}
-      // Removing a tag with its × while closed saves straight away.
-      onChange={(next) => (open ? setDraft(next) : commit(next))}
-      onOpenChange={(nextOpen) => {
-        setOpen(nextOpen);
-        if (!nextOpen) commit(draft);
+      onChange={setDraft}
+      onOpenChange={(open) => {
+        if (!open) commit(draft);
       }}
-      maxTagCount="responsive"
+      tagRender={({ label }) => <span className={styles.courseName}>{label}</span>}
+      menuItemSelectedIcon={<LuCheck className={styles.check} />}
       showSearch={{ optionFilterProp: 'label' }}
-      popupMatchSelectWidth={false}
     />
   );
 }
