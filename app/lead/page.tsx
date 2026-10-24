@@ -2,15 +2,13 @@
 
 import { Suspense, useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { App, Table, Button, Space, Row, Col, Form, Empty, Pagination, Spin } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
+import { App, Table, Row, Col, Form, Empty, Pagination, Spin } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import type { Lead } from '@/lib/services/lead.service';
 import type { CreateLeadInput, UpdateLeadInput } from '@/lib/validators/lead.validator';
 import { useLeads, useLead, useCreateLead, useUpdateLead, useDeleteLead } from '@/lib/hooks/use-leads';
 import { useLeadModal } from '@/lib/hooks/use-lead-modal';
 import {
-  LeadPageGap,
   LeadPageText,
   getLeadTableColumns,
   resolveCreatedAtBounds,
@@ -201,7 +199,7 @@ function LeadPageContent() {
     [searchKeyword, statusFilter, sourceFilter, courseFilter, createdAtBounds],
   );
 
-  const { data, isLoading, isFetching, refetch } = useLeads({
+  const { data, isLoading } = useLeads({
     search: searchKeyword || undefined,
     status: statusFilter,
     excludeStatus: statusFilter ? undefined : LeadStatus.CONVERTED,
@@ -358,14 +356,6 @@ function LeadPageContent() {
     [deleteLeadMutation, handleCloseModal, handleError, message],
   );
 
-  const handleRefresh = useCallback(() => {
-    refetch()
-      .then(() => {
-        message.success(LeadPageText.SUCCESS_REFRESH);
-      })
-      .catch(handleError);
-  }, [refetch, handleError, message]);
-
   const columns = useMemo(
     () =>
       getLeadTableColumns({
@@ -420,23 +410,6 @@ function LeadPageContent() {
 
   return (
     <div>
-      <Row justify="end" align="middle" className="mb-section">
-        <Col>
-          <Space size={LeadPageGap.ACTIONS}>
-            {!isMobile && (
-              <LeadColumnSettings
-                columns={columnOptions}
-                hiddenKeys={hiddenColumnKeys}
-                onChange={setHiddenColumnKeys}
-              />
-            )}
-            <Button icon={<ReloadOutlined />} loading={isFetching} onClick={handleRefresh}>
-              {LeadPageText.BUTTON_REFRESH}
-            </Button>
-          </Space>
-        </Col>
-      </Row>
-
       <LeadSummaryCards filters={summaryFilters} />
 
       <LeadFilters
@@ -455,6 +428,15 @@ function LeadPageContent() {
         onCareMilestoneChange={handleCareMilestoneChange}
         courses={courses || []}
         onCreate={() => handleOpenModal()}
+        extra={
+          !isMobile && (
+            <LeadColumnSettings
+              columns={columnOptions}
+              hiddenKeys={hiddenColumnKeys}
+              onChange={setHiddenColumnKeys}
+            />
+          )
+        }
       />
 
       <Row>
