@@ -93,8 +93,6 @@ const HIDDEN_COLUMN_KEYS = new Set([
   'images',
   'tuition_fee',
   'detail',
-  // Tạm ẩn: chỉ hiện ngày, lịch hẹn quản lý qua drawer.
-  'appointment_date',
 ]);
 
 export const getLeadTableColumns = ({
@@ -383,8 +381,7 @@ export const getLeadTableColumns = ({
 
         return (
           <span data-lead-appointment={record.id}>
-            <Space>
-              <span>{new Date(record.appointment_date).toLocaleString(DateLocale.VIET_NAM)}</span>
+            <Space size={4}>
               <Tooltip title="Quản lý lịch hẹn">
                 <Button
                   size="small"
@@ -393,6 +390,7 @@ export const getLeadTableColumns = ({
                   onClick={() => handleOpenAppointmentModal(record)}
                 />
               </Tooltip>
+              <span>{new Date(record.appointment_date).toLocaleDateString(DateLocale.VIET_NAM)}</span>
               <Tooltip title="Cập nhật trạng thái điểm danh">
                 <Badge dot={record.attendance_status === AttendanceStatus.NOT_ARRIVED} offset={[-2, 2]}>
                   <Button
