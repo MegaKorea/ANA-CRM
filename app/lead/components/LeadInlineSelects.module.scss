@@ -1,15 +1,93 @@
-// Borderless until hovered/focused so the table still reads as plain text.
+// Reads as plain text in the table: no fill, the chevron only appears on hover.
 .select:global(.ant-select) {
-  min-width: 130px;
+  min-width: 150px;
   border-radius: 6px;
   transition: background-color 0.15s ease;
 
+  :global(.ant-select-suffix) {
+    opacity: 0;
+    color: #9ca3af;
+    transition: opacity 0.15s ease;
+  }
+
   &:hover,
-  &:global(.ant-select-focused) {
-    background: rgba(0, 0, 0, 0.04);
+  &:global(.ant-select-focused),
+  &:global(.ant-select-open) {
+    background: #f3f4f6;
+
+    :global(.ant-select-suffix) {
+      opacity: 1;
+    }
+  }
+
+  :global(.ant-select-placeholder) {
+    color: #d1d5db;
   }
 }
 
 .courses:global(.ant-select) {
-  width: 220px;
+  width: 200px;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #374151;
+}
+
+.dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+// Course names as "A, B" instead of removable chips.
+.courseName {
+  color: #374151;
+
+  &::after {
+    content: ',';
+    margin-inline-end: 4px;
+  }
+}
+
+// The last tag is the one followed by antd's search-input suffix item.
+:global(.ant-select-content-item):has(+ :global(.ant-select-content-item-suffix)) .courseName::after {
+  content: none;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.check {
+  font-size: 14px;
+  color: #1677ff;
+}
+
+// Neutral selected/active rows instead of the theme's tinted fill.
+.popup:global(.ant-select-dropdown) {
+  padding: 4px;
+
+  :global(.ant-select-item-option) {
+    border-radius: 6px;
+  }
+
+  :global(.ant-select-item-option-active:not(.ant-select-item-option-disabled)) {
+    background: #f3f4f6;
+  }
+
+  :global(.ant-select-item-option-selected:not(.ant-select-item-option-disabled)) {
+    background: transparent;
+    font-weight: 500;
+  }
+
+  :global(.ant-select-item-option-selected.ant-select-item-option-active:not(.ant-select-item-option-disabled)) {
+    background: #f3f4f6;
+  }
 }
