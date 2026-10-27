@@ -25,17 +25,32 @@ interface StatCardProps {
   label: string;
   value: number;
   loading?: boolean;
+  active?: boolean;
+  onClick?: () => void;
 }
 
-function StatCard({ icon, tone, label, value, loading }: StatCardProps) {
-  return (
-    <div className={styles.stat}>
+function StatCard({ icon, tone, label, value, loading, active, onClick }: StatCardProps) {
+  const content = (
+    <>
       <span className={`${styles.icon} ${styles[tone]}`}>{icon}</span>
       <div className={styles.text}>
         <span className={styles.value}>{loading ? '–' : value.toLocaleString('vi-VN')}</span>
         <span className={styles.label}>{label}</span>
       </div>
-    </div>
+    </>
+  );
+
+  if (!onClick) return <div className={styles.stat}>{content}</div>;
+
+  return (
+    <button
+      type="button"
+      className={`${styles.stat} ${styles.clickable} ${active ? styles.active : ''}`}
+      aria-pressed={active}
+      onClick={onClick}
+    >
+      {content}
+    </button>
   );
 }
 
@@ -57,8 +72,23 @@ export interface LeadSummaryFilters {
   endDate?: string;
 }
 
+/** Which stat card is filtering the lead table, if any. */
+export type LeadStatFilter = 'booked' | 'converted' | 'today' | 'tomorrow';
+
+/** Created-at range the "Data" funnel counts: the table's range, else today. */
+export function resolveSummaryRange(filters: Pick<LeadSummaryFilters, 'startDate' | 'endDate'>) {
+  if (filters.startDate || filters.endDate) {
+    return { startDate: filters.startDate, endDate: filters.endDate };
+  }
+  const today = dayjs().format(DateFormat.ISO_DATE);
+  return { startDate: today, endDate: today };
+}
+
 interface LeadSummaryCardsProps {
   filters: LeadSummaryFilters;
+  activeFilter?: LeadStatFilter;
+  /** Called with the clicked card's filter, or undefined to clear it. */
+  onFilterChange?: (filter: LeadStatFilter | undefined) => void;
 }
 
 /**
@@ -70,13 +100,20 @@ interface LeadSummaryCardsProps {
  */
 export const LeadSummaryCards = memo(function LeadSummaryCards({
   filters,
+  activeFilter,
+  onFilterChange,
 }: LeadSummaryCardsProps) {
   const today = dayjs().format(DateFormat.ISO_DATE);
   const tomorrow = dayjs().add(1, 'day').format(DateFormat.ISO_DATE);
 
-  const hasDateFilter = !!(filters.startDate || filters.endDate);
-  const startDate = hasDateFilter ? filters.startDate : today;
-  const endDate = hasDateFilter ? filters.endDate : today;
+  const { startDate, endDate } = resolveSummaryRange(filters);
+
+  // Clicking the active card again clears the filter.
+  const cardFilter = (filter: LeadStatFilter) =>
+    onFilterChange && {
+      active: activeFilter === filter,
+      onClick: () => onFilterChange(activeFilter === filter ? undefined : filter),
+    };
 
   // SMAX takes plain VN dates.
   const rangeEnd = endDate ? dayjs(endDate).format(DateFormat.ISO_DATE) : today;
@@ -142,6 +179,7 @@ export const LeadSummaryCards = memo(function LeadSummaryCards({
             label="SĐT"
             value={allLeads?.total ?? 0}
             loading={isLoadingAll}
+            onClick={onFilterChange && (() => onFilterChange(undefined))}
           />
           <Connector tone="blue" />
           <StatCard
@@ -150,6 +188,7 @@ export const LeadSummaryCards = memo(function LeadSummaryCards({
             label="Lịch hẹn"
             value={bookedLeads?.total ?? 0}
             loading={isLoadingBooked}
+            {...cardFilter('booked')}
           />
           <Connector tone="green" />
           <StatCard
@@ -158,6 +197,7 @@ export const LeadSummaryCards = memo(function LeadSummaryCards({
             label="Thành công"
             value={statusExcludesConverted ? 0 : (convertedLeads?.total ?? 0)}
             loading={isLoadingConverted}
+            {...cardFilter('converted')}
           />
         </div>
       </div>
@@ -175,6 +215,7 @@ export const LeadSummaryCards = memo(function LeadSummaryCards({
             label="Tổng số lịch hẹn"
             value={bookedLeads?.total ?? 0}
             loading={isLoadingBooked}
+            {...cardFilter('booked')}
           />
           <Connector tone="purple" dash />
           <StatCard
@@ -183,6 +224,7 @@ export const LeadSummaryCards = memo(function LeadSummaryCards({
             label="Lịch hẹn hôm nay"
             value={todayAppointments?.length ?? 0}
             loading={isLoadingToday}
+            {...cardFilter('today')}
           />
           <Connector tone="purple" />
           <StatCard
@@ -191,6 +233,7 @@ export const LeadSummaryCards = memo(function LeadSummaryCards({
             label="Lịch hẹn ngày mai"
             value={tomorrowAppointments?.length ?? 0}
             loading={isLoadingTomorrow}
+            {...cardFilter('tomorrow')}
           />
         </div>
       </div>

@@ -54,6 +54,30 @@
   background: #fff;
 }
 
+.clickable {
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: #c7d2fe;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+  }
+}
+
+.active,
+.active:hover {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 1px #6366f1;
+}
+
 .icon {
   display: inline-flex;
   flex-shrink: 0;

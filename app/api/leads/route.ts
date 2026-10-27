@@ -3,6 +3,7 @@ import { fetchAllLeads, createLead } from '@/lib/services/lead.service';
 import { validateCreateLeadInput } from '@/lib/validators/lead.validator';
 import { HttpStatusCode, LeadErrorCode } from '@/constants/enums';
 import { handleRouteError } from '@/lib/utils/route-handler';
+import { isIsoDate } from '@/lib/utils/vn-date';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -16,6 +17,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const startDate = searchParams.get('startDate') ?? undefined;
     const endDate = searchParams.get('endDate') ?? undefined;
     const hasAppointment = searchParams.get('hasAppointment') === 'true';
+    const appointmentStartDate = searchParams.get('appointmentStartDate') ?? undefined;
+    const appointmentEndDate = searchParams.get('appointmentEndDate') ?? undefined;
 
     const pageStr = searchParams.get('page');
     const limitStr = searchParams.get('limit');
@@ -33,6 +36,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       startDate: startDate || undefined,
       endDate: endDate || undefined,
       hasAppointment: hasAppointment || undefined,
+      appointmentStartDate:
+        appointmentStartDate && isIsoDate(appointmentStartDate) ? appointmentStartDate : undefined,
+      appointmentEndDate:
+        appointmentEndDate && isIsoDate(appointmentEndDate) ? appointmentEndDate : undefined,
       page,
       limit,
     });

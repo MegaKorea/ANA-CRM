@@ -4,7 +4,7 @@ import { Suspense, useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { App, Table, Row, Col, Form, Empty, Pagination, Spin } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
-import type { Lead } from '@/lib/services/lead.service';
+import type { Lead, LeadQueryParams } from '@/lib/services/lead.service';
 import type { CreateLeadInput, UpdateLeadInput } from '@/lib/validators/lead.validator';
 import { useLeads, useLead, useCreateLead, useUpdateLead, useDeleteLead } from '@/lib/hooks/use-leads';
 import { useLeadModal } from '@/lib/hooks/use-lead-modal';
@@ -15,7 +15,7 @@ import {
   type CareMilestone,
 } from '@/app/lead/constants';
 import type { LeadFormValues } from '@/app/lead/components/LeadModal';
-import { LeadStatus, LeadSource } from '@/constants/enums';
+import { LeadStatus, LeadSource, DateFormat } from '@/constants/enums';
 import { type LocationValue } from '@/components/common/LocationSelect';
 import type { LocationValueV2 } from '@/components/common/LocationSelectV2';
 import { useCourses } from '@/lib/hooks/use-courses';
@@ -23,7 +23,11 @@ import { useIsMobile } from '@/lib/hooks/use-mobile';
 import dynamic from 'next/dynamic';
 import { LeadFilters } from '@/app/lead/components/LeadFilters';
 import { LeadMobileCard } from '@/app/lead/components/LeadMobileCard';
-import { LeadSummaryCards } from '@/app/lead/components/LeadSummaryCards';
+import {
+  LeadSummaryCards,
+  resolveSummaryRange,
+  type LeadStatFilter,
+} from '@/app/lead/components/LeadSummaryCards';
 import {
   LeadColumnSettings,
   useLeadHiddenColumns,
@@ -115,6 +119,7 @@ function LeadPageContent() {
   const [courseFilter, setCourseFilter] = useState<string | undefined>(undefined);
   const [createdAtRange, setCreatedAtRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [careMilestone, setCareMilestone] = useState<CareMilestone | undefined>(undefined);
+  const [statFilter, setStatFilter] = useState<LeadStatFilter | undefined>(undefined);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(LEAD_PAGE_SIZE_OPTIONS[0]);
@@ -143,6 +148,7 @@ function LeadPageContent() {
     setCourseFilter(undefined);
     setCreatedAtRange(null);
     setCareMilestone(undefined);
+    setStatFilter(undefined);
     setCurrentPage(1);
     setFocusAppointmentLeadId(appointmentDeepLinkLead.id);
   }
@@ -182,6 +188,11 @@ function LeadPageContent() {
     setCurrentPage(1);
   }, []);
 
+  const handleStatFilterChange = useCallback((val: LeadStatFilter | undefined) => {
+    setStatFilter(val);
+    setCurrentPage(1);
+  }, []);
+
   const createdAtBounds = useMemo(
     () => resolveCreatedAtBounds(createdAtRange, careMilestone),
     [createdAtRange, careMilestone],
@@ -199,14 +210,42 @@ function LeadPageContent() {
     [searchKeyword, statusFilter, sourceFilter, courseFilter, createdAtBounds],
   );
 
+  // A clicked stat card narrows the table to the leads behind its number, so
+  // the funnel cards use the funnel's own range and the today/tomorrow cards
+  // ignore the created-at range (their counts are fixed to the appointment day).
+  const statQuery = useMemo((): LeadQueryParams | null => {
+    switch (statFilter) {
+      case 'booked':
+        return { ...resolveSummaryRange(createdAtBounds), hasAppointment: true };
+      case 'converted':
+        return { ...resolveSummaryRange(createdAtBounds), status: LeadStatus.CONVERTED };
+      case 'today':
+      case 'tomorrow': {
+        const day = dayjs()
+          .add(statFilter === 'tomorrow' ? 1 : 0, 'day')
+          .format(DateFormat.ISO_DATE);
+        return {
+          startDate: undefined,
+          endDate: undefined,
+          appointmentStartDate: day,
+          appointmentEndDate: day,
+        };
+      }
+      default:
+        return null;
+    }
+  }, [statFilter, createdAtBounds]);
+
+  const tableStatus = statQuery?.status ?? statusFilter;
   const { data, isLoading } = useLeads({
     search: searchKeyword || undefined,
-    status: statusFilter,
-    excludeStatus: statusFilter ? undefined : LeadStatus.CONVERTED,
+    status: tableStatus,
+    excludeStatus: tableStatus || statQuery ? undefined : LeadStatus.CONVERTED,
     source: sourceFilter,
     course_id: courseFilter,
     startDate: createdAtBounds.startDate,
     endDate: createdAtBounds.endDate,
+    ...statQuery,
     page: currentPage,
     limit: pageSize,
   });
@@ -410,7 +449,11 @@ function LeadPageContent() {
 
   return (
     <div>
-      <LeadSummaryCards filters={summaryFilters} />
+      <LeadSummaryCards
+        filters={summaryFilters}
+        activeFilter={statFilter}
+        onFilterChange={handleStatFilterChange}
+      />
 
       <LeadFilters
         searchKey={searchInputKey}
