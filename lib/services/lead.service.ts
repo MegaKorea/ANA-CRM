@@ -7,6 +7,7 @@ import { LeadsTable, NoteSummarizeItem } from '../supabase/types/tables/leads';
 import type { InsertTables, UpdateTables } from '@/types/supabase';
 import { notifyNewLead } from './push.service';
 import { AppError } from '@/errors';
+import { vnDayEndIso, vnDayStartIso } from '@/lib/utils/vn-date';
 
 export type Lead = LeadsTable['Row'];
 
@@ -21,6 +22,9 @@ export interface LeadQueryParams {
   course_id?: string;
   /** Only leads that have an appointment booked (appointment_date set). */
   hasAppointment?: boolean;
+  /** Appointment-date bounds as plain VN dates (YYYY-MM-DD), inclusive. */
+  appointmentStartDate?: string;
+  appointmentEndDate?: string;
   page?: number;
   limit?: number;
 }
@@ -62,6 +66,14 @@ export async function fetchAllLeads(params?: LeadQueryParams): Promise<Paginated
 
     if (params?.hasAppointment) {
       query = query.not('appointment_date', 'is', null);
+    }
+
+    if (params?.appointmentStartDate) {
+      query = query.gte('appointment_date', vnDayStartIso(params.appointmentStartDate));
+    }
+
+    if (params?.appointmentEndDate) {
+      query = query.lte('appointment_date', vnDayEndIso(params.appointmentEndDate));
     }
 
     if (params?.startDate) {

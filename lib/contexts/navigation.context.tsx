@@ -1,13 +1,12 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useCallback, useMemo, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { PageTransitionDelay } from '@/constants/enums/common.enum';
 
 interface NavigationContextValue {
+  /** True while a route pushed through `navigate` is still loading. */
   isNavigating: boolean;
-  navigateWithDelay: (path: string) => void;
-  cancelNavigation: () => void;
+  navigate: (path: string) => void;
 }
 
 const NavigationContext = createContext<NavigationContextValue | undefined>(undefined);
@@ -18,46 +17,18 @@ interface NavigationProviderProps {
 
 export function NavigationProvider({ children }: NavigationProviderProps) {
   const router = useRouter();
-  const [isNavigating, setIsNavigating] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Navigating inside a transition keeps the current page interactive while
+  // the next one loads, and `isPending` drives the top progress bar.
+  const [isNavigating, startTransition] = useTransition();
 
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  const navigateWithDelay = useCallback(
+  const navigate = useCallback(
     (path: string) => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      setIsNavigating(true);
-
-      timeoutRef.current = setTimeout(() => {
-        router.push(path);
-        setIsNavigating(false);
-        timeoutRef.current = null;
-      }, PageTransitionDelay.DEFAULT);
+      startTransition(() => router.push(path));
     },
     [router]
   );
 
-  const cancelNavigation = useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    setIsNavigating(false);
-  }, []);
-
-  const contextValue = useMemo(
-    () => ({ isNavigating, navigateWithDelay, cancelNavigation }),
-    [isNavigating, navigateWithDelay, cancelNavigation]
-  );
+  const contextValue = useMemo(() => ({ isNavigating, navigate }), [isNavigating, navigate]);
 
   return (
     <NavigationContext.Provider value={contextValue}>

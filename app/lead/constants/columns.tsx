@@ -289,6 +289,13 @@ export const getLeadTableColumns = ({
       render: (_: unknown, record: Lead) => <LeadStatusSelect lead={record} />,
     },
     {
+      title: 'Tiềm năng',
+      key: 'rate',
+      align: 'center',
+      width: 140,
+      render: (_: unknown, record: Lead) => <LeadRate lead={record} />,
+    },
+    {
       title: LeadPageText.COLUMN_APPOINTMENT_DATE,
       dataIndex: 'appointment_date',
       key: 'appointment_date',
@@ -334,13 +341,6 @@ export const getLeadTableColumns = ({
           </span>
         );
       },
-    },
-    {
-      title: 'Tiềm năng',
-      key: 'rate',
-      align: 'center',
-      width: 140,
-      render: (_: unknown, record: Lead) => <LeadRate lead={record} />,
     },
     // tạm ẩn cột "Thẻ Smax"
     // {

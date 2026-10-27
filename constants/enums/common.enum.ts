@@ -31,10 +31,6 @@ export enum RoleId {
   EXCLUDED = 4,
 }
 
-export enum PageTransitionDelay {
-  DEFAULT = 500,
-}
-
 export enum DateFormat {
   ISO_DATE = 'YYYY-MM-DD',
 }
