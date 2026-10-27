@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { App, Select } from 'antd';
+import { App, Select, Tag } from 'antd';
 import { LuCheck, LuChevronDown } from 'react-icons/lu';
 import type { Lead } from '@/lib/services/lead.service';
 import type { Course } from '@/lib/services/course.service';
@@ -12,27 +12,11 @@ import { getLeadStatusColor } from '@/app/lead/constants/lead-helpers';
 import { toSentenceCase } from '@/lib/utils/text-case';
 import styles from './LeadInlineSelects.module.scss';
 
-// Dot colours for the antd preset names used by LEAD_STATUS_COLORS.
-const STATUS_DOT_COLOR: Record<string, string> = {
-  default: '#9ca3af',
-  purple: '#8b5cf6',
-  magenta: '#db2777',
-  volcano: '#ea580c',
-  orange: '#f59e0b',
-  green: '#16a34a',
-  red: '#dc2626',
-  gold: '#ca8a04',
-};
-
 function StatusLabel({ status }: { status: string }) {
   return (
-    <span className={styles.status}>
-      <span
-        className={styles.dot}
-        style={{ background: STATUS_DOT_COLOR[getLeadStatusColor(status)] ?? STATUS_DOT_COLOR.default }}
-      />
+    <Tag className={styles.status} color={getLeadStatusColor(status)} variant="solid">
       {toSentenceCase(LeadStatusLabel[status as keyof typeof LeadStatusLabel] ?? status)}
-    </span>
+    </Tag>
   );
 }
 

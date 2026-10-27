@@ -29,18 +29,8 @@
   width: 200px;
 }
 
-.status {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #374151;
-}
-
-.dot {
-  flex-shrink: 0;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+.status:global(.ant-tag) {
+  margin-inline-end: 0;
 }
 
 // Course names as "A, B" instead of removable chips.
