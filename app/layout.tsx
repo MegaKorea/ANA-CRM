@@ -3,6 +3,7 @@ import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { AppProviders } from '@/providers';
 import { ConditionalLayout } from '@/components/layout/ConditionalLayout';
 import logoAna from '@/app/assets/logo/logo-ana.png';
+import { ThemeMode, ThemeStorageKey } from '@/constants/enums/theme.enum';
 import './scss/index.scss';
 
 export const metadata: Metadata = {
@@ -15,6 +16,9 @@ export const metadata: Metadata = {
   },
 };
 
+// Runs before first paint so a reload in dark mode never flashes the light theme.
+const themeBootScript = `try{if(localStorage.getItem('${ThemeStorageKey.MODE}')==='${ThemeMode.DARK}')document.documentElement.classList.add('${ThemeMode.DARK}')}catch(e){}`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -22,6 +26,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+      </head>
       <body>
         <AntdRegistry>
           <AppProviders>

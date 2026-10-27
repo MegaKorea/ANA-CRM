@@ -130,9 +130,16 @@
   --color-surface: var(--bg-surface);
   --color-divider: var(--border);
   --shadow-header: var(--shadow-sm);
+
+  --lead-focus-bg: #fff1f2;
+
+  // Native scrollbars, inputs and date pickers follow the theme.
+  color-scheme: light;
 }
 
 :root.dark {
+  color-scheme: dark;
+
   --bg-app: #14161f;
   --bg-surface: #1c1f2a;
   --bg-sunken: #232633;
@@ -157,4 +164,10 @@
   --info-text: #93c5fd;
 
   --shadow-header: 0 1px 4px rgba(0, 0, 0, 0.35);
+  --shadow-md:
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.5);
+
+  --lead-focus-bg: rgba(251, 113, 133, 0.16);
 }

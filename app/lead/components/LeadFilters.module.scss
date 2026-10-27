@@ -4,9 +4,9 @@
   align-items: center;
   gap: 12px;
   padding: 16px;
-  border: 1px solid #e8ecf3;
+  border: 1px solid var(--border);
   border-radius: 16px;
-  background: #fff;
+  background: var(--bg-surface);
 }
 
 .search {
@@ -20,7 +20,7 @@
 .prefix {
   margin-inline-end: 4px;
   font-size: 16px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .create:global(.ant-btn) {

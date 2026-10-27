@@ -63,11 +63,20 @@ function getServerSnapshot(): ThemeMode {
   return ThemeMode.LIGHT;
 }
 
+const THEME_SWITCHING_CLASS = 'theme-switching';
+
 function setTheme(mode: ThemeMode) {
   currentTheme = mode;
   if (typeof window !== 'undefined') {
     localStorage.setItem(ThemeStorageKey.MODE, mode);
+    // Pause CSS transitions for the swap so every surface changes colour in
+    // the same frame instead of each one fading at its own speed.
+    const root = document.documentElement;
+    root.classList.add(THEME_SWITCHING_CLASS);
     applyDocumentTheme(mode);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => root.classList.remove(THEME_SWITCHING_CLASS));
+    });
   }
   listeners.forEach((l) => l());
 }

@@ -60,14 +60,21 @@ body {
   }
 }
 
+.theme-switching,
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
+
 .lead-appointment-focus {
-  background: #fff1f2 !important;
+  background: var(--lead-focus-bg) !important;
   outline: 2px solid #fb7185;
   outline-offset: -2px;
 }
 
 .ant-table-tbody > tr.lead-appointment-focus > td {
-  background: #fff1f2 !important;
+  background: var(--lead-focus-bg) !important;
 }
 
 [data-lead-appointment] {
