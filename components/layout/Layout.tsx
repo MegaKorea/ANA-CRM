@@ -2,9 +2,11 @@
 
 import { useState, useCallback, useSyncExternalStore, type ReactNode } from 'react';
 import { Layout, Drawer } from 'antd';
+import { m } from 'motion/react';
+import { usePathname } from 'next/navigation';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
-import { PageTransitionOverlay } from '@/components/common/PageTransitionOverlay';
+import { NavigationProgress } from '@/components/common/NavigationProgress';
 import { useNavigation } from '@/lib/contexts/navigation.context';
 import { useIsLayoutMobile } from '@/lib/hooks/use-mobile';
 import styles from './Layout.module.scss';
@@ -57,6 +59,7 @@ export function CRMLayout({ children }: CRMLayoutProps) {
   const mounted = useSyncExternalStore(subscribeToClient, () => true, () => false);
   const isMobile = useIsLayoutMobile();
   const { isNavigating } = useNavigation();
+  const pathname = usePathname();
   const { themeMode } = useTheme();
 
   const [prevIsMobile, setPrevIsMobile] = useState(isMobile);
@@ -106,11 +109,19 @@ export function CRMLayout({ children }: CRMLayoutProps) {
         <Header collapsed={collapsed} onToggle={handleToggle} />
 
         <Content className={styles.content}>
-          {children}
+          {/* Opacity only: a transform here would trap position: fixed children. */}
+          <m.div
+            key={pathname}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+          >
+            {children}
+          </m.div>
         </Content>
       </Layout>
 
-      <PageTransitionOverlay visible={isNavigating} />
+      <NavigationProgress visible={isNavigating} />
     </Layout>
   );
 }

@@ -1,8 +1,8 @@
 'use client';
 
 import { Layout, Menu, Skeleton, type MenuProps, Typography } from 'antd';
-import { usePathname } from 'next/navigation';
-import { useMemo, useState, useSyncExternalStore } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import styles from './Sidebar.module.scss';
 import logo from '../../app/assets/logo/logo-ana.png';
 import Image from 'next/image';
@@ -18,6 +18,16 @@ const { Sider } = Layout;
 const subscribeToClient = () => () => {};
 
 const OPEN_KEYS_STORAGE_KEY = 'sidebar:openKeys';
+
+type RouteNode = { key?: unknown; children?: RouteNode[] } | null;
+
+function collectRoutes(items: RouteNode[]): string[] {
+  return items.flatMap((item) => {
+    if (!item) return [];
+    if (item.children) return collectRoutes(item.children);
+    return typeof item.key === 'string' && item.key.startsWith('/') ? [item.key] : [];
+  });
+}
 
 function readStoredOpenKeys(): string[] | null {
   try {
@@ -45,7 +55,8 @@ interface SidebarProps {
 export function Sidebar({ collapsed, isMobile, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { themeMode } = useTheme();
-  const { navigateWithDelay } = useNavigation();
+  const router = useRouter();
+  const { navigate } = useNavigation();
   const roleCode = useUserRoleCode();
   const isLoading = useAuthLoading();
 
@@ -55,6 +66,12 @@ export function Sidebar({ collapsed, isMobile, onClose }: SidebarProps) {
   );
 
   const selectedKeys = useMemo(() => [pathname], [pathname]);
+
+  // Warm every page the user can reach from the menu so clicks open instantly.
+  useEffect(() => {
+    if (isLoading) return;
+    collectRoutes(filteredMenuItems as RouteNode[]).forEach((route) => router.prefetch(route));
+  }, [isLoading, filteredMenuItems, router]);
 
   const routeDefaultOpenKeys = useMemo(() => {
     const paths = pathname.split('/').filter(Boolean);
@@ -82,7 +99,7 @@ export function Sidebar({ collapsed, isMobile, onClose }: SidebarProps) {
   };
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
-    navigateWithDelay(key);
+    navigate(key);
     if (isMobile && onClose) {
       onClose();
     }

@@ -1,0 +1,11 @@
+.bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2000;
+  height: 3px;
+  background: var(--ant-color-primary, #1677ff);
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
