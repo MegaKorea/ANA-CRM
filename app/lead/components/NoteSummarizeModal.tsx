@@ -94,8 +94,8 @@ export function NoteSummarizeModal({ open, lead, onClose }: NoteSummarizeModalPr
     <Modal
       open={open}
       title={
-        <div style={{ fontSize: '18px', fontWeight: 600, color: '#111827' }}>
-          Ghi chú ghi âm <span style={{ color: '#6b7280', fontWeight: 400 }}>- {lead?.full_name || ''}</span>
+        <div style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' }}>
+          Ghi chú ghi âm <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>- {lead?.full_name || ''}</span>
         </div>
       }
       onCancel={onClose}

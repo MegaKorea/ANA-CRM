@@ -1,11 +1,12 @@
 .root {
   --cal-accent: #ec008c;
   --cal-accent-soft: color-mix(in srgb, #ec008c 10%, transparent);
-  --cal-surface: var(--ant-color-bg-container, #fff);
-  --cal-muted: var(--ant-color-fill-tertiary, #f5f5f5);
-  --cal-border: var(--ant-color-border-secondary, #f0f0f0);
-  --cal-text: var(--ant-color-text, #1f1f1f);
-  --cal-secondary: var(--ant-color-text-secondary, #8c8c8c);
+  /* App theme tokens, so the calendar follows light/dark mode. */
+  --cal-surface: var(--bg-surface);
+  --cal-muted: var(--bg-sunken);
+  --cal-border: var(--border);
+  --cal-text: var(--text-primary);
+  --cal-secondary: var(--text-secondary);
 
   display: flex;
   flex-direction: column;
@@ -166,7 +167,7 @@
 
 .dayDetailCard:hover,
 .dayDetailCard:active {
-  background: color-mix(in srgb, var(--cal-accent) 6%, #fff);
+  background: color-mix(in srgb, var(--cal-accent) 6%, var(--cal-surface));
 }
 
 .dayDetailCardHead {
@@ -289,7 +290,7 @@
 }
 
 .timeDayHeadToday .timeDayName {
-  color: color-mix(in srgb, var(--cal-accent) 70%, #1f1f1f);
+  color: color-mix(in srgb, var(--cal-accent) 70%, var(--cal-text));
 }
 
 .timeDayNum {
@@ -301,7 +302,7 @@
 }
 
 .timeDayHeadToday .timeDayNum {
-  color: color-mix(in srgb, var(--cal-accent) 75%, #1f1f1f);
+  color: color-mix(in srgb, var(--cal-accent) 75%, var(--cal-text));
 }
 
 .timeWeekBody {
@@ -639,12 +640,12 @@
 }
 
 .calDayPast::before {
-  background: #bfbfbf;
+  background: var(--text-disabled);
 }
 
 .calDayTodayStatus {
-  background: color-mix(in srgb, var(--cal-accent) 10%, #fff);
-  color: color-mix(in srgb, var(--cal-accent) 55%, #1f1f1f);
+  background: color-mix(in srgb, var(--cal-accent) 10%, var(--cal-surface));
+  color: color-mix(in srgb, var(--cal-accent) 55%, var(--cal-text));
 }
 
 .calDayTodayStatus::before {
@@ -652,8 +653,8 @@
 }
 
 .calDayUpcoming {
-  background: color-mix(in srgb, #10b981 10%, #fff);
-  color: #065f46;
+  background: color-mix(in srgb, #10b981 10%, var(--cal-surface));
+  color: var(--success-text);
 }
 
 .calDayUpcoming::before {
@@ -661,11 +662,11 @@
 }
 
 .calDayIsToday:not(.calDayTodayStatus):not(.calDayPast):not(.calDayUpcoming) {
-  background: color-mix(in srgb, var(--cal-accent) 6%, #fff);
+  background: color-mix(in srgb, var(--cal-accent) 6%, var(--cal-surface));
 }
 
 .calDaySelected {
-  background: color-mix(in srgb, var(--cal-accent) 14%, #fff);
+  background: color-mix(in srgb, var(--cal-accent) 14%, var(--cal-surface));
 }
 
 .calDayOut {
@@ -695,8 +696,8 @@
   letter-spacing: 0.02em;
   padding: 1px 6px;
   border-radius: 999px;
-  background: color-mix(in srgb, #faad14 18%, #fff);
-  color: #ad6800;
+  background: color-mix(in srgb, #faad14 18%, var(--cal-surface));
+  color: var(--warning-text);
   white-space: nowrap;
   flex-shrink: 1;
   min-width: 0;
@@ -739,7 +740,7 @@
   padding: 5px 6px;
   border: none;
   border-radius: 8px;
-  background: color-mix(in srgb, #fff 72%, transparent);
+  background: color-mix(in srgb, var(--cal-surface) 72%, transparent);
   text-align: left;
   cursor: pointer;
   min-width: 0;
@@ -747,7 +748,7 @@
 }
 
 .calDayEvent:hover {
-  background: #fff;
+  background: var(--cal-surface);
 }
 
 .calDayEventHead {
@@ -965,7 +966,7 @@
 
   .mobileDayChipSelected .mobileDayChipName,
   .mobileDayChipSelected .mobileDayChipNum {
-    color: color-mix(in srgb, var(--cal-accent) 75%, #1f1f1f);
+    color: color-mix(in srgb, var(--cal-accent) 75%, var(--cal-text));
   }
 
   .mobileDayTitle {

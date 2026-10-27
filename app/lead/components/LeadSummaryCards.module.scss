@@ -3,9 +3,9 @@
   align-items: stretch;
   gap: 24px;
   padding: 16px;
-  border: 1px solid #e8ecf3;
+  border: 1px solid var(--border);
   border-radius: 16px;
-  background: linear-gradient(180deg, #f8faff 0%, #f5f6fb 100%);
+  background: var(--bg-sunken);
 }
 
 .group {
@@ -49,9 +49,9 @@
   gap: 12px;
   min-width: 0;
   padding: 12px;
-  border: 1px solid #edf0f5;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg-surface);
 }
 
 .clickable {
@@ -63,7 +63,7 @@
     box-shadow 0.15s ease;
 
   &:hover {
-    border-color: #c7d2fe;
+    border-color: color-mix(in srgb, #6366f1 45%, var(--border));
   }
 
   &:focus-visible {
@@ -99,13 +99,13 @@
   font-size: 20px;
   font-weight: 700;
   line-height: 1.2;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .label {
   overflow: hidden;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -119,31 +119,31 @@
 .divider {
   flex-shrink: 0;
   width: 1px;
-  background: #e5e7eb;
+  background: var(--border);
 }
 
 .blue {
-  background: #e8f1ff;
+  background: color-mix(in srgb, #1677ff 14%, transparent);
   color: #1677ff;
 }
 
 .orange {
-  background: #fff1e6;
+  background: color-mix(in srgb, #f97316 14%, transparent);
   color: #f97316;
 }
 
 .green {
-  background: #e7f8ee;
+  background: color-mix(in srgb, #16a34a 14%, transparent);
   color: #16a34a;
 }
 
 .purple {
-  background: #f1ebff;
-  color: #7c3aed;
+  background: color-mix(in srgb, #7c3aed 16%, transparent);
+  color: #8b5cf6;
 }
 
 .amber {
-  background: #fff7e0;
+  background: color-mix(in srgb, #f59e0b 14%, transparent);
   color: #f59e0b;
 }
 
@@ -156,7 +156,7 @@
 }
 
 .purpleText {
-  color: #7c3aed;
+  color: #8b5cf6;
 }
 
 @media (max-width: 1200px) {

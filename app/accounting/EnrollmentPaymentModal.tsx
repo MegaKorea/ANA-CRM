@@ -196,7 +196,7 @@ export function EnrollmentPaymentModal({ open, enrollment, onClose }: Enrollment
                       position: 'absolute',
                       top: -4,
                       right: -4,
-                      background: 'rgba(255,255,255,0.9)',
+                      background: 'var(--bg-surface)',
                       borderRadius: '50%',
                       padding: 2,
                       width: 22,

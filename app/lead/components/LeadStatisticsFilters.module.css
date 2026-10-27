@@ -43,7 +43,7 @@
 
 .dash {
   flex-shrink: 0;
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--text-tertiary);
 }
 
 @media (min-width: 768px) {
